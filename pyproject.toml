@@ -1,0 +1,81 @@
+[project]
+name = "stepalesengine"
+version = "0.3.0"
+description = "Robust STEP-file feature detection, classification, and flat-pattern DXF/XML export."
+requires-python = ">=3.10"
+dependencies = [
+    "ezdxf>=1.3",
+    "pyyaml>=6.0",
+    "numpy>=1.24",
+    "reportlab>=4.0",
+    "watchdog>=3.0",
+]
+
+[project.optional-dependencies]
+occt = ["cadquery-ocp>=7.7"]
+dev = ["pytest>=7.0", "pytest-cov>=4.1", "hypothesis>=6.0", "ruff>=0.6", "pre-commit>=3.7", "mypy>=1.10"]
+web = ["flask>=3.0"]
+
+[project.scripts]
+stepalesengine = "manufacturing_pipeline.cli:main"
+stepalesengine-web = "manufacturing_pipeline.web.server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["manufacturing_pipeline*"]
+
+[tool.setuptools.package-data]
+"manufacturing_pipeline.web" = ["templates/*.css", "templates/*.jinja", "templates/*.html.jinja"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "slow: tests that take more than ~5 seconds each (deselect with -m 'not slow')",
+    "integration: end-to-end integration tests",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "E501",  # line length handled separately
+    "B905",  # zip-without-strict: widespread; adding strict= could alter semantics
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+ignore_missing_imports = true
+exclude = ["tests/fixtures/", ".pytest_cache/"]
+
+[[tool.mypy.overrides]]
+module = ["OCP.*", "ezdxf.*", "trimesh.*", "shapely.*", "scipy.*", "mapbox_earcut.*", "playwright.*", "yaml.*", "reportlab.*", "flask.*", "werkzeug.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["manufacturing_pipeline"]
+omit = [
+    "manufacturing_pipeline/__main__.py",
+    "manufacturing_pipeline/cli/__main__.py",
+    "manufacturing_pipeline/cli/_*.py",
+    "tests/*",
+    "*/__pycache__/*",
+]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+precision = 1
+exclude_lines = ["pragma: no cover", "raise NotImplementedError", "if __name__ == .__main__.:"]

@@ -1,0 +1,96 @@
+# Schema for standard structural-profile catalog files
+#
+# Each file under data/profiles/ holds one standard family. The top-level
+# keys describe the issuing standard; the `profiles:` list holds entries.
+#
+# See docs/ROBUST_FEATURE_DETECTION_PLAN.md §6 (Profile Cross-Section Matcher)
+# for how these tables are consumed.
+
+schema_version: 1
+units: mm
+weight_units: kg/m
+area_units: mm^2
+
+top_level:
+  standard:
+    type: string
+    required: true
+    description: "Issuing standard, e.g. 'DIN 1025-3', 'EN 10210-2', 'EN 10056'."
+  family:
+    type: string
+    required: true
+    enum: [I, U, L, T, Z, RHS, SHS, CHS]
+    description: "Shape family. Drives which geometric fields are present."
+  units:
+    type: string
+    required: true
+    description: "All linear dimensions in this file. Always 'mm'."
+  profiles:
+    type: list
+    required: true
+    description: "List of designation entries, schema below."
+
+entry_common:
+  designation:
+    type: string
+    required: true
+    description: "Canonical human designation, e.g. 'HEA 200', 'RHS 100x60x4'."
+  family:
+    type: string
+    required: true
+    description: "Same as top-level family. Repeated for entry self-description."
+  standard:
+    type: string
+    required: true
+    description: "Same as top-level standard. Repeated for entry self-description."
+  weight_per_m:
+    type: number
+    required: false
+    description: "Nominal weight per metre in kg/m."
+  area_section:
+    type: number
+    required: false
+    description: "Cross-section area in mm^2."
+
+entry_fields_by_family:
+  I:
+    h: "Overall section height (mm)."
+    b: "Flange width (mm)."
+    t_w: "Web thickness (mm)."
+    t_f: "Flange thickness (mm)."
+    r: "Fillet radius web-to-flange (mm)."
+  U:
+    h: "Overall section height (mm)."
+    b: "Flange width (mm)."
+    t_w: "Web thickness (mm)."
+    t_f: "Mean flange thickness (mm). For UPE/UNP-tapered families use the mean value."
+    r: "Fillet radius web-to-flange (mm)."
+  T:
+    h: "Overall section height (mm)."
+    b: "Flange width (mm)."
+    t_w: "Stem thickness (mm)."
+    t_f: "Flange thickness (mm)."
+    r: "Fillet radius (mm)."
+  L:
+    h: "Long-leg length (mm). Equals short leg for equal angles."
+    b: "Short-leg length (mm)."
+    t: "Leg thickness (mm)."
+    r: "Inner toe / fillet radius (mm) — optional."
+  RHS:
+    h: "Larger outside dimension (mm)."
+    b: "Smaller outside dimension (mm)."
+    t: "Wall thickness (mm)."
+    r_outer: "Outside corner radius (mm). Per EN 10210-2: 2t for t<=6, 2.5t for 6<t<=10, 3t for t>10."
+  SHS:
+    h: "Outside dimension (mm). For SHS h == b."
+    b: "Outside dimension (mm). For SHS h == b."
+    t: "Wall thickness (mm)."
+    r_outer: "Outside corner radius (mm), same formula as RHS."
+  CHS:
+    d: "Outer diameter (mm)."
+    t: "Wall thickness (mm)."
+
+notes:
+  - "Omit fields that do not apply to a family."
+  - "Fillet / corner radii are nominal; matcher tolerances should be generous (~1 mm)."
+  - "Where a value was interpolated rather than read from the standard, this is acceptable for matching but not for structural design."

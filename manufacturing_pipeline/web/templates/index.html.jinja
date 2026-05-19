@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Manifest — {{ manifest.source_path | basename }}</title>
+<style>{{ css|safe }}
+.toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+           margin-bottom: 12px; }
+.toolbar input[type=search] { flex: 1; min-width: 220px; padding: 8px 12px;
+           border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
+           background: white; }
+.toolbar input[type=search]:focus { outline: none; border-color: #1a5dd9;
+           box-shadow: 0 0 0 3px rgba(26,93,217,0.15); }
+.toolbar .count { font-size: 13px; color: #555; font-variant-numeric: tabular-nums;
+           white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <h1>{{ manifest.source_path | basename }}</h1>
+  <p class="muted">
+    Model {{ manifest.model_version }} &middot; generated {{ manifest.generated_at }} &middot;
+    <a href="/api/manifest">API JSON</a> &middot;
+    <a href="/dxfs.zip">Download all DXFs (.zip)</a> &middot;
+    <a href="/diff">Diff</a>
+  </p>
+
+  <div class="card">
+  <div class="toolbar">
+    <input type="search" id="bom-filter" placeholder="filter parts..."
+           aria-label="filter parts" autocomplete="off">
+    <span class="count" id="bom-count">showing {{ manifest.parts|length }} of {{ manifest.parts|length }}</span>
+  </div>
+  <table id="bom-table">
+    <thead>
+      <tr>
+        <th>Product ID</th>
+        <th>Name</th>
+        <th>Label</th>
+        <th>Confidence</th>
+        <th>PMI</th>
+        <th>Qty</th>
+        <th>DXF</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for entry in manifest.parts %}
+      <tr>
+        <td><a href="/part/{{ entry.part.product_id|urlencode }}">{{ entry.part.product_id }}</a></td>
+        <td>{{ entry.part.name or "—" }}</td>
+        <td>
+          <span class="label label-{{ entry.classification.label }}">
+            {{ entry.classification.label }}
+          </span>
+        </td>
+        <td>
+          <span class="bar" title="{{ '%.3f'|format(entry.classification.confidence) }}">
+            <span style="width: {{ (entry.classification.confidence * 100)|round(1) }}%"></span>
+          </span>
+          <span class="muted">{{ '%.2f'|format(entry.classification.confidence) }}</span>
+        </td>
+        <td>
+          {% if entry.pmi and entry.pmi.n_annotations %}
+            {% if entry.pmi.has_semantic %}<span class="pmi-sem">&#9679;</span> {% endif %}{{ entry.pmi.n_annotations }}
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>{{ entry.quantity }}</td>
+        <td>
+          {% if entry.flat_dxf_path %}
+            <a href="/dxf-svg/{{ entry.flat_dxf_path | basename }}">preview</a>
+            &middot;
+            <a href="/dxf/{{ entry.flat_dxf_path | basename }}">.dxf</a>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  <p class="muted">{{ manifest.parts|length }} part(s) total.</p>
+</div>
+<script>
+(function () {
+  var input = document.getElementById("bom-filter");
+  var counter = document.getElementById("bom-count");
+  var table = document.getElementById("bom-table");
+  if (!input || !table || !counter) return;
+  var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+  var total = rows.length;
+  function apply() {
+    var q = input.value.toLowerCase().trim();
+    var shown = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var match = q === "" || row.textContent.toLowerCase().indexOf(q) !== -1;
+      row.style.display = match ? "" : "none";
+      if (match) shown++;
+    }
+    counter.textContent = "showing " + shown + " of " + total;
+  }
+  input.addEventListener("input", apply);
+})();
+</script>
+</body>
+</html>

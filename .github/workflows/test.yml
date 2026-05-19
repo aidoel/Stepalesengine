@@ -1,0 +1,71 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-
+
+      - name: Install package with occt extras
+        id: install_occt
+        continue-on-error: true
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,occt]"
+
+      - name: Install package without occt extras (fallback)
+        if: steps.install_occt.outcome == 'failure'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ruff check (errors only)
+        continue-on-error: true
+        run: |
+          ruff check manufacturing_pipeline/ tests/
+
+      - name: Run full test suite (with coverage)
+        if: steps.install_occt.outcome == 'success'
+        timeout-minutes: 10
+        run: |
+          pytest --cov=manufacturing_pipeline --cov-report=term --cov-report=html --cov-report=xml -q
+
+      - name: Run OCP-free test subset (with coverage)
+        if: steps.install_occt.outcome == 'failure'
+        timeout-minutes: 10
+        run: |
+          pytest --cov=manufacturing_pipeline --cov-report=term -q tests/parsing/ tests/classification/ tests/io/test_xml_writer.py
+
+      - name: Upload coverage HTML
+        if: steps.install_occt.outcome == 'success' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html-${{ matrix.python-version }}
+          path: htmlcov/
+          if-no-files-found: ignore

@@ -1,0 +1,985 @@
+# Hot-finished rectangular hollow sections per EN 10210-2.
+# Outside corner radius per standard: r_outer = 2.0t (t <= 6),
+# 2.5t (6 < t <= 10), 3.0t (t > 10).
+# Weights computed from nominal cross-section x 7.85 g/cm^3.
+
+standard: "EN 10210-2"
+family: "RHS"
+units: "mm"
+
+profiles:
+  # 40x20
+  - designation: "RHS 40x20x2"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 40.0
+    b: 20.0
+    t: 2.0
+    r_outer: 4.0
+    weight_per_m: 1.74
+    area_section: 222.0
+  - designation: "RHS 40x20x3"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 40.0
+    b: 20.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 2.49
+    area_section: 317.0
+  - designation: "RHS 40x20x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 40.0
+    b: 20.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 3.13
+    area_section: 399.0
+
+  # 50x30
+  - designation: "RHS 50x30x2"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 30.0
+    t: 2.0
+    r_outer: 4.0
+    weight_per_m: 2.37
+    area_section: 302.0
+  - designation: "RHS 50x30x3"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 30.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 3.43
+    area_section: 437.0
+  - designation: "RHS 50x30x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 30.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 4.39
+    area_section: 559.0
+  - designation: "RHS 50x30x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 30.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 5.28
+    area_section: 673.0
+
+  # 60x40
+  - designation: "RHS 60x40x3"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 40.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 4.37
+    area_section: 557.0
+  - designation: "RHS 60x40x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 40.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 5.64
+    area_section: 719.0
+  - designation: "RHS 60x40x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 40.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 6.85
+    area_section: 873.0
+  - designation: "RHS 60x40x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 40.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 7.99
+    area_section: 1018.0
+
+  # 80x40
+  - designation: "RHS 80x40x3"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 40.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 5.31
+    area_section: 677.0
+  - designation: "RHS 80x40x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 40.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 6.90
+    area_section: 879.0
+  - designation: "RHS 80x40x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 40.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 8.42
+    area_section: 1073.0
+  - designation: "RHS 80x40x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 40.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 9.87
+    area_section: 1258.0
+  - designation: "RHS 80x40x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 40.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 12.5
+    area_section: 1597.0
+
+  # 80x60
+  - designation: "RHS 80x60x3"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 60.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 6.25
+    area_section: 797.0
+  - designation: "RHS 80x60x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 60.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 8.15
+    area_section: 1039.0
+  - designation: "RHS 80x60x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 60.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 9.99
+    area_section: 1273.0
+  - designation: "RHS 80x60x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 60.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 11.8
+    area_section: 1498.0
+  - designation: "RHS 80x60x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 60.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 15.0
+    area_section: 1917.0
+
+  # 100x50
+  - designation: "RHS 100x50x3"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 50.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 6.71
+    area_section: 857.0
+  - designation: "RHS 100x50x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 50.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 8.78
+    area_section: 1119.0
+  - designation: "RHS 100x50x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 50.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 10.8
+    area_section: 1373.0
+  - designation: "RHS 100x50x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 50.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 12.7
+    area_section: 1618.0
+  - designation: "RHS 100x50x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 50.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 16.3
+    area_section: 2077.0
+
+  # 100x60
+  - designation: "RHS 100x60x3"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 60.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 7.18
+    area_section: 917.0
+  - designation: "RHS 100x60x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 60.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 9.41
+    area_section: 1199.0
+  - designation: "RHS 100x60x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 60.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 11.6
+    area_section: 1473.0
+  - designation: "RHS 100x60x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 60.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 13.6
+    area_section: 1738.0
+  - designation: "RHS 100x60x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 60.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 17.5
+    area_section: 2237.0
+  - designation: "RHS 100x60x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 60.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 21.0
+    area_section: 2680.0
+
+  # 100x80
+  - designation: "RHS 100x80x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 80.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 10.7
+    area_section: 1359.0
+  - designation: "RHS 100x80x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 80.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 13.1
+    area_section: 1673.0
+  - designation: "RHS 100x80x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 80.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 15.5
+    area_section: 1978.0
+  - designation: "RHS 100x80x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 80.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 20.1
+    area_section: 2557.0
+
+  # 120x60
+  - designation: "RHS 120x60x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 60.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 10.7
+    area_section: 1359.0
+  - designation: "RHS 120x60x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 60.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 13.1
+    area_section: 1673.0
+  - designation: "RHS 120x60x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 60.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 15.5
+    area_section: 1978.0
+  - designation: "RHS 120x60x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 60.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 20.1
+    area_section: 2557.0
+  - designation: "RHS 120x60x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 60.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 24.1
+    area_section: 3080.0
+
+  # 120x80
+  - designation: "RHS 120x80x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 80.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 12.0
+    area_section: 1519.0
+  - designation: "RHS 120x80x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 80.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 14.7
+    area_section: 1873.0
+  - designation: "RHS 120x80x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 80.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 17.4
+    area_section: 2218.0
+  - designation: "RHS 120x80x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 80.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 22.6
+    area_section: 2877.0
+  - designation: "RHS 120x80x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 80.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 27.4
+    area_section: 3480.0
+  - designation: "RHS 120x80x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 80.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 32.9
+    area_section: 4192.0
+
+  # 140x80
+  - designation: "RHS 140x80x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 80.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 13.3
+    area_section: 1679.0
+  - designation: "RHS 140x80x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 80.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 16.3
+    area_section: 2073.0
+  - designation: "RHS 140x80x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 80.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 19.3
+    area_section: 2458.0
+  - designation: "RHS 140x80x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 80.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 25.1
+    area_section: 3197.0
+  - designation: "RHS 140x80x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 80.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 30.6
+    area_section: 3880.0
+  - designation: "RHS 140x80x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 80.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 36.8
+    area_section: 4692.0
+
+  # 150x100
+  - designation: "RHS 150x100x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 100.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 15.1
+    area_section: 1919.0
+  - designation: "RHS 150x100x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 100.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 18.6
+    area_section: 2373.0
+  - designation: "RHS 150x100x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 100.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 22.1
+    area_section: 2818.0
+  - designation: "RHS 150x100x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 100.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 28.9
+    area_section: 3677.0
+  - designation: "RHS 150x100x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 100.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 35.3
+    area_section: 4480.0
+  - designation: "RHS 150x100x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 100.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 42.8
+    area_section: 5442.0
+  - designation: "RHS 150x100x16"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 100.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 52.2
+    area_section: 6646.0
+
+  # 160x80
+  - designation: "RHS 160x80x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 80.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 14.6
+    area_section: 1839.0
+  - designation: "RHS 160x80x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 80.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 17.8
+    area_section: 2273.0
+  - designation: "RHS 160x80x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 80.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 21.2
+    area_section: 2698.0
+  - designation: "RHS 160x80x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 80.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 27.6
+    area_section: 3517.0
+  - designation: "RHS 160x80x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 80.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 33.7
+    area_section: 4280.0
+  - designation: "RHS 160x80x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 80.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 40.7
+    area_section: 5192.0
+
+  # 180x100
+  - designation: "RHS 180x100x4"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 100.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 17.0
+    area_section: 2159.0
+  - designation: "RHS 180x100x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 100.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 20.9
+    area_section: 2673.0
+  - designation: "RHS 180x100x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 100.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 24.9
+    area_section: 3178.0
+  - designation: "RHS 180x100x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 100.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 32.6
+    area_section: 4157.0
+  - designation: "RHS 180x100x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 100.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 40.0
+    area_section: 5080.0
+  - designation: "RHS 180x100x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 100.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 48.7
+    area_section: 6192.0
+  - designation: "RHS 180x100x16"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 100.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 59.7
+    area_section: 7606.0
+
+  # 200x100
+  - designation: "RHS 200x100x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 100.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 22.5
+    area_section: 2873.0
+  - designation: "RHS 200x100x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 100.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 26.8
+    area_section: 3418.0
+  - designation: "RHS 200x100x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 100.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 35.1
+    area_section: 4477.0
+  - designation: "RHS 200x100x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 100.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 43.1
+    area_section: 5480.0
+  - designation: "RHS 200x100x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 100.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 52.7
+    area_section: 6692.0
+  - designation: "RHS 200x100x16"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 100.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 64.9
+    area_section: 8246.0
+
+  # 200x120
+  - designation: "RHS 200x120x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 120.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 24.1
+    area_section: 3073.0
+  - designation: "RHS 200x120x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 120.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 28.7
+    area_section: 3658.0
+  - designation: "RHS 200x120x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 120.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 37.6
+    area_section: 4797.0
+  - designation: "RHS 200x120x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 120.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 46.3
+    area_section: 5880.0
+  - designation: "RHS 200x120x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 120.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 56.6
+    area_section: 7192.0
+  - designation: "RHS 200x120x16"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 120.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 69.9
+    area_section: 8886.0
+
+  # 250x150
+  - designation: "RHS 250x150x5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 150.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 30.4
+    area_section: 3873.0
+  - designation: "RHS 250x150x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 150.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 36.2
+    area_section: 4618.0
+  - designation: "RHS 250x150x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 150.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 47.7
+    area_section: 6077.0
+  - designation: "RHS 250x150x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 150.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 58.8
+    area_section: 7480.0
+  - designation: "RHS 250x150x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 150.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 72.3
+    area_section: 9192.0
+  - designation: "RHS 250x150x16"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 150.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 89.7
+    area_section: 11406.0
+
+  # 300x200
+  - designation: "RHS 300x200x6"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 200.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 45.7
+    area_section: 5818.0
+  - designation: "RHS 300x200x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 200.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 60.3
+    area_section: 7677.0
+  - designation: "RHS 300x200x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 200.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 74.5
+    area_section: 9480.0
+  - designation: "RHS 300x200x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 200.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 91.9
+    area_section: 11692.0
+  - designation: "RHS 300x200x16"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 200.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 115.0
+    area_section: 14566.0
+
+  # 400x200
+  - designation: "RHS 400x200x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 200.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 72.8
+    area_section: 9277.0
+  - designation: "RHS 400x200x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 200.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 90.2
+    area_section: 11480.0
+  - designation: "RHS 400x200x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 200.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 111.0
+    area_section: 14192.0
+  - designation: "RHS 400x200x16"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 200.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 141.0
+    area_section: 17846.0
+
+  # 400x300
+  - designation: "RHS 400x300x8"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 300.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 84.8
+    area_section: 10797.0
+  - designation: "RHS 400x300x10"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 300.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 105.0
+    area_section: 13480.0
+  - designation: "RHS 400x300x12.5"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 300.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 131.0
+    area_section: 16692.0
+  - designation: "RHS 400x300x16"
+    family: "RHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 300.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 166.0
+    area_section: 21126.0

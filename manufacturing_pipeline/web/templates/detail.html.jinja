@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ entry.part.product_id }} — {{ entry.part.name }}</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>{{ css|safe }}</style>
+</head>
+<body>
+<div class="layout">
+  <p><a href="/">&larr; back to manifest</a></p>
+  <h1>
+    {{ entry.part.product_id }}
+    <span class="label label-{{ entry.classification.label }}">
+      {{ entry.classification.label }}
+    </span>
+  </h1>
+  <p class="muted">{{ entry.part.name }} &middot; {{ entry.part.description }}</p>
+
+  <div class="card">
+    <h2>Classification</h2>
+    {% for cls, score in scores_sorted %}
+      <div class="score-row">
+        <span class="score-name">{{ cls }}</span>
+        <span class="score-bar"><span style="width:{{ (score * 100)|round(1) }}%"></span></span>
+        <span class="score-val">{{ '%.3f'|format(score) }}</span>
+      </div>
+    {% endfor %}
+    <div class="kv" style="margin-top: 12px;">
+      <span class="k">confidence</span><span>{{ '%.3f'|format(entry.classification.confidence) }}</span>
+      <span class="k">margin</span><span>{{ '%.3f'|format(entry.classification.trace.margin) }}</span>
+      <span class="k">ambiguous</span><span>{{ entry.classification.trace.ambiguous }}</span>
+      <span class="k">model</span><span>{{ entry.classification.trace.model_version }}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Top contributions</h2>
+    {% if top_contributions %}
+      <table>
+        <thead><tr><th>Feature</th><th>Class</th><th>Value</th><th>&Delta;</th></tr></thead>
+        <tbody>
+        {% for c in top_contributions %}
+          <tr>
+            <td>{{ c.feature }}</td>
+            <td>{{ c.cls }}</td>
+            <td>{{ '%.3f'|format(c.value) }}</td>
+            <td>{{ '%.3f'|format(c.delta) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No contributions recorded.</p>
+    {% endif %}
+  </div>
+
+  {% if entry.unfold %}
+  <div class="card">
+    <h2>Unfold</h2>
+    <div class="kv">
+      <span class="k">status</span><span>{{ entry.unfold.status.value }}</span>
+      <span class="k">bends</span><span>{{ entry.unfold.n_bends }}</span>
+      <span class="k">flat area</span><span>{{ '%.2f'|format(entry.unfold.flat_area) }} mm²</span>
+      <span class="k">thickness</span><span>{{ '%.2f'|format(entry.unfold.thickness_mean) }} mm</span>
+      {% if entry.unfold.blank_bbox %}
+        <span class="k">blank bbox</span>
+        <span>{{ '%.1f'|format(entry.unfold.blank_bbox[0]) }} × {{ '%.1f'|format(entry.unfold.blank_bbox[1]) }} mm</span>
+      {% endif %}
+      {% if entry.unfold.reason %}
+        <span class="k">reason</span><span>{{ entry.unfold.reason }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if entry.holes and entry.holes.hole_count %}
+  <div class="card">
+    <h2>Holes ({{ entry.holes.hole_count }})</h2>
+    <p>{{ entry.holes.diameters | map('round', 2) | list | join(' mm, ') }} mm</p>
+  </div>
+  {% endif %}
+
+  {% if entry.strategy %}
+  <div class="card">
+    <h2>Machining strategy
+      <small class="muted">{{ entry.strategy.primary_process }},
+        ~{{ '%.1f'|format(entry.strategy.estimated_time_min) }} min</small>
+    </h2>
+    <div class="strategy-meta">
+      <span class="muted">setups</span> {{ entry.strategy.setup_count }}
+      {% if entry.strategy.material_hint %}
+        &middot; <span class="muted">material</span> {{ entry.strategy.material_hint }}
+      {% endif %}
+      &middot; <span class="muted">{{ entry.strategy.operations|length }} operation(s)</span>
+    </div>
+    {% if entry.strategy.operations %}
+    <table class="op-table">
+      <thead>
+        <tr>
+          <th>Priority</th><th>Op</th><th>Feature</th>
+          <th>Params</th><th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for op in strategy_ops_sorted %}
+        <tr>
+          <td class="op-priority">{{ op.priority }}</td>
+          <td><span class="op-pill op-{{ op.op }}">{{ op.op }}</span></td>
+          <td class="op-feature">{{ op.feature_ref or '—' }}</td>
+          <td class="op-params">
+            {% if op.params %}
+              {{ op.params | items | map('join', '=') | join(', ') }}
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td class="op-reason">{{ op.reason }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="muted">No operations recommended.</p>
+    {% endif %}
+    {% if entry.strategy.notes %}
+      <div class="strategy-notes">{{ entry.strategy.notes }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="card">
+    {% if entry.pmi and (entry.pmi.has_semantic or entry.pmi.n_annotations > 0) %}
+    <h2>Product Manufacturing Information (PMI)
+      <small class="muted">{{ entry.pmi.n_annotations }} annotation(s),
+        semantic={{ "yes" if entry.pmi.has_semantic else "no" }}</small>
+    </h2>
+    {% set tol_known = ['position', 'flatness', 'perpendicularity', 'parallelism'] %}
+    {% if entry.pmi.tolerances %}
+      <h3>Geometric tolerances</h3>
+      <table class="pmi-table">
+        <thead>
+          <tr>
+            <th>Type</th><th>Magnitude</th><th>Unit</th>
+            <th>Datums</th><th>Modifier</th><th>Applied to</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for t in entry.pmi.tolerances %}
+          <tr>
+            <td><span class="tol-pill tol-{{ t.type if t.type in tol_known else 'other' }}">{{ t.type }}</span></td>
+            <td>{{ '%.3f'|format(t.magnitude_mm) }}</td>
+            <td>{{ t.unit }}</td>
+            <td>{{ t.datums | join(' ') }}</td>
+            <td>{{ t.modifier or '—' }}</td>
+            <td>{{ t.applied_to or '—' }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    {% if entry.pmi.dimensions %}
+      <h3>Dimensions</h3>
+      <table class="pmi-table">
+        <thead>
+          <tr><th>Nominal</th><th>+</th><th>-</th><th>Unit</th><th>Applied to</th></tr>
+        </thead>
+        <tbody>
+        {% for d in entry.pmi.dimensions %}
+          <tr>
+            <td>{{ '%.3f'|format(d.nominal) }} (+{{ '%.3f'|format(d.upper) }} / -{{ '%.3f'|format(d.lower) }}) {{ d.unit }}</td>
+            <td>{{ '%.3f'|format(d.upper) }}</td>
+            <td>{{ '%.3f'|format(d.lower) }}</td>
+            <td>{{ d.unit }}</td>
+            <td>{{ d.applied_to or '—' }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    {% if entry.pmi.datums %}
+      <h3>Datums</h3>
+      <p>
+      {% for dt in entry.pmi.datums %}
+        <span class="datum-pill">{{ dt.identifier }}</span>
+      {% endfor %}
+      </p>
+    {% endif %}
+    {% if entry.pmi.finishes %}
+      <h3>Surface finishes</h3>
+      <ul>
+      {% for f in entry.pmi.finishes %}
+        <li>Ra {{ '%.2f'|format(f.value) }} {{ f.unit }}{% if f.applied_to %} — {{ f.applied_to }}{% endif %}</li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+    {% if not entry.pmi.tolerances and not entry.pmi.dimensions and not entry.pmi.datums and not entry.pmi.finishes and not entry.pmi.has_semantic %}
+      <p class="muted">Graphical PMI only (no semantic annotations extractable).</p>
+    {% endif %}
+    {% else %}
+    <h2>Product Manufacturing Information (PMI)</h2>
+    <p class="muted">No PMI data.</p>
+    {% endif %}
+  </div>
+
+  {% if dxf_filename %}
+  <div class="card">
+    <h2>Folded &rarr; Unfolded &mdash; interactive 3D</h2>
+    <p class="muted">Drag to rotate. Scroll to zoom. Both viewers share the same scale and material.</p>
+    <div class="model-compare">
+      <figure>
+        <model-viewer
+          src="/glb/folded/{{ entry.part.product_id }}"
+          alt="Folded 3D model of {{ entry.part.name }}"
+          camera-controls
+          auto-rotate
+          auto-rotate-delay="600"
+          rotation-per-second="20deg"
+          shadow-intensity="0.6"
+          exposure="1.0"
+          environment-image="neutral"
+          camera-orbit="35deg 60deg auto"
+          style="width: 100%; height: 380px; background: linear-gradient(180deg,#f7f9fc 0%,#e6ebf2 100%);"></model-viewer>
+        <figcaption>Folded &mdash; as modelled in CAD (STEP)</figcaption>
+      </figure>
+      <div class="fold-arrow" aria-hidden="true">&rarr;</div>
+      <figure>
+        <model-viewer
+          src="/glb/unfolded/{{ entry.part.product_id }}"
+          alt="Unfolded 3D blank of {{ entry.part.name }}"
+          camera-controls
+          auto-rotate
+          auto-rotate-delay="600"
+          rotation-per-second="20deg"
+          shadow-intensity="0.6"
+          exposure="1.0"
+          environment-image="neutral"
+          camera-orbit="0deg 75deg auto"
+          style="width: 100%; height: 380px; background: linear-gradient(180deg,#fff8f3 0%,#f4e6da 100%);"></model-viewer>
+        <figcaption>Unfolded &mdash; flat blank ready for laser</figcaption>
+      </figure>
+    </div>
+    <p class="stats">
+      {% if entry.unfold %}
+        <strong>Bends:</strong> {{ entry.unfold.n_bends }} &nbsp;|&nbsp;
+        <strong>Thickness:</strong> {{ '%.2f'|format(entry.unfold.thickness_mean) }} mm &nbsp;|&nbsp;
+        <strong>Flat area:</strong> {{ '%.1f'|format(entry.unfold.flat_area) }} mm&sup2; &nbsp;|&nbsp;
+      {% endif %}
+      <a href="/dxf/{{ dxf_filename }}">Download .dxf</a> &nbsp;|&nbsp;
+      <a href="/glb/folded/{{ entry.part.product_id }}" download>folded.glb</a> &nbsp;|&nbsp;
+      <a href="/glb/unfolded/{{ entry.part.product_id }}" download>unfolded.glb</a>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Folded &rarr; Unfolded &mdash; technical drawing view</h2>
+    <div class="fold-compare">
+      <figure>
+        <object type="image/svg+xml" data="/step-svg/{{ entry.part.product_id }}?view=iso" width="440" height="360"></object>
+        <figcaption>Iso projection (HLR)</figcaption>
+      </figure>
+      <div class="fold-arrow" aria-hidden="true">&rarr;</div>
+      <figure>
+        <object type="image/svg+xml" data="/dxf-svg/{{ dxf_filename }}" width="440" height="360"></object>
+        <figcaption>Flat pattern (DXF)</figcaption>
+      </figure>
+    </div>
+    <p class="legend">
+      <span class="visible"></span> visible edges &nbsp;
+      <span class="hidden"></span> hidden edges &nbsp;
+      <span class="outer"></span> outer &nbsp;
+      <span class="inner"></span> holes &nbsp;
+      <span class="bendu"></span> bend up &nbsp;
+      <span class="bendd"></span> bend down
+    </p>
+  </div>
+  {% else %}
+  <div class="card">
+    <h2>3D viewer</h2>
+    <model-viewer
+      src="/glb/folded/{{ entry.part.product_id }}"
+      alt="3D model of {{ entry.part.name }}"
+      camera-controls auto-rotate
+      shadow-intensity="0.6"
+      exposure="1.0"
+      environment-image="neutral"
+      style="width: 100%; height: 480px; background: linear-gradient(180deg,#f7f9fc 0%,#e6ebf2 100%);"></model-viewer>
+    <p><a href="/glb/folded/{{ entry.part.product_id }}" download>Download .glb</a></p>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Original part &mdash; technical views</h2>
+    <div class="views">
+      <object type="image/svg+xml" data="/step-svg/{{ entry.part.product_id }}?view=top" width="320" height="240"></object>
+      <object type="image/svg+xml" data="/step-svg/{{ entry.part.product_id }}?view=front" width="320" height="240"></object>
+      <object type="image/svg+xml" data="/step-svg/{{ entry.part.product_id }}?view=iso" width="320" height="240"></object>
+    </div>
+    <p class="legend">
+      <span class="visible"></span> visible edges
+      &nbsp;<span class="hidden"></span> hidden edges
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Decision trace</h2>
+    <pre>{{ trace_json }}</pre>
+  </div>
+</div>
+</body>
+</html>

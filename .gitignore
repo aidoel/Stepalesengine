@@ -1,0 +1,35 @@
+# Byte-compiled / packaging
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Caches
+.cache/
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Project-specific outputs
+out/
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml

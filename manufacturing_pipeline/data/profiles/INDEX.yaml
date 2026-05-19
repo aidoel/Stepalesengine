@@ -1,0 +1,72 @@
+# Index of standard structural-profile catalog files.
+# Consumed by the Profile Cross-Section Matcher (see
+# docs/ROBUST_FEATURE_DETECTION_PLAN.md §6).
+#
+# Each entry: file name, issuing standard, shape family, entry count.
+
+schema_version: 1
+units: mm
+
+files:
+  - file: din_1025_i.yaml
+    standard: "DIN 1025"
+    sub_standards: ["DIN 1025-1", "DIN 1025-2", "DIN 1025-3", "DIN 1025-4", "DIN 1025-5"]
+    family: "I"
+    series: ["IPE", "HEA", "HEB", "HEM", "IPN"]
+    entry_count: 71
+
+  - file: din_1026_u.yaml
+    standard: "DIN 1026"
+    sub_standards: ["DIN 1026-1", "DIN 1026-2"]
+    family: "U"
+    series: ["UNP", "UPE"]
+    entry_count: 31
+
+  - file: en_10210_2_rhs.yaml
+    standard: "EN 10210-2"
+    family: "RHS"
+    series: ["RHS"]
+    entry_count: 104
+
+  - file: en_10210_2_shs.yaml
+    standard: "EN 10210-2"
+    family: "SHS"
+    series: ["SHS"]
+    entry_count: 101
+
+  - file: en_10210_2_chs.yaml
+    standard: "EN 10210-2"
+    family: "CHS"
+    series: ["CHS"]
+    entry_count: 102
+
+  - file: en_10056_l.yaml
+    standard: "EN 10056"
+    sub_standards: ["EN 10056-1"]
+    family: "L"
+    series: ["L equal", "L unequal"]
+    entry_count: 22
+
+  - file: en_10055_t.yaml
+    standard: "EN 10055"
+    family: "T"
+    series: ["T equal-leg"]
+    entry_count: 8
+
+family_to_files:
+  I: [din_1025_i.yaml]
+  U: [din_1026_u.yaml]
+  L: [en_10056_l.yaml]
+  T: [en_10055_t.yaml]
+  RHS: [en_10210_2_rhs.yaml]
+  SHS: [en_10210_2_shs.yaml]
+  CHS: [en_10210_2_chs.yaml]
+
+total_entries: 439
+
+notes:
+  - "All linear dimensions are nominal values in mm."
+  - "Weights in kg/m, areas in mm^2."
+  - "Where the underlying standard tabulates tapered flanges (UNP, IPN) t_f is the mean flange thickness."
+  - "EN 10210-2 corner radii follow r_outer = 2t (t<=6), 2.5t (6<t<=10), 3t (t>10)."
+  - "T-bar fillet radii in EN 10055 are nominal r = t."

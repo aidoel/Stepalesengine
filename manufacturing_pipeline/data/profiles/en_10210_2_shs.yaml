@@ -1,0 +1,959 @@
+# Hot-finished square hollow sections per EN 10210-2.
+# Outside corner radius: r_outer = 2.0t (t <= 6), 2.5t (6 < t <= 10), 3.0t (t > 10).
+# Catalogue thickness pairings reflect typical mill ranges; small sections
+# (h <= 40) do not normally come in heavy wall and very large sections do
+# not come in very light wall.
+
+standard: "EN 10210-2"
+family: "SHS"
+units: "mm"
+
+profiles:
+  # 25x25
+  - designation: "SHS 25x25x2"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 25.0
+    b: 25.0
+    t: 2.0
+    r_outer: 4.0
+    weight_per_m: 1.39
+    area_section: 178.0
+  - designation: "SHS 25x25x2.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 25.0
+    b: 25.0
+    t: 2.5
+    r_outer: 5.0
+    weight_per_m: 1.68
+    area_section: 215.0
+  - designation: "SHS 25x25x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 25.0
+    b: 25.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 1.96
+    area_section: 251.0
+
+  # 30x30
+  - designation: "SHS 30x30x2"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 30.0
+    b: 30.0
+    t: 2.0
+    r_outer: 4.0
+    weight_per_m: 1.71
+    area_section: 218.0
+  - designation: "SHS 30x30x2.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 30.0
+    b: 30.0
+    t: 2.5
+    r_outer: 5.0
+    weight_per_m: 2.07
+    area_section: 265.0
+  - designation: "SHS 30x30x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 30.0
+    b: 30.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 2.43
+    area_section: 311.0
+  - designation: "SHS 30x30x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 30.0
+    b: 30.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 3.09
+    area_section: 399.0
+
+  # 40x40
+  - designation: "SHS 40x40x2"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 40.0
+    b: 40.0
+    t: 2.0
+    r_outer: 4.0
+    weight_per_m: 2.34
+    area_section: 298.0
+  - designation: "SHS 40x40x2.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 40.0
+    b: 40.0
+    t: 2.5
+    r_outer: 5.0
+    weight_per_m: 2.85
+    area_section: 365.0
+  - designation: "SHS 40x40x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 40.0
+    b: 40.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 3.37
+    area_section: 431.0
+  - designation: "SHS 40x40x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 40.0
+    b: 40.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 4.39
+    area_section: 559.0
+  - designation: "SHS 40x40x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 40.0
+    b: 40.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 5.28
+    area_section: 673.0
+
+  # 50x50
+  - designation: "SHS 50x50x2.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 50.0
+    t: 2.5
+    r_outer: 5.0
+    weight_per_m: 3.64
+    area_section: 465.0
+  - designation: "SHS 50x50x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 50.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 4.31
+    area_section: 551.0
+  - designation: "SHS 50x50x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 50.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 5.64
+    area_section: 719.0
+  - designation: "SHS 50x50x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 50.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 6.85
+    area_section: 873.0
+  - designation: "SHS 50x50x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 50.0
+    b: 50.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 7.99
+    area_section: 1018.0
+
+  # 60x60
+  - designation: "SHS 60x60x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 60.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 5.25
+    area_section: 671.0
+  - designation: "SHS 60x60x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 60.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 6.90
+    area_section: 879.0
+  - designation: "SHS 60x60x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 60.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 8.42
+    area_section: 1073.0
+  - designation: "SHS 60x60x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 60.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 9.87
+    area_section: 1258.0
+  - designation: "SHS 60x60x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 60.0
+    b: 60.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 12.5
+    area_section: 1597.0
+
+  # 70x70
+  - designation: "SHS 70x70x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 70.0
+    b: 70.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 6.19
+    area_section: 791.0
+  - designation: "SHS 70x70x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 70.0
+    b: 70.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 8.15
+    area_section: 1039.0
+  - designation: "SHS 70x70x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 70.0
+    b: 70.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 9.99
+    area_section: 1273.0
+  - designation: "SHS 70x70x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 70.0
+    b: 70.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 11.8
+    area_section: 1498.0
+  - designation: "SHS 70x70x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 70.0
+    b: 70.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 15.0
+    area_section: 1917.0
+
+  # 80x80
+  - designation: "SHS 80x80x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 80.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 7.13
+    area_section: 911.0
+  - designation: "SHS 80x80x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 80.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 9.41
+    area_section: 1199.0
+  - designation: "SHS 80x80x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 80.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 11.6
+    area_section: 1473.0
+  - designation: "SHS 80x80x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 80.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 13.6
+    area_section: 1738.0
+  - designation: "SHS 80x80x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 80.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 17.5
+    area_section: 2237.0
+  - designation: "SHS 80x80x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 80.0
+    b: 80.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 21.0
+    area_section: 2680.0
+
+  # 90x90
+  - designation: "SHS 90x90x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 90.0
+    b: 90.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 8.07
+    area_section: 1031.0
+  - designation: "SHS 90x90x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 90.0
+    b: 90.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 10.7
+    area_section: 1359.0
+  - designation: "SHS 90x90x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 90.0
+    b: 90.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 13.1
+    area_section: 1673.0
+  - designation: "SHS 90x90x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 90.0
+    b: 90.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 15.5
+    area_section: 1978.0
+  - designation: "SHS 90x90x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 90.0
+    b: 90.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 20.1
+    area_section: 2557.0
+  - designation: "SHS 90x90x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 90.0
+    b: 90.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 24.1
+    area_section: 3080.0
+
+  # 100x100
+  - designation: "SHS 100x100x3"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 100.0
+    t: 3.0
+    r_outer: 6.0
+    weight_per_m: 9.02
+    area_section: 1151.0
+  - designation: "SHS 100x100x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 100.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 12.0
+    area_section: 1519.0
+  - designation: "SHS 100x100x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 100.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 14.7
+    area_section: 1873.0
+  - designation: "SHS 100x100x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 100.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 17.4
+    area_section: 2218.0
+  - designation: "SHS 100x100x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 100.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 22.6
+    area_section: 2877.0
+  - designation: "SHS 100x100x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 100.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 27.4
+    area_section: 3480.0
+  - designation: "SHS 100x100x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 100.0
+    b: 100.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 32.9
+    area_section: 4192.0
+
+  # 120x120
+  - designation: "SHS 120x120x4"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 120.0
+    t: 4.0
+    r_outer: 8.0
+    weight_per_m: 14.5
+    area_section: 1839.0
+  - designation: "SHS 120x120x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 120.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 17.8
+    area_section: 2273.0
+  - designation: "SHS 120x120x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 120.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 21.2
+    area_section: 2698.0
+  - designation: "SHS 120x120x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 120.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 27.6
+    area_section: 3517.0
+  - designation: "SHS 120x120x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 120.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 33.7
+    area_section: 4280.0
+  - designation: "SHS 120x120x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 120.0
+    b: 120.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 40.7
+    area_section: 5192.0
+
+  # 140x140
+  - designation: "SHS 140x140x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 140.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 20.9
+    area_section: 2673.0
+  - designation: "SHS 140x140x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 140.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 24.9
+    area_section: 3178.0
+  - designation: "SHS 140x140x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 140.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 32.6
+    area_section: 4157.0
+  - designation: "SHS 140x140x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 140.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 40.0
+    area_section: 5080.0
+  - designation: "SHS 140x140x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 140.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 48.7
+    area_section: 6192.0
+  - designation: "SHS 140x140x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 140.0
+    b: 140.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 59.7
+    area_section: 7606.0
+
+  # 150x150
+  - designation: "SHS 150x150x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 150.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 22.5
+    area_section: 2873.0
+  - designation: "SHS 150x150x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 150.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 26.8
+    area_section: 3418.0
+  - designation: "SHS 150x150x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 150.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 35.1
+    area_section: 4477.0
+  - designation: "SHS 150x150x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 150.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 43.1
+    area_section: 5480.0
+  - designation: "SHS 150x150x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 150.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 52.7
+    area_section: 6692.0
+  - designation: "SHS 150x150x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 150.0
+    b: 150.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 64.9
+    area_section: 8246.0
+
+  # 160x160
+  - designation: "SHS 160x160x5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 160.0
+    t: 5.0
+    r_outer: 10.0
+    weight_per_m: 24.1
+    area_section: 3073.0
+  - designation: "SHS 160x160x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 160.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 28.7
+    area_section: 3658.0
+  - designation: "SHS 160x160x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 160.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 37.6
+    area_section: 4797.0
+  - designation: "SHS 160x160x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 160.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 46.3
+    area_section: 5880.0
+  - designation: "SHS 160x160x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 160.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 56.6
+    area_section: 7192.0
+  - designation: "SHS 160x160x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 160.0
+    b: 160.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 69.9
+    area_section: 8886.0
+
+  # 180x180
+  - designation: "SHS 180x180x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 180.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 32.5
+    area_section: 4138.0
+  - designation: "SHS 180x180x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 180.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 42.7
+    area_section: 5437.0
+  - designation: "SHS 180x180x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 180.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 52.5
+    area_section: 6680.0
+  - designation: "SHS 180x180x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 180.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 64.4
+    area_section: 8192.0
+  - designation: "SHS 180x180x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 180.0
+    b: 180.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 80.2
+    area_section: 10206.0
+
+  # 200x200
+  - designation: "SHS 200x200x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 200.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 36.2
+    area_section: 4618.0
+  - designation: "SHS 200x200x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 200.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 47.7
+    area_section: 6077.0
+  - designation: "SHS 200x200x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 200.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 58.8
+    area_section: 7480.0
+  - designation: "SHS 200x200x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 200.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 72.3
+    area_section: 9192.0
+  - designation: "SHS 200x200x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 200.0
+    b: 200.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 89.7
+    area_section: 11406.0
+
+  # 220x220
+  - designation: "SHS 220x220x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 220.0
+    b: 220.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 40.0
+    area_section: 5098.0
+  - designation: "SHS 220x220x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 220.0
+    b: 220.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 52.7
+    area_section: 6717.0
+  - designation: "SHS 220x220x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 220.0
+    b: 220.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 65.1
+    area_section: 8280.0
+  - designation: "SHS 220x220x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 220.0
+    b: 220.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 80.0
+    area_section: 10192.0
+  - designation: "SHS 220x220x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 220.0
+    b: 220.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 99.4
+    area_section: 12646.0
+
+  # 250x250
+  - designation: "SHS 250x250x6"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 250.0
+    t: 6.0
+    r_outer: 12.0
+    weight_per_m: 45.7
+    area_section: 5818.0
+  - designation: "SHS 250x250x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 250.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 60.3
+    area_section: 7677.0
+  - designation: "SHS 250x250x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 250.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 74.5
+    area_section: 9480.0
+  - designation: "SHS 250x250x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 250.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 91.9
+    area_section: 11692.0
+  - designation: "SHS 250x250x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 250.0
+    b: 250.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 115.0
+    area_section: 14566.0
+
+  # 300x300
+  - designation: "SHS 300x300x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 300.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 72.8
+    area_section: 9277.0
+  - designation: "SHS 300x300x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 300.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 90.2
+    area_section: 11480.0
+  - designation: "SHS 300x300x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 300.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 111.0
+    area_section: 14192.0
+  - designation: "SHS 300x300x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 300.0
+    b: 300.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 141.0
+    area_section: 17846.0
+
+  # 350x350
+  - designation: "SHS 350x350x8"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 350.0
+    b: 350.0
+    t: 8.0
+    r_outer: 20.0
+    weight_per_m: 85.4
+    area_section: 10877.0
+  - designation: "SHS 350x350x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 350.0
+    b: 350.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 106.0
+    area_section: 13480.0
+  - designation: "SHS 350x350x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 350.0
+    b: 350.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 131.0
+    area_section: 16692.0
+  - designation: "SHS 350x350x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 350.0
+    b: 350.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 166.0
+    area_section: 21126.0
+
+  # 400x400
+  - designation: "SHS 400x400x10"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 400.0
+    t: 10.0
+    r_outer: 25.0
+    weight_per_m: 122.0
+    area_section: 15480.0
+  - designation: "SHS 400x400x12.5"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 400.0
+    t: 12.5
+    r_outer: 37.5
+    weight_per_m: 151.0
+    area_section: 19192.0
+  - designation: "SHS 400x400x16"
+    family: "SHS"
+    standard: "EN 10210-2"
+    h: 400.0
+    b: 400.0
+    t: 16.0
+    r_outer: 48.0
+    weight_per_m: 191.0
+    area_section: 24326.0

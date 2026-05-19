@@ -1,0 +1,321 @@
+# U-channels: UNP (tapered flange, DIN 1026-1) and UPE (parallel flange, DIN 1026-2).
+# t_f for UNP is the mean flange thickness as catalogued.
+
+standard: "DIN 1026"
+family: "U"
+units: "mm"
+
+profiles:
+  # ---------------- UNP (DIN 1026-1, tapered flanges) ----------------
+  - designation: "UNP 50"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 50.0
+    b: 38.0
+    t_w: 5.0
+    t_f: 7.0
+    r: 7.0
+    weight_per_m: 5.59
+    area_section: 712.0
+  - designation: "UNP 65"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 65.0
+    b: 42.0
+    t_w: 5.5
+    t_f: 7.5
+    r: 7.5
+    weight_per_m: 7.09
+    area_section: 903.0
+  - designation: "UNP 80"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 80.0
+    b: 45.0
+    t_w: 6.0
+    t_f: 8.0
+    r: 8.0
+    weight_per_m: 8.64
+    area_section: 1100.0
+  - designation: "UNP 100"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 100.0
+    b: 50.0
+    t_w: 6.0
+    t_f: 8.5
+    r: 8.5
+    weight_per_m: 10.6
+    area_section: 1350.0
+  - designation: "UNP 120"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 120.0
+    b: 55.0
+    t_w: 7.0
+    t_f: 9.0
+    r: 9.0
+    weight_per_m: 13.4
+    area_section: 1700.0
+  - designation: "UNP 140"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 140.0
+    b: 60.0
+    t_w: 7.0
+    t_f: 10.0
+    r: 10.0
+    weight_per_m: 16.0
+    area_section: 2040.0
+  - designation: "UNP 160"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 160.0
+    b: 65.0
+    t_w: 7.5
+    t_f: 10.5
+    r: 10.5
+    weight_per_m: 18.8
+    area_section: 2400.0
+  - designation: "UNP 180"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 180.0
+    b: 70.0
+    t_w: 8.0
+    t_f: 11.0
+    r: 11.0
+    weight_per_m: 22.0
+    area_section: 2800.0
+  - designation: "UNP 200"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 200.0
+    b: 75.0
+    t_w: 8.5
+    t_f: 11.5
+    r: 11.5
+    weight_per_m: 25.3
+    area_section: 3220.0
+  - designation: "UNP 220"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 220.0
+    b: 80.0
+    t_w: 9.0
+    t_f: 12.5
+    r: 12.5
+    weight_per_m: 29.4
+    area_section: 3740.0
+  - designation: "UNP 240"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 240.0
+    b: 85.0
+    t_w: 9.5
+    t_f: 13.0
+    r: 13.0
+    weight_per_m: 33.2
+    area_section: 4230.0
+  - designation: "UNP 260"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 260.0
+    b: 90.0
+    t_w: 10.0
+    t_f: 14.0
+    r: 14.0
+    weight_per_m: 37.9
+    area_section: 4830.0
+  - designation: "UNP 280"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 280.0
+    b: 95.0
+    t_w: 10.0
+    t_f: 15.0
+    r: 15.0
+    weight_per_m: 41.8
+    area_section: 5330.0
+  - designation: "UNP 300"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 300.0
+    b: 100.0
+    t_w: 10.0
+    t_f: 16.0
+    r: 16.0
+    weight_per_m: 46.2
+    area_section: 5880.0
+  - designation: "UNP 320"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 320.0
+    b: 100.0
+    t_w: 14.0
+    t_f: 17.5
+    r: 17.5
+    weight_per_m: 59.5
+    area_section: 7580.0
+  - designation: "UNP 380"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 380.0
+    b: 102.0
+    t_w: 13.5
+    t_f: 16.0
+    r: 16.0
+    weight_per_m: 63.1
+    area_section: 8040.0
+  - designation: "UNP 400"
+    family: "U"
+    standard: "DIN 1026-1"
+    h: 400.0
+    b: 110.0
+    t_w: 14.0
+    t_f: 18.0
+    r: 18.0
+    weight_per_m: 71.8
+    area_section: 9150.0
+
+  # ---------------- UPE (DIN 1026-2, parallel flanges) ----------------
+  - designation: "UPE 80"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 80.0
+    b: 50.0
+    t_w: 4.0
+    t_f: 7.0
+    r: 10.0
+    weight_per_m: 7.90
+    area_section: 1008.0
+  - designation: "UPE 100"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 100.0
+    b: 55.0
+    t_w: 4.5
+    t_f: 7.5
+    r: 10.0
+    weight_per_m: 9.82
+    area_section: 1250.0
+  - designation: "UPE 120"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 120.0
+    b: 60.0
+    t_w: 5.0
+    t_f: 8.0
+    r: 12.0
+    weight_per_m: 12.1
+    area_section: 1542.0
+  - designation: "UPE 140"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 140.0
+    b: 65.0
+    t_w: 5.0
+    t_f: 9.0
+    r: 12.0
+    weight_per_m: 14.0
+    area_section: 1784.0
+  - designation: "UPE 160"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 160.0
+    b: 70.0
+    t_w: 5.5
+    t_f: 9.5
+    r: 12.0
+    weight_per_m: 16.4
+    area_section: 2090.0
+  - designation: "UPE 180"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 180.0
+    b: 75.0
+    t_w: 5.5
+    t_f: 10.5
+    r: 12.0
+    weight_per_m: 19.0
+    area_section: 2420.0
+  - designation: "UPE 200"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 200.0
+    b: 80.0
+    t_w: 6.0
+    t_f: 11.0
+    r: 13.0
+    weight_per_m: 22.8
+    area_section: 2903.0
+  - designation: "UPE 220"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 220.0
+    b: 85.0
+    t_w: 6.5
+    t_f: 12.0
+    r: 13.0
+    weight_per_m: 26.6
+    area_section: 3388.0
+  - designation: "UPE 240"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 240.0
+    b: 90.0
+    t_w: 7.0
+    t_f: 12.5
+    r: 15.0
+    weight_per_m: 30.2
+    area_section: 3848.0
+  - designation: "UPE 270"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 270.0
+    b: 95.0
+    t_w: 7.5
+    t_f: 13.5
+    r: 15.0
+    weight_per_m: 35.2
+    area_section: 4481.0
+  - designation: "UPE 300"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 300.0
+    b: 100.0
+    t_w: 9.5
+    t_f: 15.0
+    r: 15.0
+    weight_per_m: 44.4
+    area_section: 5655.0
+  - designation: "UPE 330"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 330.0
+    b: 105.0
+    t_w: 11.0
+    t_f: 16.0
+    r: 18.0
+    weight_per_m: 53.0
+    area_section: 6753.0
+  - designation: "UPE 360"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 360.0
+    b: 110.0
+    t_w: 12.0
+    t_f: 17.0
+    r: 18.0
+    weight_per_m: 60.6
+    area_section: 7717.0
+  - designation: "UPE 400"
+    family: "U"
+    standard: "DIN 1026-2"
+    h: 400.0
+    b: 115.0
+    t_w: 13.5
+    t_f: 18.0
+    r: 18.0
+    weight_per_m: 72.2
+    area_section: 9192.0

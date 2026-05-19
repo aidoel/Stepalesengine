@@ -1,0 +1,765 @@
+# Hot-finished circular hollow sections per EN 10210-2.
+# Only common catalogue combinations of outer diameter and wall thickness
+# are listed; very thin walls are excluded for large diameters and vice versa.
+# Areas computed as pi*(d - t)*t.
+
+standard: "EN 10210-2"
+family: "CHS"
+units: "mm"
+
+profiles:
+  # 21.3
+  - designation: "CHS 21.3x2.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 21.3
+    t: 2.0
+    weight_per_m: 0.954
+    area_section: 121.4
+  - designation: "CHS 21.3x2.6"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 21.3
+    t: 2.6
+    weight_per_m: 1.20
+    area_section: 152.7
+  - designation: "CHS 21.3x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 21.3
+    t: 3.2
+    weight_per_m: 1.43
+    area_section: 181.9
+
+  # 26.9
+  - designation: "CHS 26.9x2.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 26.9
+    t: 2.0
+    weight_per_m: 1.23
+    area_section: 156.5
+  - designation: "CHS 26.9x2.6"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 26.9
+    t: 2.6
+    weight_per_m: 1.56
+    area_section: 198.4
+  - designation: "CHS 26.9x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 26.9
+    t: 3.2
+    weight_per_m: 1.87
+    area_section: 238.2
+
+  # 33.7
+  - designation: "CHS 33.7x2.6"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 33.7
+    t: 2.6
+    weight_per_m: 1.99
+    area_section: 253.9
+  - designation: "CHS 33.7x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 33.7
+    t: 3.2
+    weight_per_m: 2.41
+    area_section: 306.6
+  - designation: "CHS 33.7x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 33.7
+    t: 4.0
+    weight_per_m: 2.93
+    area_section: 373.0
+
+  # 42.4
+  - designation: "CHS 42.4x2.6"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 42.4
+    t: 2.6
+    weight_per_m: 2.55
+    area_section: 324.9
+  - designation: "CHS 42.4x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 42.4
+    t: 3.2
+    weight_per_m: 3.09
+    area_section: 394.0
+  - designation: "CHS 42.4x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 42.4
+    t: 4.0
+    weight_per_m: 3.79
+    area_section: 482.7
+  - designation: "CHS 42.4x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 42.4
+    t: 5.0
+    weight_per_m: 4.61
+    area_section: 587.4
+
+  # 48.3
+  - designation: "CHS 48.3x2.6"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 48.3
+    t: 2.6
+    weight_per_m: 2.93
+    area_section: 373.1
+  - designation: "CHS 48.3x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 48.3
+    t: 3.2
+    weight_per_m: 3.56
+    area_section: 453.0
+  - designation: "CHS 48.3x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 48.3
+    t: 4.0
+    weight_per_m: 4.37
+    area_section: 556.8
+  - designation: "CHS 48.3x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 48.3
+    t: 5.0
+    weight_per_m: 5.34
+    area_section: 680.2
+  - designation: "CHS 48.3x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 48.3
+    t: 6.3
+    weight_per_m: 6.52
+    area_section: 831.1
+
+  # 60.3
+  - designation: "CHS 60.3x2.9"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 60.3
+    t: 2.9
+    weight_per_m: 4.11
+    area_section: 523.6
+  - designation: "CHS 60.3x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 60.3
+    t: 3.2
+    weight_per_m: 4.51
+    area_section: 574.4
+  - designation: "CHS 60.3x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 60.3
+    t: 4.0
+    weight_per_m: 5.55
+    area_section: 707.0
+  - designation: "CHS 60.3x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 60.3
+    t: 5.0
+    weight_per_m: 6.82
+    area_section: 868.7
+  - designation: "CHS 60.3x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 60.3
+    t: 6.3
+    weight_per_m: 8.39
+    area_section: 1068.5
+  - designation: "CHS 60.3x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 60.3
+    t: 8.0
+    weight_per_m: 10.3
+    area_section: 1314.0
+
+  # 76.1
+  - designation: "CHS 76.1x2.9"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 76.1
+    t: 2.9
+    weight_per_m: 5.24
+    area_section: 667.5
+  - designation: "CHS 76.1x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 76.1
+    t: 3.2
+    weight_per_m: 5.75
+    area_section: 733.0
+  - designation: "CHS 76.1x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 76.1
+    t: 4.0
+    weight_per_m: 7.11
+    area_section: 905.9
+  - designation: "CHS 76.1x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 76.1
+    t: 5.0
+    weight_per_m: 8.77
+    area_section: 1117.0
+  - designation: "CHS 76.1x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 76.1
+    t: 6.3
+    weight_per_m: 10.8
+    area_section: 1380.5
+  - designation: "CHS 76.1x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 76.1
+    t: 8.0
+    weight_per_m: 13.4
+    area_section: 1711.0
+
+  # 88.9
+  - designation: "CHS 88.9x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 88.9
+    t: 3.2
+    weight_per_m: 6.76
+    area_section: 861.6
+  - designation: "CHS 88.9x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 88.9
+    t: 4.0
+    weight_per_m: 8.38
+    area_section: 1066.9
+  - designation: "CHS 88.9x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 88.9
+    t: 5.0
+    weight_per_m: 10.3
+    area_section: 1317.2
+  - designation: "CHS 88.9x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 88.9
+    t: 6.3
+    weight_per_m: 12.8
+    area_section: 1633.7
+  - designation: "CHS 88.9x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 88.9
+    t: 8.0
+    weight_per_m: 16.0
+    area_section: 2034.6
+
+  # 101.6
+  - designation: "CHS 101.6x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 101.6
+    t: 3.2
+    weight_per_m: 7.76
+    area_section: 988.3
+  - designation: "CHS 101.6x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 101.6
+    t: 4.0
+    weight_per_m: 9.63
+    area_section: 1226.5
+  - designation: "CHS 101.6x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 101.6
+    t: 5.0
+    weight_per_m: 11.9
+    area_section: 1515.6
+  - designation: "CHS 101.6x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 101.6
+    t: 6.3
+    weight_per_m: 14.8
+    area_section: 1885.0
+  - designation: "CHS 101.6x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 101.6
+    t: 8.0
+    weight_per_m: 18.5
+    area_section: 2354.6
+  - designation: "CHS 101.6x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 101.6
+    t: 10.0
+    weight_per_m: 22.6
+    area_section: 2877.8
+
+  # 114.3
+  - designation: "CHS 114.3x3.2"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 114.3
+    t: 3.2
+    weight_per_m: 8.77
+    area_section: 1116.9
+  - designation: "CHS 114.3x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 114.3
+    t: 4.0
+    weight_per_m: 10.9
+    area_section: 1386.7
+  - designation: "CHS 114.3x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 114.3
+    t: 5.0
+    weight_per_m: 13.5
+    area_section: 1716.0
+  - designation: "CHS 114.3x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 114.3
+    t: 6.3
+    weight_per_m: 16.8
+    area_section: 2137.4
+  - designation: "CHS 114.3x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 114.3
+    t: 8.0
+    weight_per_m: 21.0
+    area_section: 2673.3
+  - designation: "CHS 114.3x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 114.3
+    t: 10.0
+    weight_per_m: 25.7
+    area_section: 3275.0
+  - designation: "CHS 114.3x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 114.3
+    t: 12.5
+    weight_per_m: 31.3
+    area_section: 3996.0
+
+  # 139.7
+  - designation: "CHS 139.7x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 139.7
+    t: 4.0
+    weight_per_m: 13.4
+    area_section: 1705.8
+  - designation: "CHS 139.7x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 139.7
+    t: 5.0
+    weight_per_m: 16.6
+    area_section: 2115.2
+  - designation: "CHS 139.7x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 139.7
+    t: 6.3
+    weight_per_m: 20.7
+    area_section: 2640.5
+  - designation: "CHS 139.7x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 139.7
+    t: 8.0
+    weight_per_m: 26.0
+    area_section: 3311.6
+  - designation: "CHS 139.7x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 139.7
+    t: 10.0
+    weight_per_m: 32.0
+    area_section: 4072.2
+  - designation: "CHS 139.7x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 139.7
+    t: 12.5
+    weight_per_m: 39.2
+    area_section: 4994.1
+
+  # 168.3
+  - designation: "CHS 168.3x4.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 168.3
+    t: 4.0
+    weight_per_m: 16.2
+    area_section: 2065.0
+  - designation: "CHS 168.3x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 168.3
+    t: 5.0
+    weight_per_m: 20.1
+    area_section: 2564.0
+  - designation: "CHS 168.3x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 168.3
+    t: 6.3
+    weight_per_m: 25.2
+    area_section: 3206.0
+  - designation: "CHS 168.3x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 168.3
+    t: 8.0
+    weight_per_m: 31.6
+    area_section: 4027.0
+  - designation: "CHS 168.3x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 168.3
+    t: 10.0
+    weight_per_m: 39.0
+    area_section: 4965.9
+  - designation: "CHS 168.3x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 168.3
+    t: 12.5
+    weight_per_m: 48.0
+    area_section: 6116.4
+  - designation: "CHS 168.3x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 168.3
+    t: 16.0
+    weight_per_m: 60.1
+    area_section: 7656.5
+
+  # 193.7
+  - designation: "CHS 193.7x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 193.7
+    t: 5.0
+    weight_per_m: 23.3
+    area_section: 2962.7
+  - designation: "CHS 193.7x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 193.7
+    t: 6.3
+    weight_per_m: 29.1
+    area_section: 3708.0
+  - designation: "CHS 193.7x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 193.7
+    t: 8.0
+    weight_per_m: 36.6
+    area_section: 4664.0
+  - designation: "CHS 193.7x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 193.7
+    t: 10.0
+    weight_per_m: 45.3
+    area_section: 5769.7
+  - designation: "CHS 193.7x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 193.7
+    t: 12.5
+    weight_per_m: 55.9
+    area_section: 7117.2
+  - designation: "CHS 193.7x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 193.7
+    t: 16.0
+    weight_per_m: 70.1
+    area_section: 8929.4
+
+  # 219.1
+  - designation: "CHS 219.1x5.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 219.1
+    t: 5.0
+    weight_per_m: 26.4
+    area_section: 3362.0
+  - designation: "CHS 219.1x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 219.1
+    t: 6.3
+    weight_per_m: 33.1
+    area_section: 4209.5
+  - designation: "CHS 219.1x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 219.1
+    t: 8.0
+    weight_per_m: 41.6
+    area_section: 5302.0
+  - designation: "CHS 219.1x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 219.1
+    t: 10.0
+    weight_per_m: 51.6
+    area_section: 6573.0
+  - designation: "CHS 219.1x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 219.1
+    t: 12.5
+    weight_per_m: 63.7
+    area_section: 8118.3
+  - designation: "CHS 219.1x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 219.1
+    t: 16.0
+    weight_per_m: 80.1
+    area_section: 10204.0
+
+  # 244.5
+  - designation: "CHS 244.5x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 244.5
+    t: 6.3
+    weight_per_m: 37.0
+    area_section: 4712.0
+  - designation: "CHS 244.5x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 244.5
+    t: 8.0
+    weight_per_m: 46.7
+    area_section: 5940.3
+  - designation: "CHS 244.5x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 244.5
+    t: 10.0
+    weight_per_m: 57.8
+    area_section: 7372.0
+  - designation: "CHS 244.5x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 244.5
+    t: 12.5
+    weight_per_m: 71.5
+    area_section: 9111.7
+  - designation: "CHS 244.5x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 244.5
+    t: 16.0
+    weight_per_m: 90.2
+    area_section: 11478.0
+
+  # 273.0
+  - designation: "CHS 273.0x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 273.0
+    t: 6.3
+    weight_per_m: 41.4
+    area_section: 5276.4
+  - designation: "CHS 273.0x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 273.0
+    t: 8.0
+    weight_per_m: 52.3
+    area_section: 6659.6
+  - designation: "CHS 273.0x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 273.0
+    t: 10.0
+    weight_per_m: 64.9
+    area_section: 8262.3
+  - designation: "CHS 273.0x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 273.0
+    t: 12.5
+    weight_per_m: 80.3
+    area_section: 10227.1
+  - designation: "CHS 273.0x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 273.0
+    t: 16.0
+    weight_per_m: 101.0
+    area_section: 12918.6
+
+  # 323.9
+  - designation: "CHS 323.9x6.3"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 323.9
+    t: 6.3
+    weight_per_m: 49.3
+    area_section: 6283.0
+  - designation: "CHS 323.9x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 323.9
+    t: 8.0
+    weight_per_m: 62.3
+    area_section: 7937.8
+  - designation: "CHS 323.9x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 323.9
+    t: 10.0
+    weight_per_m: 77.4
+    area_section: 9860.1
+  - designation: "CHS 323.9x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 323.9
+    t: 12.5
+    weight_per_m: 96.0
+    area_section: 12224.1
+  - designation: "CHS 323.9x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 323.9
+    t: 16.0
+    weight_per_m: 121.0
+    area_section: 15473.0
+
+  # 355.6
+  - designation: "CHS 355.6x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 355.6
+    t: 8.0
+    weight_per_m: 68.6
+    area_section: 8734.4
+  - designation: "CHS 355.6x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 355.6
+    t: 10.0
+    weight_per_m: 85.2
+    area_section: 10855.9
+  - designation: "CHS 355.6x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 355.6
+    t: 12.5
+    weight_per_m: 105.8
+    area_section: 13469.4
+  - designation: "CHS 355.6x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 355.6
+    t: 16.0
+    weight_per_m: 134.0
+    area_section: 17067.1
+
+  # 406.4
+  - designation: "CHS 406.4x8.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 406.4
+    t: 8.0
+    weight_per_m: 78.6
+    area_section: 10010.7
+  - designation: "CHS 406.4x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 406.4
+    t: 10.0
+    weight_per_m: 97.8
+    area_section: 12451.0
+  - designation: "CHS 406.4x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 406.4
+    t: 12.5
+    weight_per_m: 121.0
+    area_section: 15464.0
+  - designation: "CHS 406.4x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 406.4
+    t: 16.0
+    weight_per_m: 154.0
+    area_section: 19620.7
+
+  # 457.0
+  - designation: "CHS 457.0x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 457.0
+    t: 10.0
+    weight_per_m: 110.0
+    area_section: 14041.6
+  - designation: "CHS 457.0x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 457.0
+    t: 12.5
+    weight_per_m: 137.0
+    area_section: 17455.7
+  - designation: "CHS 457.0x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 457.0
+    t: 16.0
+    weight_per_m: 174.0
+    area_section: 22167.3
+
+  # 508.0
+  - designation: "CHS 508.0x10.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 508.0
+    t: 10.0
+    weight_per_m: 123.0
+    area_section: 15644.6
+  - designation: "CHS 508.0x12.5"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 508.0
+    t: 12.5
+    weight_per_m: 153.0
+    area_section: 19459.6
+  - designation: "CHS 508.0x16.0"
+    family: "CHS"
+    standard: "EN 10210-2"
+    d: 508.0
+    t: 16.0
+    weight_per_m: 194.0
+    area_section: 24730.6

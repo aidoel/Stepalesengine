@@ -1,0 +1,1791 @@
+"""Sheet-metal unfold probe.
+
+Treats unfoldability as a feature, not a verdict. Never raises. Failures
+are reported in :class:`UnfoldResult` (status, reason).
+
+Algorithm
+---------
+1. Detect thickness ``t`` by pairing antiparallel planar faces.
+2. Classify every face as planar / cylindrical / other; reject if "other"
+   surfaces exceed 5% of the total area.
+3. Pick the largest planar face as the unfold base.
+4. Build a bend graph: planar faces are nodes; cylindrical patches whose
+   straight edges are shared with two planar faces are bends (edges).
+5. BFS from the base. On each bend, rotate the descendant face about the
+   bend axis by ``-theta`` (flattening it). Compute the bend allowance
+   ``BA = theta * (R + K * t)`` and add it to the cumulative flat area.
+6. Detect failure modes:
+   - cyclic graph (closed box / tube),
+   - branching factor > 2 (star-shaped flange tree),
+   - thickness CV above threshold,
+   - non-developable "other" faces,
+   - disconnected shells.
+
+The probe never raises - every failure becomes a :class:`UnfoldResult` with
+``status=FAILURE`` and a specific ``reason`` token.
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+from collections import deque
+from dataclasses import dataclass
+from typing import Any
+
+from ..config.classification_variables import (
+    UNFOLD_ANTIPARALLEL_DOT_MAX,
+    UNFOLD_CLOSED_BODY_CYL_AREA_RATIO,
+    UNFOLD_COPLANAR_COS_LIMIT,
+    UNFOLD_HEM_ANGLE_MIN_DEG,
+    UNFOLD_K_FACTOR,
+    UNFOLD_MAX_OTHER_FACES_RATIO,
+    UNFOLD_MIN_BEND_ANGLE_DEG,
+    UNFOLD_SHEET_PAIR_THICKNESS_MULTIPLIER,
+    UNFOLD_THICKNESS_CV_LIMIT,
+)
+from .types import UnfoldResult, UnfoldStatus
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Bend / face records
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _PlanarFace:
+    face: Any
+    index: int
+    normal: tuple[float, float, float]
+    centroid: tuple[float, float, float]
+    area: float
+
+
+@dataclass
+class _CylPatch:
+    face: Any
+    index: int
+    radius: float
+    axis_dir: tuple[float, float, float]
+    axis_loc: tuple[float, float, float]
+    area: float
+    length_along_axis: float  # the bend "length" L
+
+
+@dataclass
+class Bend:
+    """A detected bend joining two planar faces through a cylindrical patch.
+
+    Attributes
+    ----------
+    p_in_index, p_out_index
+        Indices into the planar-face list of the two flats joined by this bend.
+    cyl_index
+        Index into the cylindrical-patch list, or ``None`` for a synthetic
+        (sharp / missing-fillet) bend.
+    axis_dir, axis_loc
+        Unit direction and a point on the bend axis line.
+    angle_rad, angle_deg
+        Bend angle (between the two flat-face normals, in [0, pi]).
+    radius
+        Inner bend radius. 0 for synthetic bends.
+    length
+        Bend length along the axis (mm).
+    is_hem
+        True if angle is close to 180 degrees AND radius is close to t/2.
+    is_synthetic
+        True if no cylindrical patch was found between the two flats
+        (sharp corner / missing fillet).
+    """
+
+    p_in_index: int
+    p_out_index: int
+    cyl_index: int | None
+    axis_dir: tuple[float, float, float]
+    axis_loc: tuple[float, float, float]
+    angle_rad: float
+    radius: float
+    length: float
+    is_hem: bool = False
+    is_synthetic: bool = False
+
+    @property
+    def angle_deg(self) -> float:
+        return math.degrees(self.angle_rad)
+
+
+# ---------------------------------------------------------------------------
+# Geometry helpers
+# ---------------------------------------------------------------------------
+
+
+def _unit(v: tuple[float, float, float]) -> tuple[float, float, float]:
+    n = math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
+    if n < 1e-12:
+        return (0.0, 0.0, 1.0)
+    return (v[0] / n, v[1] / n, v[2] / n)
+
+
+def _dot(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+
+def _cross(
+    a: tuple[float, float, float], b: tuple[float, float, float]
+) -> tuple[float, float, float]:
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def _mean(values: list[float]) -> float:
+    return sum(values) / len(values) if values else 0.0
+
+
+def _cv(values: list[float]) -> float:
+    """Coefficient of variation. Returns 0 if not enough data."""
+    if len(values) < 2:
+        return 0.0
+    m = _mean(values)
+    if abs(m) < 1e-9:
+        return float("inf")
+    var = sum((x - m) ** 2 for x in values) / len(values)
+    return math.sqrt(var) / abs(m)
+
+
+# ---------------------------------------------------------------------------
+# Face classification
+# ---------------------------------------------------------------------------
+
+
+def _classify_faces(solid):
+    """Return ``(planars, cylinders, others, total_area, planar_area, other_area)``.
+
+    Each item is a list of indexed records carrying the face plus its key
+    geometric quantities.
+    """
+
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.BRepGProp import BRepGProp
+    from OCP.GeomAbs import GeomAbs_Cylinder, GeomAbs_Plane
+    from OCP.GProp import GProp_GProps
+    from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS
+
+    planars: list[_PlanarFace] = []
+    cylinders: list[_CylPatch] = []
+    others: list[tuple[object, float]] = []
+    total_area = 0.0
+    other_area = 0.0
+    planar_area = 0.0
+
+    exp = TopExp_Explorer(solid, TopAbs_FACE)
+    idx_p = 0
+    idx_c = 0
+    while exp.More():
+        f = TopoDS.Face_s(exp.Current())
+        try:
+            adapt = BRepAdaptor_Surface(f)
+            t = adapt.GetType()
+            props = GProp_GProps()
+            BRepGProp.SurfaceProperties_s(f, props)
+            area = float(props.Mass())
+            total_area += area
+            if t == GeomAbs_Plane:
+                pln = adapt.Plane()
+                d = pln.Axis().Direction()
+                sign = -1.0 if f.Orientation() == TopAbs_REVERSED else 1.0
+                normal = _unit((d.X() * sign, d.Y() * sign, d.Z() * sign))
+                cm = props.CentreOfMass()
+                centroid = (cm.X(), cm.Y(), cm.Z())
+                planars.append(
+                    _PlanarFace(face=f, index=idx_p, normal=normal, centroid=centroid, area=area)
+                )
+                planar_area += area
+                idx_p += 1
+            elif t == GeomAbs_Cylinder:
+                cyl = adapt.Cylinder()
+                ax = cyl.Axis()
+                ax_dir = _unit((ax.Direction().X(), ax.Direction().Y(), ax.Direction().Z()))
+                ax_loc_raw = (ax.Location().X(), ax.Location().Y(), ax.Location().Z())
+                # length-along-axis: derive from area / (radius * angular_extent)
+                u_min = adapt.FirstUParameter()
+                u_max = adapt.LastUParameter()
+                v_min = adapt.FirstVParameter()
+                v_max = adapt.LastVParameter()
+                ang = max(u_max - u_min, 0.0)
+                rad = float(cyl.Radius())
+                if rad > 1e-9 and ang > 1e-9:
+                    length = area / (rad * ang)
+                else:
+                    length = float(v_max - v_min)
+                # Normalise ax_loc to the MIDPOINT along the axis (project the
+                # face centroid onto the axis line). Cylinder constructors are
+                # free to place ax.Location() anywhere on the axis; we want a
+                # canonical centered point so the bend strip's midline maps to
+                # the centroid of the bend extent.
+                cm = props.CentreOfMass()
+                cmv = (cm.X() - ax_loc_raw[0], cm.Y() - ax_loc_raw[1], cm.Z() - ax_loc_raw[2])
+                t_along = cmv[0] * ax_dir[0] + cmv[1] * ax_dir[1] + cmv[2] * ax_dir[2]
+                ax_loc = (
+                    ax_loc_raw[0] + t_along * ax_dir[0],
+                    ax_loc_raw[1] + t_along * ax_dir[1],
+                    ax_loc_raw[2] + t_along * ax_dir[2],
+                )
+                cylinders.append(
+                    _CylPatch(
+                        face=f,
+                        index=idx_c,
+                        radius=rad,
+                        axis_dir=ax_dir,
+                        axis_loc=ax_loc,
+                        area=area,
+                        length_along_axis=length,
+                    )
+                )
+                idx_c += 1
+            else:
+                others.append((f, area))
+                other_area += area
+        except Exception as exc:
+            logger.debug("_classify_faces face skipped: %s", exc)
+        exp.Next()
+
+    return planars, cylinders, others, total_area, planar_area, other_area
+
+
+# ---------------------------------------------------------------------------
+# Thickness probing
+# ---------------------------------------------------------------------------
+
+
+def _measure_thickness(planars: list[_PlanarFace]) -> tuple[float, float, int]:
+    """Pair near-antiparallel planar faces and return (mean_t, cv_t, n_pairs).
+
+    Strategy
+    --------
+    For each pair of planar faces with antiparallel-ish normals (``dot <
+    UNFOLD_ANTIPARALLEL_DOT_MAX``), record:
+      1. distance from face A's centroid projected along B's normal,
+      2. distance from face B's centroid projected along A's normal,
+      3. distance from each face's bbox corners projected onto the other face's
+         plane (this is what catches a wedge: corner-to-plane distances vary).
+
+    The CV is taken across ALL probe distances, so a small taper that leaves
+    centroid-to-plane probes unchanged still shows up.
+    """
+
+    if len(planars) < 2:
+        return 0.0, 0.0, 0
+
+    candidates: list[tuple[int, int, float, list[float]]] = []
+    for i in range(len(planars)):
+        for j in range(i + 1, len(planars)):
+            a, b = planars[i], planars[j]
+            d = _dot(a.normal, b.normal)
+            if d > UNFOLD_ANTIPARALLEL_DOT_MAX:
+                continue
+            probes = _probe_thickness(a, b)
+            if not probes:
+                continue
+            avg = _mean(probes)
+            if avg <= 1e-6:
+                continue
+            candidates.append((i, j, avg, probes))
+
+    if not candidates:
+        return 0.0, 0.0, 0
+
+    candidates.sort(key=lambda x: x[2])
+    used = set()
+    selected: list[tuple[float, list[float]]] = []
+    for i, j, avg, probes in candidates:
+        if i in used or j in used:
+            continue
+        used.add(i)
+        used.add(j)
+        selected.append((avg, probes))
+
+    if not selected:
+        return 0.0, 0.0, 0
+
+    min_t = min(s[0] for s in selected)
+    # Keep pairs whose average is within
+    # UNFOLD_SHEET_PAIR_THICKNESS_MULTIPLIER * min_t (sheet-like pairs).
+    sheet_probes: list[float] = []
+    for avg, probes in selected:
+        if avg <= UNFOLD_SHEET_PAIR_THICKNESS_MULTIPLIER * min_t:
+            sheet_probes.extend(probes)
+    if not sheet_probes:
+        sheet_probes = [p for _, probes in selected for p in probes]
+    mean_t = _mean(sheet_probes)
+    cv_t = _cv(sheet_probes)
+    return mean_t, cv_t, len(sheet_probes) // 4
+
+
+def _probe_thickness(a: _PlanarFace, b: _PlanarFace) -> list[float]:
+    """Sample distances between face A and face B's plane and vice-versa.
+
+    Probes from each face's bounding-box corners (in 3D) projected onto the
+    other face's plane. Returns a list of distances; for a parallel pair they
+    are all equal, for a tapered pair they vary.
+    """
+
+    try:
+        from OCP.Bnd import Bnd_Box
+        from OCP.BRepBndLib import BRepBndLib
+
+        def corners(f) -> list[tuple[float, float, float]]:
+            bb = Bnd_Box()
+            BRepBndLib.Add_s(f, bb)
+            xmn, ymn, zmn, xmx, ymx, zmx = bb.Get()
+            return [
+                (xmn, ymn, zmn),
+                (xmx, ymn, zmn),
+                (xmn, ymx, zmn),
+                (xmx, ymx, zmn),
+                (xmn, ymn, zmx),
+                (xmx, ymn, zmx),
+                (xmn, ymx, zmx),
+                (xmx, ymx, zmx),
+            ]
+
+        cs_a = corners(a.face)
+        cs_b = corners(b.face)
+    except Exception:
+        cs_a = [a.centroid]
+        cs_b = [b.centroid]
+
+    probes: list[float] = []
+    # A's corners projected onto B's plane (distance to plane = dot((P - B.cm), B.normal))
+    for c in cs_a + [a.centroid]:
+        dx = c[0] - b.centroid[0]
+        dy = c[1] - b.centroid[1]
+        dz = c[2] - b.centroid[2]
+        d = abs(dx * b.normal[0] + dy * b.normal[1] + dz * b.normal[2])
+        probes.append(d)
+    for c in cs_b + [b.centroid]:
+        dx = c[0] - a.centroid[0]
+        dy = c[1] - a.centroid[1]
+        dz = c[2] - a.centroid[2]
+        d = abs(dx * a.normal[0] + dy * a.normal[1] + dz * a.normal[2])
+        probes.append(d)
+    return probes
+
+
+# ---------------------------------------------------------------------------
+# Bend graph construction
+# ---------------------------------------------------------------------------
+
+
+def _build_edge_face_map(solid):
+    """Map each TopoDS_Edge to the list of TopoDS_Faces using it."""
+
+    from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
+    from OCP.TopExp import TopExp
+    from OCP.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
+
+    m = TopTools_IndexedDataMapOfShapeListOfShape()
+    TopExp.MapShapesAndAncestors_s(solid, TopAbs_EDGE, TopAbs_FACE, m)
+    return m
+
+
+def _axes_collinear(
+    a_dir: tuple[float, float, float],
+    a_loc: tuple[float, float, float],
+    b_dir: tuple[float, float, float],
+    b_loc: tuple[float, float, float],
+    angle_tol_deg: float = 2.0,
+    dist_tol_mm: float = 0.5,
+) -> bool:
+    """Two axis lines (point + direction) are the same line."""
+
+    cos_lim = math.cos(math.radians(angle_tol_deg))
+    d = abs(_dot(a_dir, b_dir))
+    if d < cos_lim:
+        return False
+    dx = b_loc[0] - a_loc[0]
+    dy = b_loc[1] - a_loc[1]
+    dz = b_loc[2] - a_loc[2]
+    t = dx * a_dir[0] + dy * a_dir[1] + dz * a_dir[2]
+    proj_x = a_loc[0] + t * a_dir[0]
+    proj_y = a_loc[1] + t * a_dir[1]
+    proj_z = a_loc[2] + t * a_dir[2]
+    perp_sq = (b_loc[0] - proj_x) ** 2 + (b_loc[1] - proj_y) ** 2 + (b_loc[2] - proj_z) ** 2
+    return perp_sq <= dist_tol_mm * dist_tol_mm
+
+
+def _group_coaxial_cylinders(cylinders: list[_CylPatch]) -> list[list[_CylPatch]]:
+    """Group concentric cylinders (inner + outer of a sheet-metal bend)."""
+
+    groups: list[list[_CylPatch]] = []
+    for c in cylinders:
+        placed = False
+        for g in groups:
+            if _axes_collinear(g[0].axis_dir, g[0].axis_loc, c.axis_dir, c.axis_loc):
+                g.append(c)
+                placed = True
+                break
+        if not placed:
+            groups.append([c])
+    return groups
+
+
+def _build_bends(
+    planars: list[_PlanarFace],
+    cylinders: list[_CylPatch],
+    solid,
+    thickness: float,
+) -> tuple[list[Bend], list[list[int]], list[list[int]]]:
+    """Construct the bend graph.
+
+    Returns
+    -------
+    bends:
+        List of detected :class:`Bend` records (one per physical bend, merging
+        concentric inner/outer cylindrical patches).
+    planar_bend_idx:
+        For each planar face, the list of bend indices incident to it.
+    planar_neighbors:
+        For each planar face, the list of *other* planar-face indices it is
+        connected to through a bend.
+    """
+
+    bends: list[Bend] = []
+
+    from OCP.TopAbs import TopAbs_EDGE
+    from OCP.TopExp import TopExp_Explorer
+
+    def _planar_index_of(face) -> int:
+        for p in planars:
+            if p.face.IsSame(face):
+                return p.index
+        return -1
+
+    # Edge -> faces adjacency
+    edge_face_map = _build_edge_face_map(solid)
+
+    def _cylinder_planar_neighbors(cyl_face) -> list[int]:
+        seen: set = set()
+        out: list[int] = []
+        exp_e = TopExp_Explorer(cyl_face, TopAbs_EDGE)
+        while exp_e.More():
+            e = exp_e.Current()
+            for k in range(1, edge_face_map.Size() + 1):
+                key = edge_face_map.FindKey(k)
+                if key.IsSame(e):
+                    flist = edge_face_map.FindFromIndex(k)
+                    for f in flist:
+                        if not f.IsSame(cyl_face):
+                            ip = _planar_index_of(f)
+                            if ip >= 0 and ip not in seen:
+                                seen.add(ip)
+                                out.append(ip)
+                    break
+            exp_e.Next()
+        return out
+
+    # Group concentric cylinders into single physical bends.
+    cyl_groups = _group_coaxial_cylinders(cylinders)
+    for group in cyl_groups:
+        # Use the OUTER cylinder for the bend's geometric properties AND for
+        # picking which two planar faces the bend joins. The outer cylinder's
+        # planar neighbours are the two OUTER faces of the bent sheet, which
+        # forms a connected "outer skin" chain across the whole part.
+        outer = max(group, key=lambda c: c.radius)
+        inner = min(group, key=lambda c: c.radius)
+        bend_radius = inner.radius if len(group) > 1 else outer.radius
+
+        outer_neighbors: list[int] = _cylinder_planar_neighbors(outer.face)
+        if len(outer_neighbors) < 2:
+            # Fall back to union of all cylinders in the group.
+            outer_neighbors = []
+            for c in group:
+                for ip in _cylinder_planar_neighbors(c.face):
+                    if ip not in outer_neighbors:
+                        outer_neighbors.append(ip)
+            if len(outer_neighbors) < 2:
+                continue
+
+        # Choose the pair: the two planars with the LARGEST areas whose
+        # normals are *neither coplanar nor antiparallel* with each other.
+        # Two faces with antiparallel normals are the OUTER and INNER faces
+        # of the same flat segment - they don't define a bend angle.
+        sorted_n = sorted(outer_neighbors, key=lambda i: -planars[i].area)
+        a = None
+        b = None
+        for i in range(len(sorted_n)):
+            cand_a = sorted_n[i]
+            n_a = planars[cand_a].normal
+            for j in range(i + 1, len(sorted_n)):
+                cand_b = sorted_n[j]
+                n_b = planars[cand_b].normal
+                dot = _dot(n_a, n_b)
+                # exclude coplanar (dot ~ +1) AND antiparallel (dot ~ -1)
+                if abs(dot) < UNFOLD_COPLANAR_COS_LIMIT:
+                    a = cand_a
+                    b = cand_b
+                    break
+            if a is not None:
+                break
+        if a is None or b is None:
+            continue
+        n_a = planars[a].normal
+        n_b = planars[b].normal
+        cos = max(-1.0, min(1.0, _dot(n_a, n_b)))
+        angle = math.acos(cos)
+        if angle < math.radians(UNFOLD_MIN_BEND_ANGLE_DEG):
+            continue
+        is_hem = angle > math.radians(UNFOLD_HEM_ANGLE_MIN_DEG) and (
+            thickness > 1e-6 and abs(bend_radius - thickness * 0.5) < thickness * 0.5
+        )
+        bends.append(
+            Bend(
+                p_in_index=a,
+                p_out_index=b,
+                cyl_index=outer.index,
+                axis_dir=outer.axis_dir,
+                axis_loc=outer.axis_loc,
+                angle_rad=angle,
+                radius=bend_radius,
+                length=outer.length_along_axis,
+                is_hem=is_hem,
+                is_synthetic=False,
+            )
+        )
+
+    # Per-planar adjacency lists
+    planar_bend_idx: list[list[int]] = [[] for _ in planars]
+    planar_neighbors: list[list[int]] = [[] for _ in planars]
+    for bi, bend in enumerate(bends):
+        planar_bend_idx[bend.p_in_index].append(bi)
+        planar_bend_idx[bend.p_out_index].append(bi)
+        planar_neighbors[bend.p_in_index].append(bend.p_out_index)
+        planar_neighbors[bend.p_out_index].append(bend.p_in_index)
+
+    return bends, planar_bend_idx, planar_neighbors
+
+
+# ---------------------------------------------------------------------------
+# Bend-graph traversal: cycle and branching detection
+# ---------------------------------------------------------------------------
+
+
+def _detect_cycles(n_nodes: int, neighbors: list[list[int]], start: int) -> bool:
+    """Return True if there is a cycle reachable from *start*."""
+
+    parent: dict[int, int] = {start: -1}
+    queue = deque([start])
+    while queue:
+        u = queue.popleft()
+        for v in neighbors[u]:
+            if v not in parent:
+                parent[v] = u
+                queue.append(v)
+            elif parent[u] != v:
+                # found edge back to a non-parent => cycle
+                return True
+    return False
+
+
+def _max_branching(neighbors: list[list[int]]) -> int:
+    if not neighbors:
+        return 0
+    return max(len(set(n)) for n in neighbors)
+
+
+def _signed_bend_angle(
+    parent_normal: tuple[float, float, float],
+    child_normal: tuple[float, float, float],
+    axis_dir: tuple[float, float, float],
+) -> float:
+    """Signed bend angle (rad) between two adjacent flat faces about ``axis_dir``.
+
+    Magnitude is the unsigned angle in ``[0, pi]``; sign is the sign of
+    ``(parent_normal x child_normal) . axis_dir``. Positive means a CCW
+    rotation about ``axis_dir`` takes the parent normal toward the child
+    normal; negative means CW. The reference frame is the bend axis as
+    detected (its direction is arbitrary but consistent per bend).
+    """
+
+    cos = max(-1.0, min(1.0, _dot(parent_normal, child_normal)))
+    mag = math.acos(cos)
+    s = _dot(_cross(parent_normal, child_normal), axis_dir)
+    sign = 1.0 if s >= 0.0 else -1.0
+    return sign * mag
+
+
+def _detect_joggles(
+    planars: list[_PlanarFace],
+    bends: list[Bend],
+    traversal: list[tuple[int, int, int]],
+    *,
+    angle_match_tol_deg: float = 3.0,
+) -> int:
+    """Count joggles (Z-bends) along the BFS traversal.
+
+    A joggle is a pair of bends ``(b1, b2)`` whose signed rotation angles are
+    of opposite sign and roughly equal magnitude (within
+    ``angle_match_tol_deg`` degrees), and whose hinge axes are roughly
+    parallel. Two topologies count:
+
+    * *Serial* (Z / step): one bend's child is the next bend's parent. The
+      shared flat is the middle of the unfold chain.
+    * *Sibling* (joggle off a single base): both bends share a parent, AND
+      the two child flats lie on *opposite sides* of the parent's plane.
+      Two siblings on the *same* side (U-channel: both legs UP) are NOT a
+      joggle even though their cross-product signs flip due to symmetric
+      placement of the two bend axes.
+
+    The cylindrical adaptor returns an arbitrary axis sign; we canonicalise
+    each bend axis so the sign of the cross-product test is reproducible
+    across parallel axes.
+    """
+
+    if len(traversal) < 2:
+        return 0
+
+    def _canon_axis(d: tuple[float, float, float]) -> tuple[float, float, float]:
+        # Flip so the largest-magnitude component is positive. Gives a
+        # stable, traversal-order-independent reference frame for sign.
+        ax, ay, az = d
+        absx, absy, absz = abs(ax), abs(ay), abs(az)
+        if absz >= absx and absz >= absy:
+            return d if az >= 0 else (-ax, -ay, -az)
+        if absx >= absy:
+            return d if ax >= 0 else (-ax, -ay, -az)
+        return d if ay >= 0 else (-ax, -ay, -az)
+
+    signed: dict[int, float] = {}
+    axes: dict[int, tuple[float, float, float]] = {}
+    incoming: dict[int, int] = {}  # face -> bend where face is child
+    outgoing: dict[int, list[int]] = {}  # face -> bends where face is parent
+    parent_of: dict[int, int] = {}  # bend -> parent face
+    child_of: dict[int, int] = {}  # bend -> child face
+
+    for parent, child, bi in traversal:
+        b = bends[bi]
+        ax = _canon_axis(b.axis_dir)
+        signed[bi] = _signed_bend_angle(planars[parent].normal, planars[child].normal, ax)
+        axes[bi] = ax
+        incoming[child] = bi
+        outgoing.setdefault(parent, []).append(bi)
+        parent_of[bi] = parent
+        child_of[bi] = child
+
+    tol_rad = math.radians(angle_match_tol_deg)
+    parallel_cos = math.cos(math.radians(15.0))
+    counted: set = set()
+    n_joggles = 0
+
+    def _pair_is_joggle(bi1: int, bi2: int) -> bool:
+        if abs(_dot(axes[bi1], axes[bi2])) < parallel_cos:
+            return False
+        if signed[bi1] * signed[bi2] >= 0.0:
+            return False
+        if abs(abs(signed[bi1]) - abs(signed[bi2])) > tol_rad:
+            return False
+        return True
+
+    # Serial joggles: a face is both child(b_in) and parent(b_out).
+    for face_idx, b_in in incoming.items():
+        for b_out in outgoing.get(face_idx, []):
+            key = (min(b_in, b_out), max(b_in, b_out))
+            if key in counted:
+                continue
+            if not _pair_is_joggle(b_in, b_out):
+                continue
+            counted.add(key)
+            n_joggles += 1
+
+    # Sibling joggles: two bends share a parent, but the two children lie on
+    # OPPOSITE sides of the parent's plane (signed projection of
+    # (child_centroid - parent_centroid) onto parent_normal flips sign).
+    for parent_idx, bend_list in outgoing.items():
+        if len(bend_list) < 2:
+            continue
+        p = planars[parent_idx]
+        side_of: dict[int, float] = {}
+        for bi in bend_list:
+            cc = planars[child_of[bi]].centroid
+            d = (cc[0] - p.centroid[0], cc[1] - p.centroid[1], cc[2] - p.centroid[2])
+            side_of[bi] = _dot(d, p.normal)
+        for i in range(len(bend_list)):
+            for j in range(i + 1, len(bend_list)):
+                bi1, bi2 = bend_list[i], bend_list[j]
+                key = (min(bi1, bi2), max(bi1, bi2))
+                if key in counted:
+                    continue
+                # Children must straddle the parent's plane.
+                if side_of[bi1] * side_of[bi2] >= -1e-6:
+                    continue
+                if not _pair_is_joggle(bi1, bi2):
+                    continue
+                counted.add(key)
+                n_joggles += 1
+
+    return n_joggles
+
+
+def _select_base_face(
+    planars: list[_PlanarFace],
+    bends: list[Bend],
+    *,
+    area_tie_ratio: float = 0.005,
+) -> int:
+    """Pick the planar face to start the BFS unfold from.
+
+    Primary key: largest area. Among faces tied within ``area_tie_ratio`` of
+    the maximum (default 0.5%), prefer the face that participates in the
+    greatest number of detected bends (as either P_in or P_out). Final
+    deterministic tie-breaker: smallest centroid tuple (rounded), then index.
+    """
+
+    if not planars:
+        return -1
+
+    bend_count = [0] * len(planars)
+    for b in bends:
+        if 0 <= b.p_in_index < len(planars):
+            bend_count[b.p_in_index] += 1
+        if 0 <= b.p_out_index < len(planars):
+            bend_count[b.p_out_index] += 1
+
+    max_area = max(p.area for p in planars)
+    if max_area <= 0.0:
+        return 0
+    threshold = max_area * (1.0 - area_tie_ratio)
+    tied = [i for i, p in enumerate(planars) if p.area >= threshold]
+
+    if len(tied) == 1:
+        return tied[0]
+
+    best_count = max(bend_count[i] for i in tied)
+    if best_count == 0 and bends:
+        logger.warning(
+            "UnfoldProbe: %d bends detected but no tied-largest planar face "
+            "participates in any bend; falling back to largest area.",
+            len(bends),
+        )
+    candidates = [i for i in tied if bend_count[i] == best_count]
+    if len(candidates) == 1:
+        return candidates[0]
+
+    # Deterministic final tie-break: smallest rounded centroid then index.
+    def _key(i: int):
+        c = planars[i].centroid
+        return (round(c[0], 6), round(c[1], 6), round(c[2], 6), i)
+
+    return min(candidates, key=_key)
+
+
+# ---------------------------------------------------------------------------
+# UnfoldProbe
+# ---------------------------------------------------------------------------
+
+
+class BendDetector:
+    """Detects bends from a sheet-metal solid.
+
+    Pairs planar faces by adjacency through cylindrical faces; computes
+    ``(axis, radius, angle)`` per bend. Tolerates missing fillets by inserting
+    synthetic bends with ``R=0`` between non-coplanar adjacent planar faces
+    that share a straight edge.
+    """
+
+    def __init__(self, *, sharp_bend_angle_min_deg: float = 5.0):
+        self.sharp_bend_angle_min_deg = float(sharp_bend_angle_min_deg)
+
+    def detect(self, solid) -> list[Bend]:
+        try:
+            planars, cylinders, _others, _ta, _pa, _oa = _classify_faces(solid)
+        except Exception as exc:
+            logger.debug("BendDetector.detect failed at classify: %s", exc)
+            return []
+        t_mean, _t_cv, _ = _measure_thickness(planars)
+        try:
+            bends, _, _ = _build_bends(planars, cylinders, solid, t_mean)
+        except Exception as exc:
+            logger.debug("BendDetector.detect failed at build: %s", exc)
+            return []
+        # Synthetic bends: two planar faces sharing a straight edge at an angle
+        # other than 0 / 180 deg, but with no cylindrical patch between them.
+        try:
+            bends += self._find_synthetic_bends(planars, bends, solid)
+        except Exception as exc:
+            logger.debug("BendDetector synthetic step failed: %s", exc)
+        return bends
+
+    def _find_synthetic_bends(
+        self,
+        planars: list[_PlanarFace],
+        existing: list[Bend],
+        solid,
+    ) -> list[Bend]:
+        """Detect sharp planar-planar bends with no intermediate cylinder."""
+
+        if len(planars) < 2:
+            return []
+
+        from OCP.BRepAdaptor import BRepAdaptor_Curve
+        from OCP.GeomAbs import GeomAbs_Line
+        from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
+        from OCP.TopExp import TopExp
+        from OCP.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
+
+        # Edge -> faces map
+        m = TopTools_IndexedDataMapOfShapeListOfShape()
+        TopExp.MapShapesAndAncestors_s(solid, TopAbs_EDGE, TopAbs_FACE, m)
+
+        existing_pairs = {
+            (min(b.p_in_index, b.p_out_index), max(b.p_in_index, b.p_out_index)) for b in existing
+        }
+
+        synthetic: list[Bend] = []
+        seen_pairs = set(existing_pairs)
+
+        for k in range(1, m.Size() + 1):
+            edge = m.FindKey(k)
+            try:
+                curve = BRepAdaptor_Curve(edge)
+            except Exception:
+                continue
+            try:
+                if curve.GetType() != GeomAbs_Line:
+                    continue
+            except Exception:
+                continue
+            # Walk face ancestors
+            flist = m.FindFromIndex(k)
+            planar_ids: list[int] = []
+            for f in flist:
+                for p in planars:
+                    if p.face.IsSame(f):
+                        planar_ids.append(p.index)
+                        break
+            if len(planar_ids) != 2:
+                continue
+            a, b = planar_ids[0], planar_ids[1]
+            if a == b:
+                continue
+            pair_key = (min(a, b), max(a, b))
+            if pair_key in seen_pairs:
+                continue
+            n_a = planars[a].normal
+            n_b = planars[b].normal
+            cos = max(-1.0, min(1.0, _dot(n_a, n_b)))
+            angle = math.acos(cos)
+            if angle < math.radians(self.sharp_bend_angle_min_deg):
+                continue
+            if angle > math.radians(180.0 - self.sharp_bend_angle_min_deg) and angle < math.radians(
+                180.0
+            ):
+                # could be a hem-like coplanar; still treat as synthetic bend
+                pass
+            seen_pairs.add(pair_key)
+
+            # Edge geometry
+            p1 = curve.Value(curve.FirstParameter())
+            p2 = curve.Value(curve.LastParameter())
+            axis_loc = ((p1.X() + p2.X()) / 2, (p1.Y() + p2.Y()) / 2, (p1.Z() + p2.Z()) / 2)
+            axis_dir = _unit((p2.X() - p1.X(), p2.Y() - p1.Y(), p2.Z() - p1.Z()))
+            length = math.sqrt(
+                (p2.X() - p1.X()) ** 2 + (p2.Y() - p1.Y()) ** 2 + (p2.Z() - p1.Z()) ** 2
+            )
+
+            synthetic.append(
+                Bend(
+                    p_in_index=a,
+                    p_out_index=b,
+                    cyl_index=None,
+                    axis_dir=axis_dir,
+                    axis_loc=axis_loc,
+                    angle_rad=angle,
+                    radius=0.0,
+                    length=length,
+                    is_hem=False,
+                    is_synthetic=True,
+                )
+            )
+        return synthetic
+
+
+class UnfoldProbe:
+    """Sheet-metal unfold probe.
+
+    See module docstring for the algorithm. The probe NEVER raises; all
+    failures are reported via :class:`UnfoldResult`.
+    """
+
+    def __init__(
+        self,
+        *,
+        k_factor: float = UNFOLD_K_FACTOR,
+        thickness_cv_limit: float = UNFOLD_THICKNESS_CV_LIMIT,
+        max_other_faces_ratio: float = UNFOLD_MAX_OTHER_FACES_RATIO,
+    ):
+        self.k = float(k_factor)
+        self.thickness_cv_limit = float(thickness_cv_limit)
+        self.max_other_faces_ratio = float(max_other_faces_ratio)
+        # Debug-only: index (within the classify_faces planar list) of the
+        # face chosen as the BFS base on the last ``run``. ``-1`` if no run
+        # has produced a base yet. Reset on each invocation.
+        self._last_base_face_id: int = -1
+
+    # ------------------------------------------------------------------
+    # Public entry: run
+    # ------------------------------------------------------------------
+
+    def run(self, solid) -> UnfoldResult:
+        self._last_base_face_id = -1
+        try:
+            return self._run_inner(solid)
+        except Exception as exc:
+            logger.warning("UnfoldProbe.run unexpected exception: %s", exc)
+            return UnfoldResult(status=UnfoldStatus.FAILURE, reason=f"exception:{exc}")
+
+    def _run_inner(self, solid) -> UnfoldResult:
+        # Shell check
+        n_shells = self._count_shells(solid)
+        if n_shells > 1:
+            return UnfoldResult(
+                status=UnfoldStatus.FAILURE,
+                reason="disconnected_shells",
+                flags={"n_shells": n_shells},
+            )
+
+        planars, cylinders, others, total_area, planar_area, other_area = _classify_faces(solid)
+        if total_area <= 1e-9:
+            return UnfoldResult(status=UnfoldStatus.FAILURE, reason="empty_solid")
+
+        if not planars:
+            return UnfoldResult(
+                status=UnfoldStatus.FAILURE,
+                reason="non_developable",
+                flags={"other_area_ratio": other_area / total_area},
+            )
+
+        # Non-developable check
+        other_ratio = other_area / total_area
+        if other_ratio > self.max_other_faces_ratio:
+            return UnfoldResult(
+                status=UnfoldStatus.FAILURE,
+                reason="non_developable",
+                flags={"other_area_ratio": other_ratio},
+            )
+
+        # Closed-body heuristic: a closed tube has cylindrical area dwarfing
+        # planar area. Sheet-metal parts always have planar surfaces >> cyl.
+        cyl_area = sum(c.area for c in cylinders)
+        if total_area > 1e-9 and cyl_area / total_area >= UNFOLD_CLOSED_BODY_CYL_AREA_RATIO:
+            return UnfoldResult(
+                status=UnfoldStatus.FAILURE,
+                reason="cyclic_graph",
+                flags={"cyl_area_ratio": cyl_area / total_area, "closed_body": True},
+            )
+
+        # Thickness
+        t_mean, t_cv, n_pairs = _measure_thickness(planars)
+        if t_mean <= 1e-6 or n_pairs == 0:
+            return UnfoldResult(
+                status=UnfoldStatus.FAILURE,
+                reason="no_thickness",
+                flags={"n_pairs": n_pairs},
+            )
+
+        thickness_partial = t_cv > self.thickness_cv_limit
+
+        # Build bends (cylindrical + synthetic)
+        detector = BendDetector()
+        bends = detector.detect(solid)
+
+        # Adjacency
+        n_p = len(planars)
+        planar_neighbors: list[list[int]] = [[] for _ in range(n_p)]
+        planar_bend_idx: list[list[int]] = [[] for _ in range(n_p)]
+        for bi, b in enumerate(bends):
+            planar_bend_idx[b.p_in_index].append(bi)
+            planar_bend_idx[b.p_out_index].append(bi)
+            planar_neighbors[b.p_in_index].append(b.p_out_index)
+            planar_neighbors[b.p_out_index].append(b.p_in_index)
+
+        # Pick the base: largest planar face, with bend-participation as the
+        # tie-breaker among faces equal in area. This avoids the symmetric
+        # L-bracket pitfall where the inner-top and outer-bottom flange faces
+        # tie on area and the inner face's neighbours never reach the outer-
+        # cylinder bend.
+        base_idx = _select_base_face(planars, bends)
+        self._last_base_face_id = base_idx
+
+        # No bends: flat plate
+        if not bends:
+            return UnfoldResult(
+                status=UnfoldStatus.SUCCESS if not thickness_partial else UnfoldStatus.PARTIAL,
+                n_bends=0,
+                flat_area=planars[base_idx].area,
+                thickness_mean=t_mean,
+                thickness_cv=t_cv,
+                blank_bbox=None,
+                flags={"thickness_variation": thickness_partial},
+                reason="thickness_variation" if thickness_partial else "",
+            )
+
+        # Cycle detection: a cycle in the bend graph means a closed body.
+        if _detect_cycles(n_p, planar_neighbors, base_idx):
+            return UnfoldResult(
+                status=UnfoldStatus.FAILURE,
+                reason="cyclic_graph",
+                n_bends=len(bends),
+                thickness_mean=t_mean,
+                thickness_cv=t_cv,
+                flags={"closed_body": True},
+            )
+
+        # Branching detection: planar face connected to > 2 bends. Previously
+        # this was a hard FAILURE; we now downgrade to PARTIAL so downstream
+        # tooling still receives n_bends and a partial flat_area for the
+        # subtree the BFS reaches.
+        max_b = _max_branching(planar_neighbors)
+        branching = max_b > 2
+
+        # BFS unfold + bend-allowance accumulation. Returns the sequence of
+        # (parent_planar, child_planar, bend_idx) traversal records so we can
+        # compute signed rotation angles for joggle detection.
+        flat_area, visited_planars, visited_bends, traversal = self._bfs_unfold(
+            base_idx, planars, bends, planar_bend_idx, t_mean
+        )
+
+        # Joggle detection: two adjacent bends (sharing a flat face) whose
+        # signed rotation angles have opposite signs within a ~3 deg
+        # magnitude tolerance. Joggles are informational and do NOT downgrade
+        # status from SUCCESS.
+        n_joggles = _detect_joggles(planars, bends, traversal)
+
+        # Compose status / reason. Branching downgrades to PARTIAL even if
+        # thickness is OK; thickness variation also downgrades to PARTIAL.
+        partial = thickness_partial or branching
+        status = UnfoldStatus.PARTIAL if partial else UnfoldStatus.SUCCESS
+        reasons: list[str] = []
+        if thickness_partial:
+            reasons.append("thickness_variation")
+        if branching:
+            reasons.append("branching")
+        reason = "; ".join(reasons)
+
+        flags: dict = {
+            "thickness_variation": thickness_partial,
+            "synthetic_bends": sum(1 for bi in visited_bends if bends[bi].is_synthetic),
+            "has_hem": any(bends[bi].is_hem for bi in visited_bends),
+            "n_planars_visited": len(visited_planars),
+        }
+        if branching:
+            flags["branching"] = True
+            flags["branches_found"] = max_b
+        if n_joggles > 0:
+            flags["has_joggle"] = True
+            flags["n_joggles"] = n_joggles
+
+        return UnfoldResult(
+            status=status,
+            n_bends=len(visited_bends),
+            flat_area=flat_area,
+            blank_bbox=None,
+            thickness_mean=t_mean,
+            thickness_cv=t_cv,
+            flags=flags,
+            reason=reason,
+        )
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _count_shells(self, solid) -> int:
+        try:
+            from OCP.TopAbs import TopAbs_SHELL
+            from OCP.TopExp import TopExp_Explorer
+
+            n = 0
+            exp = TopExp_Explorer(solid, TopAbs_SHELL)
+            while exp.More():
+                n += 1
+                exp.Next()
+            return n
+        except Exception:
+            return 0
+
+    def _bfs_unfold(
+        self,
+        base: int,
+        planars: list[_PlanarFace],
+        bends: list[Bend],
+        planar_bend_idx: list[list[int]],
+        thickness: float,
+    ) -> tuple[float, set, set, list[tuple[int, int, int]]]:
+        """Walk the bend graph from base, summing flat areas + bend allowances.
+
+        Also returns a traversal log: list of ``(parent_planar, child_planar,
+        bend_idx)`` tuples in BFS order. The traversal log lets callers
+        compute signed rotation angles per bend (parent -> child) for
+        downstream analyses like joggle detection.
+        """
+
+        visited_planars = {base}
+        visited_bends: set = set()
+        traversal: list[tuple[int, int, int]] = []
+        flat_area = planars[base].area
+        queue: deque = deque([base])
+
+        while queue:
+            cur = queue.popleft()
+            for bi in planar_bend_idx[cur]:
+                if bi in visited_bends:
+                    continue
+                b = bends[bi]
+                nxt = b.p_out_index if b.p_in_index == cur else b.p_in_index
+                if nxt in visited_planars:
+                    continue
+                visited_bends.add(bi)
+                visited_planars.add(nxt)
+                traversal.append((cur, nxt, bi))
+                flat_area += planars[nxt].area
+                ba = self._bend_allowance(b, thickness)
+                flat_area += ba * max(b.length, 0.0)
+                queue.append(nxt)
+
+        return flat_area, visited_planars, visited_bends, traversal
+
+    def _bend_allowance(self, bend: Bend, thickness: float) -> float:
+        """Per-unit-length bend allowance: BA / L = theta * (R + K * t).
+
+        We return the *width* of the unrolled bend strip in the unfold plane,
+        per unit length along the bend axis. Multiply by ``bend.length`` to
+        get the actual area added by the bend.
+        """
+
+        return bend.angle_rad * (bend.radius + self.k * thickness)
+
+    # ------------------------------------------------------------------
+    # Flat pattern (true unfold)
+    # ------------------------------------------------------------------
+
+    def compute_flat_pattern(self, solid) -> dict:
+        """Return a dict suitable for the DXF writer's ``FlatPattern``.
+
+        Format::
+
+            {
+                'outer_contour': [[(u, v), ...], ...],   # closed polygons
+                'holes':         [[(u, v), ...], ...],   # closed polygons
+                'bend_lines':    [((u1,v1),(u2,v2), {"angle","radius","direction"}), ...],
+                'thickness':     float,
+                'bbox':          (umin, vmin, umax, vmax),
+            }
+
+        Algorithm
+        ---------
+        1. Identify the base face (largest planar face) and build a 2D (u,v)
+           frame on its plane.
+        2. Run :class:`BendDetector` to get the bend list and adjacency.
+        3. BFS the bend graph from the base. For each visited planar face,
+           compute the cumulative 4x4 transform that rotates it into the base
+           plane (rotation about the hinge axis by -theta + the parent's
+           transform).
+        4. Sample each face's outer + inner wires at ~0.5 mm chord tolerance,
+           apply the transform, project to (u,v), and accumulate.
+        5. Insert each bend allowance strip (rectangle along the hinge of
+           width BA = theta * (R + K * t)) between the two flats it joins.
+        6. Combine all face polygons + bend strips with shapely's
+           ``unary_union`` to get a clean single outer contour. If shapely
+           is unavailable, emit per-face contours as separate polygons (the
+           DXF writer accepts multiple disjoint outer contours).
+
+        Returns ``{}`` if the underlying unfold fails.
+        Never raises.
+        """
+
+        result = self.run(solid)
+        if result.status == UnfoldStatus.FAILURE:
+            return {}
+
+        try:
+            return self._compute_flat_pattern_inner(solid, result)
+        except Exception as exc:
+            logger.warning("compute_flat_pattern unexpected exception: %s", exc)
+            return {}
+
+    # ------------------------------------------------------------------
+    # Inner: gather wires, transforms, bend strips
+    # ------------------------------------------------------------------
+
+    def _compute_flat_pattern_inner(self, solid, result) -> dict:
+        import numpy as np  # local import: keep module light
+
+        try:
+            planars, cylinders, _others, _ta, _pa, _oa = _classify_faces(solid)
+        except Exception as exc:
+            logger.debug("_compute_flat_pattern: classify failed: %s", exc)
+            return {}
+        if not planars:
+            return {}
+
+        # Build bends first so the base selector can use bend participation
+        # as the tie-breaker among equally-large planar faces.
+        try:
+            bends = BendDetector().detect(solid)
+        except Exception as exc:
+            logger.debug("_compute_flat_pattern: bend detect failed: %s", exc)
+            bends = []
+
+        # Pick the base using the same selector as ``run`` (largest planar,
+        # tie-broken by bend participation).
+        base_idx = _select_base_face(planars, bends)
+        base = planars[base_idx]
+
+        # 2D frame on base plane.
+        frame = _build_plane_frame(base.normal, base.centroid)
+        n_p = len(planars)
+        planar_bend_idx: list[list[int]] = [[] for _ in range(n_p)]
+        for bi, b in enumerate(bends):
+            if 0 <= b.p_in_index < n_p and 0 <= b.p_out_index < n_p:
+                planar_bend_idx[b.p_in_index].append(bi)
+                planar_bend_idx[b.p_out_index].append(bi)
+
+        # BFS to assign each visited planar face a cumulative 4x4 transform.
+        n_base_arr = np.array(base.normal, dtype=float)
+        transforms: dict[int, np.ndarray] = {base_idx: np.eye(4)}
+        bend_records: list[dict] = []  # one per visited bend
+        queue: deque = deque([base_idx])
+        visited_bends: set = set()
+
+        while queue:
+            cur = queue.popleft()
+            T_cur = transforms[cur]
+            n_cur = T_cur[:3, :3] @ np.array(planars[cur].normal, dtype=float)
+            n_cur = n_cur / (np.linalg.norm(n_cur) + 1e-18)
+
+            for bi in planar_bend_idx[cur]:
+                if bi in visited_bends:
+                    continue
+                b = bends[bi]
+                nxt = b.p_out_index if b.p_in_index == cur else b.p_in_index
+                if nxt in transforms:
+                    continue
+                visited_bends.add(bi)
+
+                # Compute the rotation: bring the child's normal (after T_cur
+                # applied) onto +n_base. The rotation axis is the bend axis
+                # transformed by T_cur.
+                n_child_world = np.array(planars[nxt].normal, dtype=float)
+                n_child = T_cur[:3, :3] @ n_child_world
+                n_child = n_child / (np.linalg.norm(n_child) + 1e-18)
+
+                axis_dir_world = np.array(b.axis_dir, dtype=float)
+                axis_loc_world = np.array(b.axis_loc, dtype=float)
+                # Hinge AFTER parent's transform.
+                hinge_dir = T_cur[:3, :3] @ axis_dir_world
+                hinge_dir = hinge_dir / (np.linalg.norm(hinge_dir) + 1e-18)
+                hinge_loc = (T_cur[:3, :3] @ axis_loc_world) + T_cur[:3, 3]
+
+                # Determine signed rotation angle that maps n_child to +n_base.
+                cos_a = float(np.clip(np.dot(n_child, n_base_arr), -1.0, 1.0))
+                angle_mag = math.acos(cos_a)
+                # Sign: pick alpha so that R(hinge_dir, alpha) * n_child == +n_base.
+                # Use cross product: cross(n_child, n_base) should align with hinge_dir
+                # for a positive rotation.
+                cross_cb = np.cross(n_child, n_base_arr)
+                sign = 1.0 if float(np.dot(cross_cb, hinge_dir)) >= 0 else -1.0
+                alpha = sign * angle_mag
+
+                R_unfold = _rotation_about_line(hinge_dir, hinge_loc, alpha)
+                T_child_rot = R_unfold @ T_cur
+
+                # After the rotation the child lies in the base plane with its
+                # bend-side edge touching the hinge. We now translate the child
+                # by BA in the in-plane direction perpendicular to the hinge,
+                # AWAY from the parent. This inserts the bend-allowance strip
+                # between the parent and the child.
+                t_mean_for_BA = result.thickness_mean or 0.0
+                BA_disp = float(b.angle_rad) * (float(b.radius) + self.k * t_mean_for_BA)
+                # In-plane perpendicular = n_base x hinge_dir (right-hand rule).
+                perp_in_plane = np.cross(n_base_arr, hinge_dir)
+                perp_in_plane = perp_in_plane / (np.linalg.norm(perp_in_plane) + 1e-18)
+                # Decide which sign of perp points AWAY from the parent. Compute
+                # the parent's centroid after T_cur and project it onto perp;
+                # the AWAY direction is the opposite sign of that projection
+                # relative to the hinge.
+                parent_centroid_world = T_cur @ np.array([*planars[cur].centroid, 1.0])
+                parent_offset = parent_centroid_world[:3] - hinge_loc
+                sign_perp = -1.0 if float(np.dot(parent_offset, perp_in_plane)) >= 0 else 1.0
+                translation = sign_perp * BA_disp * perp_in_plane
+                T_translate = np.eye(4)
+                T_translate[:3, 3] = translation
+                T_child = T_translate @ T_child_rot
+                transforms[nxt] = T_child
+
+                # Determine bend "direction" tag (up / down) based on the
+                # 3D bend geometry (before any unfold transform). "up" means
+                # the original child sat above the base plane (+n_base side).
+                # We use: dot(centroid_child_world - base.centroid, n_base) > 0.
+                cb = np.array(planars[nxt].centroid, dtype=float)
+                ob = np.array(base.centroid, dtype=float)
+                up_or_down = "up" if float(np.dot(cb - ob, n_base_arr)) >= 0 else "down"
+
+                # Hinge segment in the unfolded plane: midline of the bend
+                # strip. Project hinge_loc, hinge_dir, and perp_in_plane into
+                # (u, v) on the base frame.
+                p_mid_uv = _project_to_uv(hinge_loc, frame)
+                d_uv = _project_dir_to_uv(hinge_dir, frame)
+                d_uv = _normalize_2d(d_uv)
+                perp_uv = _project_dir_to_uv(tuple(perp_in_plane), frame)
+                perp_uv = _normalize_2d(perp_uv)
+                half_L = 0.5 * max(float(b.length), 0.0)
+                hinge_a_uv = (p_mid_uv[0] - half_L * d_uv[0], p_mid_uv[1] - half_L * d_uv[1])
+                hinge_b_uv = (p_mid_uv[0] + half_L * d_uv[0], p_mid_uv[1] + half_L * d_uv[1])
+
+                # Bend allowance (width of the unrolled bend strip in (u, v)).
+                t_mean = result.thickness_mean or 0.0
+                BA = float(b.angle_rad) * (float(b.radius) + self.k * t_mean)
+
+                bend_records.append(
+                    {
+                        "bend": b,
+                        "hinge_uv_a": hinge_a_uv,
+                        "hinge_uv_b": hinge_b_uv,
+                        "hinge_mid_uv": p_mid_uv,
+                        "hinge_dir_uv": d_uv,
+                        "perp_uv": perp_uv,
+                        "sign_perp": sign_perp,
+                        "BA": BA,
+                        "direction": up_or_down,
+                        "parent_idx": cur,
+                        "child_idx": nxt,
+                        "alpha": alpha,
+                    }
+                )
+                queue.append(nxt)
+
+        # ------------------------------------------------------------------
+        # Wire sampling: for each visited planar face, sample its wires and
+        # transform into (u, v).
+        # ------------------------------------------------------------------
+        face_outers: list[list[tuple[float, float]]] = []
+        face_holes: list[list[tuple[float, float]]] = []
+
+        for face_idx, T in transforms.items():
+            try:
+                outer_2d, holes_2d = _unfold_face(
+                    planars[face_idx].face, T, frame, chord_tol_mm=0.1
+                )
+            except Exception as exc:
+                logger.debug("_unfold_face failed (idx=%d): %s", face_idx, exc)
+                continue
+            if outer_2d:
+                face_outers.append(outer_2d)
+            face_holes.extend(holes_2d)
+
+        # ------------------------------------------------------------------
+        # Build bend-strip rectangles. The strip spans the hinge length and
+        # has total width = BA, centered on the hinge midline. We then push
+        # half of the strip toward the parent side and half toward the child
+        # side, so that after the boolean union the parent's outer wire and
+        # the strip and the child's outer wire all join cleanly. In practice,
+        # since each face's projected wire already extends to the hinge line
+        # (the bend's planar-face boundary edge), a centered strip works.
+        # ------------------------------------------------------------------
+        bend_strips: list[list[tuple[float, float]]] = []
+        bend_lines_out: list[tuple[tuple[float, float], tuple[float, float], dict]] = []
+        for rec in bend_records:
+            a = rec["hinge_uv_a"]
+            b_pt = rec["hinge_uv_b"]
+            # Perpendicular direction (in (u, v)) pointing AWAY from parent.
+            perp = rec["perp_uv"]
+            sign = rec["sign_perp"]
+            BA = rec["BA"]
+            # The strip spans from the hinge (where parent ends) to the line
+            # offset by BA in the AWAY direction (where the child starts).
+            ofs_u = sign * BA * perp[0]
+            ofs_v = sign * BA * perp[1]
+            # Midline of the strip (between parent's outer wire and child's
+            # outer wire, after translation).
+            mid_a = (a[0] + 0.5 * ofs_u, a[1] + 0.5 * ofs_v)
+            mid_b = (b_pt[0] + 0.5 * ofs_u, b_pt[1] + 0.5 * ofs_v)
+
+            if BA <= 1e-9:
+                bend_lines_out.append(
+                    (
+                        a,
+                        b_pt,
+                        {
+                            "angle": rec["bend"].angle_deg,
+                            "radius": rec["bend"].radius,
+                            "direction": rec["direction"],
+                        },
+                    )
+                )
+                continue
+
+            # Strip corners: hinge endpoints + offset endpoints.
+            p1 = a
+            p2 = b_pt
+            p3 = (b_pt[0] + ofs_u, b_pt[1] + ofs_v)
+            p4 = (a[0] + ofs_u, a[1] + ofs_v)
+            bend_strips.append([p1, p2, p3, p4])
+
+            bend_lines_out.append(
+                (
+                    mid_a,
+                    mid_b,
+                    {
+                        "angle": rec["bend"].angle_deg,
+                        "radius": rec["bend"].radius,
+                        "direction": rec["direction"],
+                    },
+                )
+            )
+
+        # ------------------------------------------------------------------
+        # Combine outer contours via shapely if available; otherwise emit
+        # per-face polygons (which the DXF writer accepts).
+        # ------------------------------------------------------------------
+        outer_contour, holes_final = _combine_polygons(face_outers + bend_strips, face_holes)
+
+        # Bounding box from outer contours.
+        all_pts: list[tuple[float, float]] = []
+        for poly in outer_contour:
+            all_pts.extend(poly)
+        if not all_pts:
+            return {}
+        xs = [p[0] for p in all_pts]
+        ys = [p[1] for p in all_pts]
+        bbox = (min(xs), min(ys), max(xs), max(ys))
+
+        return {
+            "outer_contour": outer_contour,
+            "holes": holes_final,
+            "bend_lines": bend_lines_out,
+            "thickness": result.thickness_mean,
+            "bbox": bbox,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Standalone helpers (module-level so they're easy to test and reuse)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _PlaneFrame:
+    """A 2D coordinate frame on a 3D plane."""
+
+    origin: tuple[float, float, float]
+    u_axis: tuple[float, float, float]
+    v_axis: tuple[float, float, float]
+    normal: tuple[float, float, float]
+
+
+def _build_plane_frame(
+    normal: tuple[float, float, float],
+    origin: tuple[float, float, float],
+) -> _PlaneFrame:
+    """Build a stable (u, v, n) frame on a plane defined by a normal + point."""
+
+    n = _unit(normal)
+    ux = (1.0, 0.0, 0.0)
+    if abs(_dot(ux, n)) > 0.9:
+        ux = (0.0, 1.0, 0.0)
+    v_axis = _unit(_cross(n, ux))
+    u_axis = _unit(_cross(v_axis, n))
+    return _PlaneFrame(origin=origin, u_axis=u_axis, v_axis=v_axis, normal=n)
+
+
+def _project_to_uv(p3: tuple[float, float, float], frame: _PlaneFrame) -> tuple[float, float]:
+    dx = p3[0] - frame.origin[0]
+    dy = p3[1] - frame.origin[1]
+    dz = p3[2] - frame.origin[2]
+    u = dx * frame.u_axis[0] + dy * frame.u_axis[1] + dz * frame.u_axis[2]
+    v = dx * frame.v_axis[0] + dy * frame.v_axis[1] + dz * frame.v_axis[2]
+    return (u, v)
+
+
+def _project_dir_to_uv(d3: tuple[float, float, float], frame: _PlaneFrame) -> tuple[float, float]:
+    u = d3[0] * frame.u_axis[0] + d3[1] * frame.u_axis[1] + d3[2] * frame.u_axis[2]
+    v = d3[0] * frame.v_axis[0] + d3[1] * frame.v_axis[1] + d3[2] * frame.v_axis[2]
+    return (u, v)
+
+
+def _normalize_2d(d: tuple[float, float]) -> tuple[float, float]:
+    n = math.sqrt(d[0] ** 2 + d[1] ** 2)
+    if n < 1e-12:
+        return (1.0, 0.0)
+    return (d[0] / n, d[1] / n)
+
+
+def _rotation_about_line(axis_dir, axis_loc, angle_rad):
+    """Return a 4x4 numpy matrix rotating about the line (axis_loc, axis_dir).
+
+    ``axis_dir`` must be a unit vector. Uses Rodrigues' formula.
+    """
+
+    import numpy as np
+
+    k = np.asarray(axis_dir, dtype=float)
+    k = k / (np.linalg.norm(k) + 1e-18)
+    K = np.array(
+        [
+            [0.0, -k[2], k[1]],
+            [k[2], 0.0, -k[0]],
+            [-k[1], k[0], 0.0],
+        ]
+    )
+    R3 = np.eye(3) + math.sin(angle_rad) * K + (1.0 - math.cos(angle_rad)) * (K @ K)
+
+    # Translate so axis passes through axis_loc:
+    # T = Translate(loc) * R3_homog * Translate(-loc)
+    p = np.asarray(axis_loc, dtype=float)
+    T = np.eye(4)
+    T[:3, :3] = R3
+    T[:3, 3] = p - R3 @ p
+    return T
+
+
+def _unfold_face(
+    face, transform_4x4, base_frame: _PlaneFrame, *, chord_tol_mm: float = 0.5
+) -> tuple[list[tuple[float, float]], list[list[tuple[float, float]]]]:
+    """Sample ``face``'s wires, apply ``transform_4x4`` (3D), and project to (u,v).
+
+    Returns ``(outer_polyline_2d, list_of_hole_polylines_2d)``.
+
+    The transform is applied in 3D first; then each transformed point is
+    projected onto the base plane using ``base_frame``. For a flat face whose
+    plane lies exactly in the base plane after the transform, this is the
+    canonical 2D unfold.
+    """
+
+    import numpy as np
+    from OCP.BRepAdaptor import BRepAdaptor_Curve
+    from OCP.BRepTools import BRepTools_WireExplorer
+    from OCP.GCPnts import GCPnts_QuasiUniformDeflection
+    from OCP.TopAbs import TopAbs_WIRE
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS
+
+    T = np.asarray(transform_4x4, dtype=float)
+
+    def apply_T(p: tuple[float, float, float]) -> tuple[float, float, float]:
+        v = T @ np.array([p[0], p[1], p[2], 1.0])
+        return (float(v[0]), float(v[1]), float(v[2]))
+
+    def sample_edge(edge) -> list[tuple[float, float, float]]:
+        """Sample an edge into 3D points at ~chord_tol mm chord deflection."""
+        try:
+            bac = BRepAdaptor_Curve(edge)
+        except Exception:
+            return []
+        out: list[tuple[float, float, float]] = []
+        try:
+            sampler = GCPnts_QuasiUniformDeflection(bac, chord_tol_mm)
+            if sampler.IsDone():
+                n = sampler.NbPoints()
+                for i in range(1, n + 1):
+                    p = sampler.Value(i)
+                    out.append((p.X(), p.Y(), p.Z()))
+                return out
+        except Exception:
+            pass
+        # Fallback: parameter-step sampling.
+        try:
+            fp = bac.FirstParameter()
+            lp = bac.LastParameter()
+            n_steps = 16
+            for i in range(n_steps + 1):
+                u = fp + (lp - fp) * i / n_steps
+                p = bac.Value(u)
+                out.append((p.X(), p.Y(), p.Z()))
+        except Exception:
+            pass
+        return out
+
+    def wire_to_polyline(wire) -> list[tuple[float, float]]:
+        pts: list[tuple[float, float, float]] = []
+        try:
+            we = BRepTools_WireExplorer(wire)
+            while we.More():
+                edge = we.Current()
+                # The orientation of the edge inside the wire matters for
+                # ordering; BRepTools_WireExplorer respects this.
+                edge_pts = sample_edge(edge)
+                # WireExplorer gives us the start vertex of each edge; we want
+                # an ordered sequence. Sample includes both endpoints; we
+                # append all but skip duplicates against the last accumulated
+                # point. We also need to honor edge orientation.
+                try:
+                    if str(edge.Orientation()).endswith("REVERSED"):
+                        edge_pts = list(reversed(edge_pts))
+                except Exception:
+                    pass
+                for p in edge_pts:
+                    if pts and (
+                        abs(pts[-1][0] - p[0]) < 1e-9
+                        and abs(pts[-1][1] - p[1]) < 1e-9
+                        and abs(pts[-1][2] - p[2]) < 1e-9
+                    ):
+                        continue
+                    pts.append(p)
+                we.Next()
+        except Exception as exc:
+            logger.debug("wire_to_polyline failed: %s", exc)
+            return []
+
+        # Apply 3D transform and project to (u, v).
+        out_uv: list[tuple[float, float]] = []
+        for p in pts:
+            q = apply_T(p)
+            out_uv.append(_project_to_uv(q, base_frame))
+        # Dedup consecutive 2D coincidences and drop the closing duplicate so
+        # the polyline is a non-self-intersecting ring.
+        deduped: list[tuple[float, float]] = []
+        tol = 1e-6
+        for uv in out_uv:
+            if deduped and abs(deduped[-1][0] - uv[0]) < tol and abs(deduped[-1][1] - uv[1]) < tol:
+                continue
+            deduped.append(uv)
+        # Drop closing point (first == last) to avoid shapely confusion.
+        if (
+            len(deduped) >= 2
+            and abs(deduped[0][0] - deduped[-1][0]) < tol
+            and abs(deduped[0][1] - deduped[-1][1]) < tol
+        ):
+            deduped.pop()
+        return deduped
+
+    # Iterate all wires; the largest-area one is the outer, the rest are holes.
+    wire_records: list[tuple[float, list[tuple[float, float]]]] = []
+    exp_w = TopExp_Explorer(face, TopAbs_WIRE)
+    while exp_w.More():
+        w = TopoDS.Wire_s(exp_w.Current())
+        poly = wire_to_polyline(w)
+        if len(poly) >= 3:
+            # Signed area to size the wire.
+            area = 0.0
+            for i in range(len(poly)):
+                x1, y1 = poly[i]
+                x2, y2 = poly[(i + 1) % len(poly)]
+                area += x1 * y2 - x2 * y1
+            wire_records.append((abs(area) / 2.0, poly))
+        exp_w.Next()
+
+    if not wire_records:
+        return [], []
+    wire_records.sort(key=lambda t: -t[0])
+    outer = wire_records[0][1]
+    # Drop degenerate wires (area < 1e-3 mm²) - these arise from cylinder seams
+    # or other topological artefacts during wire sampling.
+    holes = [w[1] for w in wire_records[1:] if w[0] > 1e-3]
+    return outer, holes
+
+
+def _combine_polygons(
+    outers: list[list[tuple[float, float]]],
+    holes: list[list[tuple[float, float]]],
+) -> tuple[list[list[tuple[float, float]]], list[list[tuple[float, float]]]]:
+    """Combine outer polygons via boolean union; subtract holes.
+
+    If shapely is unavailable, returns ``(outers, holes)`` unchanged - the DXF
+    writer accepts multiple disjoint outer contours.
+    """
+
+    if not outers:
+        return [], []
+    try:
+        from shapely.geometry import Polygon
+        from shapely.ops import unary_union
+        from shapely.validation import make_valid
+    except Exception:
+        logger.info("shapely unavailable; emitting per-face contours")
+        return outers, holes
+
+    polys = []
+    for poly in outers:
+        if len(poly) < 3:
+            continue
+        try:
+            p = Polygon(poly)
+            if not p.is_valid:
+                p = make_valid(p)
+            if p.is_empty:
+                continue
+            polys.append(p)
+        except Exception:
+            continue
+    if not polys:
+        return outers, holes
+
+    try:
+        merged = unary_union(polys)
+    except Exception as exc:
+        logger.debug("unary_union failed: %s", exc)
+        return outers, holes
+
+    # Subtract holes if any.
+    hole_polys = []
+    for h in holes:
+        if len(h) < 3:
+            continue
+        try:
+            hp = Polygon(h)
+            if not hp.is_valid:
+                hp = make_valid(hp)
+            if hp.is_empty:
+                continue
+            hole_polys.append(hp)
+        except Exception:
+            continue
+    if hole_polys:
+        try:
+            merged = merged.difference(unary_union(hole_polys))
+        except Exception as exc:
+            logger.debug("hole difference failed: %s", exc)
+
+    out_outers: list[list[tuple[float, float]]] = []
+    out_holes: list[list[tuple[float, float]]] = []
+
+    def _extract_polygon(geom) -> None:
+        # geom is a shapely Polygon
+        if geom.is_empty:
+            return
+        ext = list(geom.exterior.coords)
+        # shapely closes the ring; drop the duplicate last point.
+        if len(ext) >= 2 and ext[0] == ext[-1]:
+            ext = ext[:-1]
+        if len(ext) >= 3:
+            out_outers.append([(float(x), float(y)) for (x, y) in ext])
+        for interior in geom.interiors:
+            inner = list(interior.coords)
+            if len(inner) >= 2 and inner[0] == inner[-1]:
+                inner = inner[:-1]
+            if len(inner) >= 3:
+                out_holes.append([(float(x), float(y)) for (x, y) in inner])
+
+    geom_type = merged.geom_type
+    if geom_type == "Polygon":
+        _extract_polygon(merged)
+    elif geom_type == "MultiPolygon":
+        for g in merged.geoms:
+            _extract_polygon(g)
+    elif geom_type == "GeometryCollection":
+        for g in merged.geoms:
+            if g.geom_type == "Polygon":
+                _extract_polygon(g)
+    else:
+        # Unknown / degenerate geometry: fall back to per-face contours.
+        return outers, holes
+
+    if not out_outers:
+        return outers, holes
+    return out_outers, out_holes

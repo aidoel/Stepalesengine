@@ -1,0 +1,89 @@
+# Equal-leg T-bars (hot-rolled) per EN 10055.
+# t_w = stem thickness, t_f = flange thickness. For EN 10055 standard tee sizes
+# the leg-and-flange thicknesses are equal, so t_w == t_f.
+
+standard: "EN 10055"
+family: "T"
+units: "mm"
+
+profiles:
+  - designation: "T 30x30x4"
+    family: "T"
+    standard: "EN 10055"
+    h: 30.0
+    b: 30.0
+    t_w: 4.0
+    t_f: 4.0
+    r: 4.0
+    weight_per_m: 1.77
+    area_section: 226.0
+  - designation: "T 40x40x5"
+    family: "T"
+    standard: "EN 10055"
+    h: 40.0
+    b: 40.0
+    t_w: 5.0
+    t_f: 5.0
+    r: 5.0
+    weight_per_m: 2.96
+    area_section: 377.0
+  - designation: "T 50x50x6"
+    family: "T"
+    standard: "EN 10055"
+    h: 50.0
+    b: 50.0
+    t_w: 6.0
+    t_f: 6.0
+    r: 6.0
+    weight_per_m: 4.44
+    area_section: 566.0
+  - designation: "T 60x60x7"
+    family: "T"
+    standard: "EN 10055"
+    h: 60.0
+    b: 60.0
+    t_w: 7.0
+    t_f: 7.0
+    r: 7.0
+    weight_per_m: 6.23
+    area_section: 794.0
+  - designation: "T 70x70x8"
+    family: "T"
+    standard: "EN 10055"
+    h: 70.0
+    b: 70.0
+    t_w: 8.0
+    t_f: 8.0
+    r: 8.0
+    weight_per_m: 8.32
+    area_section: 1060.0
+  - designation: "T 80x80x9"
+    family: "T"
+    standard: "EN 10055"
+    h: 80.0
+    b: 80.0
+    t_w: 9.0
+    t_f: 9.0
+    r: 9.0
+    weight_per_m: 10.7
+    area_section: 1364.0
+  - designation: "T 100x100x10"
+    family: "T"
+    standard: "EN 10055"
+    h: 100.0
+    b: 100.0
+    t_w: 10.0
+    t_f: 10.0
+    r: 10.0
+    weight_per_m: 15.0
+    area_section: 1910.0
+  - designation: "T 120x120x13"
+    family: "T"
+    standard: "EN 10055"
+    h: 120.0
+    b: 120.0
+    t_w: 13.0
+    t_f: 13.0
+    r: 13.0
+    weight_per_m: 23.3
+    area_section: 2972.0

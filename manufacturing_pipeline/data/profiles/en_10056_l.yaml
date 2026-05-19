@@ -1,0 +1,210 @@
+# Equal and unequal angles per EN 10056-1 (dimensions) / EN 10056-2 (tolerances).
+# Fields: h = long-leg length, b = short-leg length (h == b for equal angles),
+# t = leg thickness, r = inner toe radius (rounded approximation).
+
+standard: "EN 10056"
+family: "L"
+units: "mm"
+
+profiles:
+  # ---------------- Equal angles ----------------
+  - designation: "L 20x20x3"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 20.0
+    b: 20.0
+    t: 3.0
+    r: 3.5
+    weight_per_m: 0.882
+    area_section: 112.3
+  - designation: "L 25x25x3"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 25.0
+    b: 25.0
+    t: 3.0
+    r: 3.5
+    weight_per_m: 1.12
+    area_section: 142.3
+  - designation: "L 30x30x3"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 30.0
+    b: 30.0
+    t: 3.0
+    r: 5.0
+    weight_per_m: 1.36
+    area_section: 174.0
+  - designation: "L 40x40x4"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 40.0
+    b: 40.0
+    t: 4.0
+    r: 6.0
+    weight_per_m: 2.42
+    area_section: 308.0
+  - designation: "L 50x50x5"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 50.0
+    b: 50.0
+    t: 5.0
+    r: 7.0
+    weight_per_m: 3.77
+    area_section: 480.0
+  - designation: "L 60x60x6"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 60.0
+    b: 60.0
+    t: 6.0
+    r: 8.0
+    weight_per_m: 5.42
+    area_section: 691.0
+  - designation: "L 70x70x7"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 70.0
+    b: 70.0
+    t: 7.0
+    r: 9.0
+    weight_per_m: 7.38
+    area_section: 940.0
+  - designation: "L 80x80x8"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 80.0
+    b: 80.0
+    t: 8.0
+    r: 10.0
+    weight_per_m: 9.63
+    area_section: 1227.0
+  - designation: "L 90x90x9"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 90.0
+    b: 90.0
+    t: 9.0
+    r: 11.0
+    weight_per_m: 12.2
+    area_section: 1552.0
+  - designation: "L 100x100x10"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 100.0
+    b: 100.0
+    t: 10.0
+    r: 12.0
+    weight_per_m: 15.0
+    area_section: 1915.0
+  - designation: "L 120x120x12"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 120.0
+    b: 120.0
+    t: 12.0
+    r: 13.0
+    weight_per_m: 21.6
+    area_section: 2754.0
+  - designation: "L 150x150x15"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 150.0
+    b: 150.0
+    t: 15.0
+    r: 16.0
+    weight_per_m: 33.8
+    area_section: 4302.0
+  - designation: "L 200x200x20"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 200.0
+    b: 200.0
+    t: 20.0
+    r: 18.0
+    weight_per_m: 59.9
+    area_section: 7640.0
+
+  # ---------------- Unequal angles ----------------
+  - designation: "L 50x30x5"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 50.0
+    b: 30.0
+    t: 5.0
+    r: 7.0
+    weight_per_m: 2.96
+    area_section: 377.0
+  - designation: "L 60x40x5"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 60.0
+    b: 40.0
+    t: 5.0
+    r: 7.0
+    weight_per_m: 3.76
+    area_section: 480.0
+  - designation: "L 75x50x6"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 75.0
+    b: 50.0
+    t: 6.0
+    r: 7.0
+    weight_per_m: 5.65
+    area_section: 720.0
+  - designation: "L 80x60x7"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 80.0
+    b: 60.0
+    t: 7.0
+    r: 8.0
+    weight_per_m: 7.36
+    area_section: 938.0
+  - designation: "L 100x50x8"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 100.0
+    b: 50.0
+    t: 8.0
+    r: 9.0
+    weight_per_m: 9.00
+    area_section: 1147.0
+  - designation: "L 100x75x8"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 100.0
+    b: 75.0
+    t: 8.0
+    r: 10.0
+    weight_per_m: 10.6
+    area_section: 1347.0
+  - designation: "L 120x80x10"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 120.0
+    b: 80.0
+    t: 10.0
+    r: 11.0
+    weight_per_m: 15.0
+    area_section: 1915.0
+  - designation: "L 150x90x10"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 150.0
+    b: 90.0
+    t: 10.0
+    r: 12.0
+    weight_per_m: 18.2
+    area_section: 2315.0
+  - designation: "L 200x100x12"
+    family: "L"
+    standard: "EN 10056-1"
+    h: 200.0
+    b: 100.0
+    t: 12.0
+    r: 15.0
+    weight_per_m: 27.3
+    area_section: 3475.0

@@ -1,0 +1,73 @@
+schema_version: 1
+description: |
+  Default scorer weights. See docs/adr/0002-score-based-classification.md and
+  docs/adr/0008-scorer-cross-terms.md for the rationale behind each rule.
+
+  Each rule is `(feature, transform, weight)`. `feature` is either a single
+  feature name (string) or a list of names (cross-term). `transform` must be
+  one of the named callables registered in scorers._TRANSFORMS - no string is
+  ever eval'd. `weight` is a float multiplier on the transformed value.
+
+classes:
+  plaat:
+    - feature: top1_face_pct
+      transform: linear
+      weight: 0.7
+    - feature: [top1_face_pct, unfoldable]
+      transform: top1_times_unfoldable
+      weight: 0.8
+    - feature: unfoldable
+      transform: bool
+      weight: 1.2
+    - feature: aspect_ratio
+      transform: neg_clamp10
+      weight: 0.3
+    - feature: name_profile_hit
+      transform: linear
+      weight: -0.3
+
+  profiel:
+    - feature: cross_section_constant
+      transform: bool
+      weight: 1.5
+    - feature: aspect_ratio
+      transform: clamp10
+      weight: 0.8
+    - feature: name_profile_hit
+      transform: linear
+      weight: 0.3
+    - feature: profile_match_designation
+      transform: bool
+      weight: 0.8
+    - feature: top1_face_pct
+      transform: linear
+      weight: -0.5
+    - feature: unfoldable
+      transform: bool
+      weight: -0.8
+
+  anders:
+    - feature: name_din_hit
+      transform: linear
+      weight: 0.5
+    - feature: vendor_code_present
+      transform: linear
+      weight: 0.5
+    - feature: bspline_pct
+      transform: linear
+      weight: 1.5
+    - feature: hole_density
+      transform: linear
+      weight: 1.2
+    - feature: hull_concavity
+      transform: linear
+      weight: 1.0
+    - feature: [top1_face_pct, unfoldable]
+      transform: top1_times_not_unfoldable
+      weight: 1.5
+    - feature: pocket_complexity
+      transform: linear
+      weight: 1.4
+    - feature: unfoldable
+      transform: bool
+      weight: -0.3

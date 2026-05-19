@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Diff — {{ manifest.source_path | basename }}</title>
+<style>{{ css|safe }}
+.diff-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.diff-form input[type=text] { flex: 1; min-width: 320px; padding: 8px 12px;
+                              border: 1px solid #ccc; border-radius: 6px;
+                              font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                              font-size: 13px; }
+.diff-form button { padding: 8px 18px; border: 0; border-radius: 6px;
+                    background: #1a5dd9; color: white; font-weight: 600;
+                    cursor: pointer; font-size: 14px; }
+.diff-form button:hover { background: #154bb0; }
+.label-added              { background: #d6f5d6; color: #1f5e1f; }
+.label-removed            { background: #ffd6d6; color: #821818; }
+.label-geometry_changed   { background: #fff4c5; color: #6b5300; }
+.label-classification_changed { background: #fff4c5; color: #6b5300; }
+.label-quantity_changed   { background: #fff4c5; color: #6b5300; }
+.label-unchanged          { background: #e5e5e5; color: #555; }
+.diff-section h2 { font-size: 16px; text-transform: uppercase;
+                   letter-spacing: 0.04em; color: #555; margin: 0 0 10px 0; }
+.diff-error { background: #ffe7e7; border: 1px solid #f4b4b4; color: #821818;
+              padding: 10px 14px; border-radius: 6px; }
+.details-cell { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 12px; color: #444; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <p><a href="/">&larr; back to manifest</a></p>
+  <h1>Diff</h1>
+  <p class="muted">
+    Base: <code>{{ manifest.source_path | basename }}</code>
+    &middot; manifest <code>{{ manifest_path }}</code>
+  </p>
+
+  <div class="card">
+    <form class="diff-form" method="get" action="/diff">
+      <input type="text" name="other" placeholder="/path/to/other_manifest.xml"
+             value="{{ other_path or '' }}" aria-label="other manifest path">
+      <button type="submit">Compare</button>
+    </form>
+  </div>
+
+  {% if error %}
+    <div class="card"><div class="diff-error">{{ error }}</div></div>
+  {% endif %}
+
+  {% if diff %}
+    <div class="card">
+      <h2>Summary</h2>
+      <div class="kv">
+        <span class="k">added</span><span>{{ diff.summary.n_added }}</span>
+        <span class="k">removed</span><span>{{ diff.summary.n_removed }}</span>
+        <span class="k">changed</span><span>{{ diff.summary.n_changed }}</span>
+        <span class="k">unchanged</span><span>{{ diff.summary.n_unchanged }}</span>
+        <span class="k">match by</span><span>{{ diff.summary.match_by }}</span>
+        <span class="k">tolerance</span><span>{{ '%.2f'|format(diff.summary.tolerance_pct) }}%</span>
+      </div>
+    </div>
+
+    {% for section in sections %}
+    <div class="card diff-section">
+      <h2>{{ section.title }} ({{ section.rows|length }})</h2>
+      {% if section.rows %}
+        <table>
+          <thead>
+            <tr>
+              <th>Kind</th>
+              <th>Product ID</th>
+              <th>Name</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for row in section.rows %}
+            <tr>
+              <td><span class="label label-{{ row.kind }}">{{ row.kind }}</span></td>
+              <td>{{ row.product_id }}</td>
+              <td>{{ row.name or "—" }}</td>
+              <td class="details-cell">
+                {% for k, v in row.details.items() %}
+                  {% if v and v|length == 3 %}
+                    {{ k }}: {{ fmt(v[0]) }} &rarr; {{ fmt(v[1]) }}{% if v[2] is not none %} ({{ '%.1f'|format(v[2]) }}%){% endif %}<br>
+                  {% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="muted">(none)</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="card">
+      <h2>Text report</h2>
+      <pre>{{ diff_text }}</pre>
+    </div>
+  {% endif %}
+</div>
+</body>
+</html>
