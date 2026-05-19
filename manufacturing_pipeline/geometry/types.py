@@ -28,6 +28,7 @@ class ManufacturingFeatures:
     inner_shell_count: int = 0
     pocket_complexity: float = 0.0   # 0..1 score: high = lots of small planar facets (pocketed)
     source: str = "brep"  # "brep" | "mesh"
+    material_guess: str = ""
 
 
 @dataclass

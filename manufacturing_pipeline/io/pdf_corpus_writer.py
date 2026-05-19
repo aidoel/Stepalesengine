@@ -32,7 +32,7 @@ import logging
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from reportlab.lib.colors import Color, black, white
 from reportlab.lib.pagesizes import A3, A4, landscape, letter, portrait
@@ -344,17 +344,18 @@ def _read_dxf_polylines(
 
     renderable = set(_DXF_LAYER_STYLES.keys())
     for entity in msp.query("LWPOLYLINE LINE"):
-        layer = entity.dxf.layer
+        entity_any: Any = entity
+        layer = entity_any.dxf.layer
         if layer not in renderable:
             continue
-        if entity.dxftype() == "LWPOLYLINE":
+        if entity_any.dxftype() == "LWPOLYLINE":
             try:
-                pts = [(float(x), float(y)) for (x, y, *_rest) in entity.get_points("xy")]
+                pts = [(float(x), float(y)) for (x, y, *_rest) in entity_any.get_points("xy")]
             except Exception:
                 continue
             if not pts:
                 continue
-            closed_polys.append((layer, pts, bool(entity.closed)))
+            closed_polys.append((layer, pts, bool(entity_any.closed)))
         else:  # LINE
             try:
                 start = entity.dxf.start

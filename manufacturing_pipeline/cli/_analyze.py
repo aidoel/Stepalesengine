@@ -21,6 +21,16 @@ def register(subparsers) -> argparse.ArgumentParser:
     analyze.add_argument("--no-dxf", action="store_true", help="skip DXF writing")
     analyze.add_argument("--no-xml", action="store_true", help="skip XML writing")
     analyze.add_argument(
+        "--pdf",
+        action="store_true",
+        help="generate single-part A4 PDF shop drawings under out-dir/parts",
+    )
+    analyze.add_argument(
+        "--assembly-pdf",
+        action="store_true",
+        help="generate multi-page assembly PDF with BOM cover under out-dir",
+    )
+    analyze.add_argument(
         "--no-cache",
         action="store_true",
         help="bypass the disk pipeline cache (read and write)",
@@ -63,6 +73,8 @@ def run(args: argparse.Namespace) -> int:
         out_dir=out_dir,
         write_dxf=not args.no_dxf,
         write_xml=not args.no_xml,
+        write_pdf=args.pdf,
+        write_assembly_pdf=args.assembly_pdf,
         use_cache=not args.no_cache,
         scorers_path=scorers_path,
         prefilter=not args.no_prefilter,
@@ -82,11 +94,26 @@ def run(args: argparse.Namespace) -> int:
         print("error: no parts parsed", file=sys.stderr)
         return EXIT_NO_PARTS
 
-    _print_summary(entries, quiet=args.quiet, out_dir=out_dir, path=path)
+    _print_summary(
+        entries,
+        quiet=args.quiet,
+        out_dir=out_dir,
+        path=path,
+        pdf_paths=result.pdf_paths,
+        assembly_pdf_path=result.assembly_pdf_path,
+    )
     return EXIT_OK
 
 
-def _print_summary(entries, *, quiet: bool, out_dir: Path, path: Path) -> None:
+def _print_summary(
+    entries,
+    *,
+    quiet: bool,
+    out_dir: Path,
+    path: Path,
+    pdf_paths: dict[str, Path] | None = None,
+    assembly_pdf_path: Path | None = None,
+) -> None:
     """Write a human-readable summary to stdout (or stderr in quiet mode)."""
     stream = sys.stderr if quiet else sys.stdout
     counts = {"plaat": 0, "profiel": 0, "anders": 0, "uncertain": 0}
@@ -102,10 +129,17 @@ def _print_summary(entries, *, quiet: bool, out_dir: Path, path: Path) -> None:
         file=stream,
     )
     for entry in entries:
-        flat = f" [{entry.flat_dxf_path}]" if entry.flat_dxf_path else ""
+        flat_parts = []
+        if entry.flat_dxf_path:
+            flat_parts.append("DXF")
+        if pdf_paths and entry.part.product_id in pdf_paths:
+            flat_parts.append("PDF")
+        flat = f" [{', '.join(flat_parts)}]" if flat_parts else ""
         print(
             f"  {entry.part.product_id} {entry.part.name} -> "
             f"{entry.classification.label} "
             f"(conf={entry.classification.confidence:.2f}){flat}",
             file=stream,
         )
+    if assembly_pdf_path:
+        print(f"assembly pdf: {assembly_pdf_path}", file=stream)

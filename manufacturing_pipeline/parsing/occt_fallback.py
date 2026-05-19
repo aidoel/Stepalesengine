@@ -13,12 +13,15 @@ from __future__ import annotations
 import logging
 import os
 
+from typing import Any
+from pathlib import Path
+
 from .types import StepPart
 
 logger = logging.getLogger(__name__)
 
 
-def _label_entry(label) -> str:
+def _label_entry(label: Any) -> str:
     """Best-effort TDF_Label entry string. Returns '' on failure."""
     try:
         from OCP.TCollection import TCollection_AsciiString
@@ -31,7 +34,7 @@ def _label_entry(label) -> str:
         return ""
 
 
-def _label_name(label) -> str:
+def _label_name(label: Any) -> str:
     """Read TDataStd_Name attribute as a Python string. Returns '' on miss."""
     try:
         from OCP.TDataStd import TDataStd_Name
@@ -66,7 +69,7 @@ def _label_name(label) -> str:
         return ""
 
 
-def occt_fallback(path) -> list[StepPart]:
+def occt_fallback(path: str | Path) -> list[StepPart]:
     """Use OCP STEPCAFControl_Reader + XCAFDoc_DocumentTool to recover names.
 
     Returns an empty list if OCP is unavailable, the reader fails, or no

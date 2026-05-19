@@ -221,3 +221,103 @@ def test_cache_dir_is_honoured(tmp_path: Path):
     assert cache.get(step_path) is not None
     # And the on-disk layout lives under cache_dir/v<MODEL_VERSION>/.
     assert (cache_dir / f"v{MODEL_VERSION}").is_dir()
+
+
+def test_analyze_writes_pdf_and_assembly_pdf(tmp_path: Path):
+    from manufacturing_pipeline.pipeline.analyze_assembly import (
+        AnalyzeOptions,
+        analyze,
+    )
+
+    step_path = _make_box_step(tmp_path)
+    out_dir = tmp_path / "out"
+
+    result = analyze(
+        step_path,
+        AnalyzeOptions(
+            out_dir=out_dir,
+            write_dxf=False,
+            write_xml=False,
+            write_pdf=True,
+            write_assembly_pdf=True,
+            use_cache=False,  # force fresh run
+        ),
+    )
+
+    # single part PDF should be created under parts/
+    parts_dir = out_dir / "parts"
+    assert parts_dir.is_dir()
+    pdfs = list(parts_dir.glob("*.pdf"))
+    assert len(pdfs) >= 1
+    for pdf in pdfs:
+        assert pdf.stat().st_size > 0
+
+    assert len(result.pdf_paths) >= 1
+    for part_id, pdf_path in result.pdf_paths.items():
+        assert pdf_path.is_file()
+        assert pdf_path.suffix == ".pdf"
+
+    # assembly PDF should be created under out/
+    assembly_pdf = out_dir / "assembly.pdf"
+    assert assembly_pdf.is_file()
+    assert assembly_pdf.stat().st_size > 0
+    assert result.assembly_pdf_path == assembly_pdf
+
+
+def test_analyze_pdf_caching_and_materialization(tmp_path: Path):
+    from manufacturing_pipeline.pipeline.analyze_assembly import (
+        AnalyzeOptions,
+        analyze,
+    )
+
+    step_path = _make_box_step(tmp_path)
+    cache_dir = tmp_path / "cache"
+    out_dir1 = tmp_path / "out1"
+    out_dir2 = tmp_path / "out2"
+
+    # Run 1: cold run, writes to cache
+    result1 = analyze(
+        step_path,
+        AnalyzeOptions(
+            out_dir=out_dir1,
+            write_dxf=False,
+            write_xml=False,
+            write_pdf=True,
+            write_assembly_pdf=True,
+            cache_dir=cache_dir,
+            use_cache=True,
+        ),
+    )
+    assert result1.assembly_pdf_path is not None
+    assert len(result1.pdf_paths) >= 1
+
+    # Run 2: hot run, should load from cache and materialize to out_dir2
+    result2 = analyze(
+        step_path,
+        AnalyzeOptions(
+            out_dir=out_dir2,
+            write_dxf=False,
+            write_xml=False,
+            write_pdf=True,
+            write_assembly_pdf=True,
+            cache_dir=cache_dir,
+            use_cache=True,
+        ),
+    )
+
+    # Verify materialized in out_dir2
+    parts_dir2 = out_dir2 / "parts"
+    assert parts_dir2.is_dir()
+    pdfs2 = list(parts_dir2.glob("*.pdf"))
+    assert len(pdfs2) == len(result1.pdf_paths)
+    for pdf in pdfs2:
+        assert pdf.stat().st_size > 0
+
+    for part_id, pdf_path in result2.pdf_paths.items():
+        assert pdf_path.is_file()
+        assert pdf_path.parent == parts_dir2
+
+    assembly_pdf2 = out_dir2 / "assembly.pdf"
+    assert assembly_pdf2.is_file()
+    assert assembly_pdf2.stat().st_size > 0
+    assert result2.assembly_pdf_path == assembly_pdf2

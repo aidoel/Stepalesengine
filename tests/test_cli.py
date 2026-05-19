@@ -102,3 +102,34 @@ def test_safe_name_lowercases_and_truncates():
     assert _safe_name("Hello World!!") == "hello_world"
     assert _safe_name("") == "part"
     assert len(_safe_name("a" * 200)) <= 64
+
+
+def test_analyze_cli_generates_pdf_and_assembly_pdf(tmp_path, capsys):
+    step_path = _make_step(tmp_path)
+    out_dir = tmp_path / "out"
+
+    rc = main([
+        "analyze",
+        str(step_path),
+        "--out-dir",
+        str(out_dir),
+        "--pdf",
+        "--assembly-pdf",
+        "--no-cache",
+    ])
+    assert rc == 0
+
+    # Verify single PDF and assembly PDF exist
+    parts_dir = out_dir / "parts"
+    assert parts_dir.is_dir()
+    pdfs = list(parts_dir.glob("*.pdf"))
+    assert len(pdfs) >= 1
+    for pdf in pdfs:
+        assert pdf.stat().st_size > 0
+
+    assembly_pdf = out_dir / "assembly.pdf"
+    assert assembly_pdf.is_file()
+    assert assembly_pdf.stat().st_size > 0
+
+    out = capsys.readouterr().out
+    assert "assembly pdf:" in out.lower()

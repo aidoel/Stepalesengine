@@ -48,6 +48,7 @@ from ..geometry.types import (
 )
 from ..geometry.unfold_probe import UnfoldProbe
 from ..io.dxf_writer import FlatPattern, write_dxf
+from ..io.pdf_writer import PartDrawingMeta, write_pdf, write_assembly_pdf
 from ..io.xml_writer import AssemblyManifest, PartManifestEntry, write_xml
 from ..parsing.step_parser import parse_step
 from ..parsing.types import StepPart
@@ -97,6 +98,8 @@ class AnalyzeOptions:
     out_dir: Path | None = None
     write_dxf: bool = True
     write_xml: bool = True
+    write_pdf: bool = False
+    write_assembly_pdf: bool = False
     dxf_only_for: tuple[str, ...] = ("plaat",)
     cache: bool = True
     notes: str = ""
@@ -129,6 +132,8 @@ class AnalyzeResult:
     manifest_path: Path | None = None
     dxf_paths: dict[str, Path] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    pdf_paths: dict[str, Path] = field(default_factory=dict)
+    assembly_pdf_path: Path | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -376,10 +381,16 @@ def _process_pair(
     warnings: list[str],
     source_path: Path | None = None,
     scorers: ScorerSpec | None = None,
-) -> tuple[PartManifestEntry, Path | None]:
+) -> tuple[
+    PartManifestEntry,
+    Path | None,
+    Path | None,
+    FlatPattern | None,
+    PartDrawingMeta | None,
+]:
     """Run the per-part pipeline for a single MatchResult.
 
-    Returns the manifest entry plus the DXF path (or None) it produced.
+    Returns the manifest entry, the DXF path, the PDF path, the FlatPattern, and PartDrawingMeta.
     ``source_path`` feeds the :class:`ProbeContext` so probes (notably PMI)
     can read the STEP file.
 
@@ -397,7 +408,7 @@ def _process_pair(
     solid = match.solid
 
     if solid is None:
-        return _degenerate_entry(node, warnings), None
+        return _degenerate_entry(node, warnings), None, None, None, None
 
     part = StepPart(
         product_id=node.product_id,
@@ -490,27 +501,57 @@ def _process_pair(
         logger.debug("per-part PMI extraction failed: %s", exc)
         pmi_record = None
 
-    # Emit a DXF when the classifier label matches the user's filter AND we
-    # actually have a successful unfold AND the user opted in to DXF writing.
-    if (
-        options.write_dxf
+    dxf_path = None
+    pdf_path = None
+    pattern = None
+    meta = None
+
+    need_pattern = (
+        (options.write_dxf or options.write_pdf or options.write_assembly_pdf)
         and parts_dir is not None
         and classification.label in options.dxf_only_for
         and unfold is not None
         and unfold.status == UnfoldStatus.SUCCESS
-    ):
+    )
+
+    if need_pattern:
         try:
             raw = UnfoldProbe().compute_flat_pattern(solid)
             pattern = _build_flat_pattern(raw, part_name=part.name or part.product_id)
             if pattern is not None:
+                meta = PartDrawingMeta(
+                    part_name=part.name or part.product_id,
+                    part_number=part.product_id,
+                    material=features.material_guess or "S235",
+                    quantity=max(node.quantity, 1),
+                    drawn_by="stepalesengine",
+                )
+        except Exception as exc:
+            logger.warning("Unfold flat pattern computation failed for %s: %s", part.product_id, exc)
+            warnings.append(f"Unfold flat pattern computation failed for {part.product_id}: {exc}")
+
+    if pattern is not None and parts_dir is not None:
+        if options.write_dxf:
+            try:
                 fname = f"{_safe_name(part.name or part.product_id)}.dxf"
                 out = parts_dir / fname
                 write_dxf(pattern, out)
                 dxf_path = out
-        except Exception as exc:
-            logger.warning("DXF export failed for %s: %s", part.product_id, exc)
-            warnings.append(f"DXF export failed for {part.product_id}: {exc}")
-            dxf_path = None
+            except Exception as exc:
+                logger.warning("DXF export failed for %s: %s", part.product_id, exc)
+                warnings.append(f"DXF export failed for {part.product_id}: {exc}")
+                dxf_path = None
+
+        if options.write_pdf:
+            try:
+                fname = f"{_safe_name(part.name or part.product_id)}.pdf"
+                out = parts_dir / fname
+                write_pdf(pattern, out, meta=meta)
+                pdf_path = out
+            except Exception as exc:
+                logger.warning("PDF export failed for %s: %s", part.product_id, exc)
+                warnings.append(f"PDF export failed for {part.product_id}: {exc}")
+                pdf_path = None
 
     flat_dxf_rel: str | None = None
     if dxf_path is not None and options.out_dir is not None:
@@ -555,7 +596,7 @@ def _process_pair(
         pmi=pmi_record if isinstance(pmi_record, PMIRecord) else None,
         strategy=strategy,
     )
-    return entry, dxf_path
+    return entry, dxf_path, pdf_path, pattern, meta
 
 
 def _finalise_cache_hit(
@@ -567,9 +608,9 @@ def _finalise_cache_hit(
     """Materialise a cache hit on disk so the result is byte-for-byte
     interchangeable with a fresh run.
 
-    The cache stores DXFs under its own per-key ``dxfs/`` directory. When the
+    The cache stores DXFs and PDFs under its own per-key directory. When the
     caller passed ``out_dir`` we copy them into ``out_dir/parts/`` and rewrite
-    the ``dxf_paths`` dict to point at the new locations. The manifest XML is
+    the paths dicts to point at the new locations. The manifest XML is
     re-written when requested.
     """
     dxf_paths: dict[str, Path] = {}
@@ -585,6 +626,29 @@ def _finalise_cache_hit(
     else:
         dxf_paths = dict(hit.dxf_paths)
 
+    pdf_paths: dict[str, Path] = {}
+    if parts_dir is not None and hit.pdf_paths:
+        parts_dir.mkdir(parents=True, exist_ok=True)
+        for pid, src in hit.pdf_paths.items():
+            src_path = Path(src)
+            if not src_path.is_file():
+                continue
+            dst = parts_dir / src_path.name
+            shutil.copy2(src_path, dst)
+            pdf_paths[pid] = dst
+    else:
+        pdf_paths = dict(hit.pdf_paths)
+
+    assembly_pdf_path: Path | None = None
+    if out_dir is not None and hit.assembly_pdf_path is not None:
+        src_path = Path(hit.assembly_pdf_path)
+        if src_path.is_file():
+            dst = out_dir / src_path.name
+            shutil.copy2(src_path, dst)
+            assembly_pdf_path = dst
+    else:
+        assembly_pdf_path = hit.assembly_pdf_path
+
     manifest_path: Path | None = None
     if opts.write_xml and out_dir is not None:
         manifest_path = write_xml(hit.manifest, out_dir / "manifest.xml")
@@ -594,6 +658,8 @@ def _finalise_cache_hit(
         manifest_path=manifest_path,
         dxf_paths=dxf_paths,
         warnings=list(hit.warnings),
+        pdf_paths=pdf_paths,
+        assembly_pdf_path=assembly_pdf_path,
     )
 
 
@@ -641,6 +707,8 @@ def analyze(
         path=str(step_path),
         write_dxf=bool(opts.write_dxf),
         write_xml=bool(opts.write_xml),
+        write_pdf=bool(opts.write_pdf),
+        write_assembly_pdf=bool(opts.write_assembly_pdf),
     )
     _analyze_t0 = _dt.datetime.now(_dt.timezone.utc).timestamp()
 
@@ -649,7 +717,8 @@ def analyze(
     if opts.out_dir is not None:
         out_dir = Path(opts.out_dir).expanduser().resolve()
         out_dir.mkdir(parents=True, exist_ok=True)
-        if opts.write_dxf:
+        # We need a parts_dir if we are writing either DXF or PDF single files.
+        if opts.write_dxf or opts.write_pdf:
             parts_dir = out_dir / "parts"
             parts_dir.mkdir(parents=True, exist_ok=True)
     # Replace options.out_dir with the resolved absolute path so
@@ -658,6 +727,8 @@ def analyze(
         out_dir=out_dir,
         write_dxf=opts.write_dxf,
         write_xml=opts.write_xml,
+        write_pdf=opts.write_pdf,
+        write_assembly_pdf=opts.write_assembly_pdf,
         dxf_only_for=tuple(opts.dxf_only_for),
         cache=opts.cache,
         notes=opts.notes,
@@ -723,11 +794,13 @@ def analyze(
 
     entries: list[PartManifestEntry] = []
     dxf_paths: dict[str, Path] = {}
+    pdf_paths: dict[str, Path] = {}
+    assembly_patterns: list[tuple[FlatPattern, PartDrawingMeta]] = []
     dropped_ghosts = 0
     for match in matches:
         if match.node is None:
             continue
-        entry, dxf = _process_pair(
+        entry, dxf, pdf, pattern, meta = _process_pair(
             match, opts, parts_dir, warnings, source_path=step_path, scorers=scorers_spec
         )
         # Filter ghost assembly leaves: nodes in the NAUO graph that have no
@@ -749,6 +822,10 @@ def analyze(
         entries.append(entry)
         if dxf is not None:
             dxf_paths[entry.part.product_id] = dxf
+        if pdf is not None:
+            pdf_paths[entry.part.product_id] = pdf
+        if pattern is not None and meta is not None:
+            assembly_patterns.append((pattern, meta))
         telemetry.emit(
             "analyze_part",
             product_id=entry.part.product_id,
@@ -759,6 +836,17 @@ def analyze(
         )
     if dropped_ghosts:
         logger.info("dropped %d ghost assembly leaves with no geometry", dropped_ghosts)
+
+    assembly_pdf_path: Path | None = None
+    if opts.write_assembly_pdf and out_dir is not None and assembly_patterns:
+        try:
+            pdf_out = out_dir / "assembly.pdf"
+            write_assembly_pdf(assembly_patterns, pdf_out)
+            assembly_pdf_path = pdf_out
+        except Exception as exc:
+            logger.warning("Assembly PDF export failed: %s", exc)
+            warnings.append(f"Assembly PDF export failed: {exc}")
+            assembly_pdf_path = None
 
     stat = step_path.stat()
     manifest = AssemblyManifest(
@@ -780,6 +868,8 @@ def analyze(
         manifest_path=manifest_path,
         dxf_paths=dxf_paths,
         warnings=warnings,
+        pdf_paths=pdf_paths,
+        assembly_pdf_path=assembly_pdf_path,
     )
 
     if disk_cache is not None:
@@ -795,6 +885,7 @@ def analyze(
         n_parts=len(entries),
         n_warnings=len(warnings),
         n_dxf=len(dxf_paths),
+        n_pdf=len(pdf_paths),
         duration_ms=round(duration_ms, 3),
     )
 

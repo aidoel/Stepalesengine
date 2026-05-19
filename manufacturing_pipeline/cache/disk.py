@@ -22,6 +22,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import uuid
 from pathlib import Path
@@ -33,6 +34,13 @@ if TYPE_CHECKING:  # pragma: no cover - import-cycle guard
     from ..pipeline.analyze_assembly import AnalyzeResult
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_name(name: str) -> str:
+    """Sanitise a part name for use as a filename."""
+    cleaned = re.sub(r"[^a-z0-9]+", "_", (name or "").lower()).strip("_")
+    cleaned = cleaned[:64]
+    return cleaned or "part"
 
 
 def _default_cache_root() -> Path:
@@ -155,6 +163,20 @@ class PipelineCache:
                 if candidate.is_file():
                     dxf_paths[part_entry.part.product_id] = candidate
 
+        pdf_dir = entry / "pdfs"
+        pdf_paths: dict[str, Path] = {}
+        if pdf_dir.is_dir():
+            for part_entry in manifest.parts:
+                pdf_name = f"{_safe_name(part_entry.part.name or part_entry.part.product_id)}.pdf"
+                candidate = pdf_dir / pdf_name
+                if candidate.is_file():
+                    pdf_paths[part_entry.part.product_id] = candidate
+
+        assembly_pdf_path: Path | None = None
+        candidate_assembly = entry / "assembly.pdf"
+        if candidate_assembly.is_file():
+            assembly_pdf_path = candidate_assembly
+
         warnings = list(meta.get("warnings", []))
 
         return AnalyzeResult(
@@ -162,6 +184,8 @@ class PipelineCache:
             manifest_path=None,
             dxf_paths=dxf_paths,
             warnings=warnings,
+            pdf_paths=pdf_paths,
+            assembly_pdf_path=assembly_pdf_path,
         )
 
     def put(self, step_path: str | Path, result: AnalyzeResult) -> Path:
@@ -190,6 +214,21 @@ class PipelineCache:
                 if not src.is_file():
                     continue
                 shutil.copy2(src, dxfs_dir / src.name)
+
+            # PDFs.
+            pdfs_dir = staging / "pdfs"
+            pdfs_dir.mkdir(parents=True, exist_ok=True)
+            for _pid, pdf_path in result.pdf_paths.items():
+                src = Path(pdf_path)
+                if not src.is_file():
+                    continue
+                shutil.copy2(src, pdfs_dir / src.name)
+
+            # Assembly PDF.
+            if result.assembly_pdf_path is not None:
+                src = Path(result.assembly_pdf_path)
+                if src.is_file():
+                    shutil.copy2(src, staging / "assembly.pdf")
 
             meta = {
                 "source_path": str(resolved),

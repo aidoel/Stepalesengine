@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import os
 from collections import Counter
+from pathlib import Path
 
 from .. import telemetry
 from .dutch_vocabulary import detect_part_type
@@ -100,7 +101,7 @@ def _filename_part(path: str) -> StepPart:
 
 
 def parse_step(
-    path,
+    path: str | Path,
     *,
     use_occt_fallback: bool = True,
     cache: bool = True,

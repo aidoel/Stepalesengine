@@ -32,7 +32,7 @@ include = ["manufacturing_pipeline*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --cov=manufacturing_pipeline --cov-report=html --cov-report=term"
 markers = [
     "slow: tests that take more than ~5 seconds each (deselect with -m 'not slow')",
     "integration: end-to-end integration tests",
@@ -59,8 +59,13 @@ ignore_missing_imports = true
 exclude = ["tests/fixtures/", ".pytest_cache/"]
 
 [[tool.mypy.overrides]]
-module = ["OCP.*", "ezdxf.*", "trimesh.*", "shapely.*", "scipy.*", "mapbox_earcut.*", "playwright.*", "yaml.*", "reportlab.*", "flask.*", "werkzeug.*"]
+module = ["OCP.*", "ezdxf.*", "trimesh.*", "shapely.*", "scipy.*", "yaml.*", "reportlab.*", "flask.*", "werkzeug.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["manufacturing_pipeline.parsing.*", "manufacturing_pipeline.classification.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 
 [tool.coverage.run]
 source = ["manufacturing_pipeline"]

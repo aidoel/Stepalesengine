@@ -53,7 +53,7 @@ def linear(x: float) -> float:
     return float(x)
 
 
-def boolf(x) -> float:
+def boolf(x: Any) -> float:
     return 1.0 if x else 0.0
 
 
@@ -67,12 +67,12 @@ def _clamp10(x: float) -> float:
     return min(x, 10) / 10
 
 
-def _top1_times_unfoldable(v) -> float:
+def _top1_times_unfoldable(v: tuple[Any, ...]) -> float:
     """top1_face_pct * 1[unfoldable] - the real-plate cross-term."""
     return v[0] * (1.0 if v[1] else 0.0)
 
 
-def _top1_times_not_unfoldable(v) -> float:
+def _top1_times_not_unfoldable(v: tuple[Any, ...]) -> float:
     """top1_face_pct * 1[not unfoldable] - the machined-lookalike cross-term."""
     return v[0] * (0.0 if v[1] else 1.0)
 
