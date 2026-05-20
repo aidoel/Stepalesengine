@@ -253,7 +253,7 @@ def test_analyze_writes_pdf_and_assembly_pdf(tmp_path: Path):
         assert pdf.stat().st_size > 0
 
     assert len(result.pdf_paths) >= 1
-    for part_id, pdf_path in result.pdf_paths.items():
+    for pdf_path in result.pdf_paths.values():
         assert pdf_path.is_file()
         assert pdf_path.suffix == ".pdf"
 
@@ -313,7 +313,7 @@ def test_analyze_pdf_caching_and_materialization(tmp_path: Path):
     for pdf in pdfs2:
         assert pdf.stat().st_size > 0
 
-    for part_id, pdf_path in result2.pdf_paths.items():
+    for pdf_path in result2.pdf_paths.values():
         assert pdf_path.is_file()
         assert pdf_path.parent == parts_dir2
 

@@ -51,4 +51,9 @@ Expected speedup on this file: **~10×** (from ~600 s to ~60 s), assuming ~80 % 
 
 ## Status
 
-Diagnosis only. The fix is architecturally clean and worth implementing, but it's a real change to `_process_pair` in `analyze_assembly.py` and warrants its own task with regression test coverage.
+**Implemented.** Both changes landed in `analyze_assembly.py`:
+
+- The cheap pre-filter is `_is_likely_unfoldable` / `_is_likely_profile` (with `_bbox_fill_ratio`); a rejected part records the synthetic `_PREFILTER_UNFOLD_RESULT` (`FAILURE`, reason `prefilter:not_likely_unfoldable`).
+- The identity cache is `_SOLID_RESULT_CACHE`, keyed on `_solid_signature` (volume / surface-area / bbox / hole-count buckets), cleared at the start of every `analyze()` call.
+
+Both run inside `_process_pair` behind `AnalyzeOptions.prefilter` (default on). Regression coverage: `tests/pipeline/test_prefilter.py` (13 tests, incl. a 30-body assembly speed comparison).

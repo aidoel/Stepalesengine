@@ -24,7 +24,6 @@ from manufacturing_pipeline.pipeline.probes import (
     default_registry,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fakes for protocol-level tests
 # ---------------------------------------------------------------------------

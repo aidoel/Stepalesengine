@@ -46,7 +46,7 @@ class FeatureVector:
         features: ManufacturingFeatures,
         profile_match: ProfileMatch | None = None,
         unfold: UnfoldResult | None = None,
-    ) -> "FeatureVector":
+    ) -> FeatureVector:
         """Construct from analyzer outputs (replaces _classifier_features)."""
         top1 = features.face_area_top[0] if features.face_area_top else 0.0
         bspline_pct = features.surface_pct.get("bspline", 0.0)

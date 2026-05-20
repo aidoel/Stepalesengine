@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import html
 import logging
-import os
 import tempfile
 import time
 from dataclasses import dataclass, field
@@ -482,10 +481,15 @@ def _render_file_rows(files: list[CorpusFile], *, link_mode: bool = False) -> st
         if link_mode and f.safe_name:
             href = "/file/" + html.escape(f.safe_name, quote=True) + "/"
             path_html = f'<a href="{href}">{path_html}</a>'
+        warn_html = (
+            f'<br><span class="warn-cell">{html.escape(warn_text)}</span>'
+            if warn_text
+            else ""
+        )
         rows.append(
             f'<tr class="{ok_class}" data-ok="{"1" if f.ok else "0"}">'
             f'<td class="path-cell">{path_html}'
-            f'{("<br><span class=\"warn-cell\">" + html.escape(warn_text) + "</span>") if warn_text else ""}'
+            f"{warn_html}"
             f"</td>"
             f'<td data-sort="{f.size_bytes}">{_format_size_mb(f.size_bytes)}</td>'
             f'<td data-sort="{f.parts}">{f.parts}</td>'
@@ -662,7 +666,7 @@ def render_markdown_report(report: CorpusReport, out_path: Path) -> Path:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     lines: list[str] = []
-    lines.append(f"# STEP corpus validation\n")
+    lines.append("# STEP corpus validation\n")
     lines.append(f"- Corpus: `{report.root}`")
     lines.append(f"- Files: **{report.total_files}**")
     lines.append(f"- OK: **{report.ok_count}**, Failed: **{report.failed_count}**")

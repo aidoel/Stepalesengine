@@ -33,11 +33,12 @@ field with ``name_overrides`` (e.g. ``{"cls": "class"}``).
 
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from dataclasses import MISSING, fields, is_dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, get_args, get_origin, get_type_hints
-import xml.etree.ElementTree as ET
+from typing import Any, get_args, get_origin, get_type_hints
 
 
 def _resolved_field_type(cls: type, field_name: str) -> Any:

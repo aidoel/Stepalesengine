@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
+from typing import Any
 
 from .types import DecisionTrace
-
-
-from typing import Any
 
 
 def trace_to_json(trace: DecisionTrace, **kwargs: Any) -> str:

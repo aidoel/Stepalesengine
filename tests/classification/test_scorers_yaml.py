@@ -22,7 +22,6 @@ from manufacturing_pipeline.classification.scorers import (
     load_scorers_from_yaml,
 )
 
-
 # ---------------------------------------------------------------------------
 # Reference: the pre-refactor hardcoded spec. Equivalence test pivots on this.
 # ---------------------------------------------------------------------------

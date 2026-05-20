@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from enum import Enum
-
-import pytest
 
 from manufacturing_pipeline.io._xml_dataclass import (
     build_element,
@@ -18,7 +15,6 @@ from manufacturing_pipeline.io._xml_dataclass import (
     parse_element,
     to_kebab,
 )
-
 
 # ---------------------------------------------------------------------------
 # Test 1: round-trip a flat dataclass with bool / int / float / str fields.
