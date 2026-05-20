@@ -18,6 +18,9 @@ from manufacturing_pipeline.geometry.types import (
     UnfoldStatus,
 )
 from manufacturing_pipeline.pipeline.probes import (
+    STAGE_CLASSIFY,
+    STAGE_POST,
+    STAGE_PRE,
     Probe,
     ProbeContext,
     ProbeRegistry,
@@ -119,6 +122,64 @@ def test_probes_can_read_prior_results_from_the_running_dict():
 def test_default_registry_lists_five_probes_in_canonical_order():
     reg = default_registry()
     assert reg.names() == ["holes", "profile", "unfold", "pmi", "cam"]
+
+
+def test_run_all_restricts_to_the_requested_stage():
+    reg = ProbeRegistry()
+    pre = _StubProbe("pre", "P")
+    mid = _StubProbe("mid", "M")
+    post = _StubProbe("post", "T")
+    reg.register("pre", pre, stage=STAGE_PRE)
+    reg.register("mid", mid, stage=STAGE_CLASSIFY)
+    reg.register("post", post, stage=STAGE_POST)
+
+    out = reg.run_all(_ctx(), stage=STAGE_CLASSIFY)
+    assert out == {"mid": "M"}
+    # Only the classify-stage probe ran.
+    assert (pre.calls, mid.calls, post.calls) == (0, 1, 0)
+
+
+def test_run_all_skip_substitutes_a_result_without_running_the_probe():
+    reg = ProbeRegistry()
+    a = _StubProbe("a", "ran-a")
+    b = _StubProbe("b", "ran-b")
+    reg.register("a", a)
+    reg.register("b", b)
+
+    out = reg.run_all(_ctx(), skip={"a": "skipped-a"})
+    assert out == {"a": "skipped-a", "b": "ran-b"}
+    # The skipped probe was never executed; the other still ran.
+    assert a.calls == 0
+    assert b.calls == 1
+
+
+def test_run_all_prior_seeds_the_result_dict_and_is_visible_to_probes():
+    reg = ProbeRegistry()
+
+    class _PriorReader:
+        name = "reader"
+
+        def run(self, inp: ProbeContext):
+            return sorted((inp.prior or {}).keys())
+
+    reg.register("reader", _PriorReader())
+    out = reg.run_all(_ctx(), prior={"holes": object()})
+    # The seeded key survives into the output...
+    assert "holes" in out
+    # ...and the probe saw it via ctx.prior.
+    assert out["reader"] == ["holes"]
+
+
+def test_default_registry_assigns_canonical_stages():
+    reg = default_registry()
+    by_stage = {STAGE_PRE: [], STAGE_CLASSIFY: [], STAGE_POST: []}
+    for stage in by_stage:
+        by_stage[stage] = reg.run_all(
+            _ctx(), stage=stage, skip={n: None for n in reg.names()}
+        )
+    assert list(by_stage[STAGE_PRE]) == ["holes"]
+    assert list(by_stage[STAGE_CLASSIFY]) == ["profile", "unfold"]
+    assert list(by_stage[STAGE_POST]) == ["pmi", "cam"]
 
 
 def test_probe_protocol_runtime_checkable_accepts_minimal_adapter():

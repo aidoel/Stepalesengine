@@ -1,6 +1,6 @@
 # Next steps + architecture state
 
-State as of 2026-05-20. Test suite **490 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
+State as of 2026-05-20. Test suite **494 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
 
 ## Module status
 
@@ -30,15 +30,17 @@ All items from the prior NEXT_STEPS round are implemented and tested:
 - **Scorer weights in YAML.** `load_scorers_from_yaml` + `tests/classification/test_scorers_yaml.py`.
 - **`web/server.py` slimmed** to 444 LOC; inline templates extracted to `web/templates.py`.
 
+## Recently landed
+
+### Orchestrator now runs through the probe registry
+
+`_process_pair` no longer instantiates probes inline. It builds one `ProbeContext` and drives `_REGISTRY.run_all` in three stages: `STAGE_PRE` (holes, before the cache lookup), `STAGE_CLASSIFY` (profile + unfold, cached, prefilterable via a `skip` dict), `STAGE_POST` (pmi + cam, after classification). `run_all` gained `stage` / `skip` / `prior` parameters; probes register with a stage. The registry is built once at import, so `ProfileShapeMatcher` loads its YAML tables once instead of per part. Adding a feature probe is now a single `reg.register(...)` line. Covered by `tests/pipeline/test_probes.py` (stage/skip/prior) and the existing prefilter suite.
+
 ## Outstanding work (in priority order)
 
-### Orchestrator does not use the probe registry
+### `analyze_assembly.py` is 884 LOC
 
-`ProbeRegistry` / `default_registry()` exist and are tested (`tests/pipeline/test_probes.py`), but `analyze_assembly.py::_process_pair` bypasses them — it instantiates `HoleAnalyzer`, the profile/unfold probes, `extract_pmi`, and `CamProbe` inline. The registry is currently decorative for the production path. Either route `_process_pair` through `registry.run_all` (so adding a probe really is a one-line edit) or drop the registry. The inline path also carries the prefilter/cache logic, so a migration must preserve that.
-
-### `analyze_assembly.py` is 895 LOC
-
-Grew past the ~700 LOC noted last round. Now that probes are factored out, the orchestrator could be a thin `parse -> load -> match -> run_probes -> classify -> emit`. Tie this to the registry-migration above.
+The probe migration trimmed it slightly. With probes now staged, the orchestrator could be a thin `parse -> load -> match -> run_probes -> classify -> emit`; `_process_pair` is still the largest single function and could be split (geometry/probe phase vs. output-writing phase).
 
 ### Calibration on the user's 92-file corpus
 

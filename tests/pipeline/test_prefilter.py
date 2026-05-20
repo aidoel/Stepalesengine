@@ -9,7 +9,6 @@ solids within a single ``analyze()`` call. Both are gated by
 
 from __future__ import annotations
 
-import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -333,49 +332,53 @@ def _build_thirty_box_assembly(path: Path) -> Path:
 
 
 @pytest.mark.slow
-def test_prefilter_faster_than_no_prefilter_on_thirty_body_assembly(tmp_path: Path):
-    """End-to-end: prefilter must be strictly faster on a 30-body assembly.
+def test_prefilter_cuts_unfold_probe_calls_on_thirty_body_assembly(tmp_path: Path):
+    """End-to-end: the prefilter must spare the expensive UnfoldProbe most of
+    its calls on a fastener-heavy assembly.
 
-    We don't care about absolute wall-time on this hardware; we only need to
-    prove that prefilter cuts the per-solid cost. Allow generous slack so the
-    test is robust against noise.
+    Wall-time on a 30-body synthetic fixture is too noisy to assert on - it is
+    dominated by OCP solid loading, which both modes pay equally. What matters
+    is the mechanism, so we count UnfoldProbe.run invocations instead. With the
+    prefilter on, the cube-like bolt bodies are rejected by the cheap pre-check
+    and the duplicate-solid cache collapses the rest, so the probe runs a
+    handful of times; with it off, the probe runs at least once per solid.
     """
+    from manufacturing_pipeline.geometry.unfold_probe import UnfoldProbe
+
     step = _build_thirty_box_assembly(tmp_path / "thirty.step")
 
-    t0 = time.perf_counter()
-    r_full = analyze(
-        step,
-        AnalyzeOptions(
-            out_dir=None,
-            write_dxf=False,
-            write_xml=False,
-            use_cache=False,
-            prefilter=False,
-        ),
-    )
-    t_full = time.perf_counter() - t0
+    def _count_unfold_calls(prefilter: bool) -> int:
+        real_run = UnfoldProbe.run
+        calls = {"n": 0}
 
-    t0 = time.perf_counter()
-    r_fast = analyze(
-        step,
-        AnalyzeOptions(
-            out_dir=None,
-            write_dxf=False,
-            write_xml=False,
-            use_cache=False,
-            prefilter=True,
-        ),
-    )
-    t_fast = time.perf_counter() - t0
+        def _spy(self, solid):
+            calls["n"] += 1
+            return real_run(self, solid)
 
-    # Sanity: same number of parts produced both ways.
-    assert len(r_full.manifest.parts) == len(r_fast.manifest.parts)
-    # Prefilter run must be at least 20% faster on this fastener-heavy mock.
-    # A real 3018-solid assembly is orders of magnitude faster; the 20%
-    # threshold is the noise floor for a 30-body fixture on slow CI.
-    assert t_fast < t_full * 0.85, (
-        f"prefilter expected to be at least 15% faster; "
-        f"full={t_full:.3f}s, prefilter={t_fast:.3f}s"
+        with patch.object(UnfoldProbe, "run", _spy):
+            result = analyze(
+                step,
+                AnalyzeOptions(
+                    out_dir=None,
+                    write_dxf=False,
+                    write_xml=False,
+                    use_cache=False,
+                    prefilter=prefilter,
+                ),
+            )
+        assert len(result.manifest.parts) == 30
+        return calls["n"]
+
+    n_fast = _count_unfold_calls(prefilter=True)
+    n_full = _count_unfold_calls(prefilter=False)
+
+    # No prefilter, no cache: UnfoldProbe runs at least once per solid.
+    assert n_full >= 30, f"expected >=30 UnfoldProbe.run calls, got {n_full}"
+    # With the prefilter the 20 bolt bodies are skipped and the identical
+    # washers collapse to a single cached run - far below the no-prefilter run.
+    assert n_fast * 2 < n_full, (
+        f"prefilter expected to at least halve UnfoldProbe.run calls; "
+        f"full={n_full}, prefilter={n_fast}"
     )
 
 

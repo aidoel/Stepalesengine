@@ -24,6 +24,7 @@ from pathlib import Path
 from .. import telemetry
 from ..assembly.graph import build_assembly_graph, iter_leaves
 from ..assembly.matcher import MatchResult, match_parts_to_solids
+from ..cam.types import MachiningStrategy
 from ..classification.feature_vector import FeatureVector
 from ..classification.score_classifier import ScoreClassifier
 from ..classification.scorers import ScorerSpec, load_scorers_from_yaml
@@ -33,12 +34,9 @@ from ..classification.tiebreakers import (
     unfold_tiebreaker,
 )
 from ..classification.types import ClassificationResult, DecisionTrace
-from ..geometry.cross_section import is_constant, slice_solid
 from ..geometry.feature_extractor import FeatureExtractor
 from ..geometry.feature_merger import enrich
 from ..geometry.geometry_loader import load_solids
-from ..geometry.hole_analyzer import HoleAnalyzer
-from ..geometry.profile_matcher import ProfileShapeMatcher
 from ..geometry.types import (
     HolePattern,
     ManufacturingFeatures,
@@ -54,8 +52,14 @@ from ..parsing.step_parser import parse_step
 from ..parsing.types import StepPart
 from ..pmi.extractor import extract_pmi
 from ..pmi.types import PMIRecord
-from .probes import ProbeContext
-from .probes.cam_probe import CamProbe
+from .probes import (
+    STAGE_CLASSIFY,
+    STAGE_POST,
+    STAGE_PRE,
+    ProbeContext,
+    ProbeRegistry,
+    default_registry,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +248,13 @@ _PREFILTER_UNFOLD_RESULT = UnfoldResult(
 )
 
 
+# The probe registry is the single wiring point for per-part probes. Built
+# once at import: each probe holds its own (sometimes table-loading) state, so
+# instantiating it per part - as the old inline path did for
+# ProfileShapeMatcher - is pure waste on large assemblies.
+_REGISTRY: ProbeRegistry = default_registry()
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -335,43 +346,21 @@ def _degenerate_entry(node, warnings: list[str]) -> PartManifestEntry:
     )
 
 
-def _run_profile_probe(
-    solid, features: ManufacturingFeatures, prefilter: bool
-) -> ProfileMatch | None:
-    """Run slice_solid + ProfileShapeMatcher, gated by the cheap prefilter.
+def _prefilter_skips(features: ManufacturingFeatures) -> dict[str, object]:
+    """Build the ``skip`` dict for the CLASSIFY-stage probe run.
 
-    When ``prefilter`` is True and the part is obviously not a profile (cube,
-    blob, low aspect ratio), skip the slicer entirely. Otherwise mirror the
-    behaviour of :class:`ProfileProbe`.
+    A skipped probe is not executed; its slot is filled with the supplied
+    value. The cheap prefilter rejects parts that are obviously not profiles
+    or not sheet-metal, so the expensive ``slice_solid``/``UnfoldProbe`` walks
+    never run on them. ``profile`` skips to ``None`` (its normal "no match"
+    value); ``unfold`` skips to the synthetic prefilter FAILURE result.
     """
-    if prefilter and not _is_likely_profile(features):
-        return None
-    try:
-        sections = slice_solid(solid)
-    except Exception as exc:
-        logger.debug("slice_solid failed: %s", exc)
-        return None
-    if not sections or not is_constant(sections):
-        return None
-    mid = sections[len(sections) // 2]
-    try:
-        return ProfileShapeMatcher().match(mid)
-    except Exception as exc:
-        logger.debug("ProfileShapeMatcher.match failed: %s", exc)
-        return None
-
-
-def _run_unfold_probe(
-    solid, features: ManufacturingFeatures, prefilter: bool
-) -> UnfoldResult:
-    """Run UnfoldProbe, gated by the cheap prefilter.
-
-    Returns a synthetic FAILURE result with ``reason="prefilter:..."`` when
-    the prefilter rejects the part. The probe itself never raises.
-    """
-    if prefilter and not _is_likely_unfoldable(features):
-        return _PREFILTER_UNFOLD_RESULT
-    return UnfoldProbe().run(solid)
+    skip: dict[str, object] = {}
+    if not _is_likely_profile(features):
+        skip["profile"] = None
+    if not _is_likely_unfoldable(features):
+        skip["unfold"] = _PREFILTER_UNFOLD_RESULT
+    return skip
 
 
 def _process_pair(
@@ -429,16 +418,20 @@ def _process_pair(
 
     prefilter_on = bool(options.prefilter)
 
-    # HoleAnalyzer is cheap (~2 ms/part) - always run it. Hole count feeds the
-    # cache signature so we must compute it before the cache lookup.
-    try:
-        holes = HoleAnalyzer().analyze(solid)
-    except Exception as exc:  # pragma: no cover - HoleAnalyzer is total
-        logger.warning("hole analysis failed for %s: %s", part.product_id, exc)
-        warnings.append(f"hole analysis failed for {part.product_id}: {exc}")
-        holes = HolePattern()
-    if not isinstance(holes, HolePattern):
-        holes = HolePattern()
+    ctx = ProbeContext(
+        solid=solid,
+        features=features,
+        source_path=source_path if source_path is not None else Path(""),
+        part_name=part.name or "",
+        part_id=part.product_id or "",
+    )
+
+    # PRE stage - the hole probe. Cheap (~2 ms/part) and its hole count feeds
+    # the cache signature, so it must run on every solid before the lookup.
+    probe_results = _REGISTRY.run_all(ctx, stage=STAGE_PRE)
+    _holes = probe_results.get("holes")
+    holes = _holes if isinstance(_holes, HolePattern) else HolePattern()
+    probe_results["holes"] = holes
     # The HoleAnalyzer fills hole_count/hole_diameters via enrich() later but
     # we also stash them on features now so the signature is meaningful for
     # the very first occurrence of a given design.
@@ -448,13 +441,22 @@ def _process_pair(
     sig = _solid_signature(features) if prefilter_on else None
     cached = _SOLID_RESULT_CACHE.get(sig) if sig is not None else None
     if cached is not None:
-        profile_match, unfold, cached_holes, classification = cached
-        # Reuse the cached HolePattern by identity so downstream code sees
-        # the exact same value the first occurrence produced.
-        holes = cached_holes
+        profile_match, unfold, holes, classification = cached
+        # Reuse the cached results by identity so downstream code and the
+        # POST-stage probes see the values the first occurrence produced.
+        probe_results["holes"] = holes
+        probe_results["profile"] = profile_match
+        probe_results["unfold"] = unfold
     else:
-        profile_match = _run_profile_probe(solid, features, prefilter_on)
-        unfold = _run_unfold_probe(solid, features, prefilter_on)
+        # CLASSIFY stage - profile + unfold, gated by the cheap prefilter.
+        skip = _prefilter_skips(features) if prefilter_on else {}
+        probe_results = _REGISTRY.run_all(
+            ctx, stage=STAGE_CLASSIFY, skip=skip, prior=probe_results
+        )
+        _profile = probe_results.get("profile")
+        profile_match = _profile if isinstance(_profile, ProfileMatch) else None
+        _unfold = probe_results.get("unfold")
+        unfold = _unfold if isinstance(_unfold, UnfoldResult) else None
         classification = None  # filled in below
 
     try:
@@ -493,13 +495,24 @@ def _process_pair(
         if sig is not None:
             _SOLID_RESULT_CACHE[sig] = (profile_match, unfold, holes, classification)
 
-    # PMI is global to the file and the PmiProbe caches by path internally,
-    # so this stays in line with the previous behaviour.
-    try:
-        pmi_record = extract_pmi(source_path) if source_path is not None else None
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.debug("per-part PMI extraction failed: %s", exc)
-        pmi_record = None
+    # POST stage - pmi + cam, run on every part with the final classification
+    # and prior probe results visible via ctx.prior. Neither is cached: PMI is
+    # file-global (PmiProbe caches by path internally) and CAM is milliseconds.
+    # ctx.features is refreshed so the cam probe sees the enriched features.
+    ctx.features = features
+    probe_results["classification"] = classification
+    post_skip: dict[str, object] = {}
+    if source_path is None:
+        # No STEP text to read - keep the legacy pmi=None rather than the
+        # empty record extract_pmi(Path("")) would return.
+        post_skip["pmi"] = None
+    probe_results = _REGISTRY.run_all(
+        ctx, stage=STAGE_POST, skip=post_skip, prior=probe_results
+    )
+    _pmi = probe_results.get("pmi")
+    pmi_record = _pmi if isinstance(_pmi, PMIRecord) else None
+    _strategy = probe_results.get("cam")
+    strategy = _strategy if isinstance(_strategy, MachiningStrategy) else None
 
     dxf_path = None
     pdf_path = None
@@ -559,30 +572,6 @@ def _process_pair(
             flat_dxf_rel = str(dxf_path.relative_to(options.out_dir))
         except ValueError:
             flat_dxf_rel = str(dxf_path)
-
-    # Run the CAM probe with the final classification + probe outputs in
-    # ``ctx.prior``. CAM uses cam.strategist.recommend internally which is
-    # ~milliseconds, so caching it is not worth the complexity.
-    cam_ctx = ProbeContext(
-        solid=solid,
-        features=features,
-        source_path=source_path if source_path is not None else Path(""),
-        part_name=part.name or "",
-        part_id=part.product_id or "",
-    )
-    cam_ctx.prior = {
-        "holes": holes,
-        "profile": profile_match,
-        "unfold": unfold,
-        "pmi": pmi_record,
-        "classification": classification,
-    }
-    try:
-        strategy = CamProbe().run(cam_ctx)
-    except Exception as exc:  # pragma: no cover - cam.recommend is total
-        logger.warning("cam strategy failed for %s: %s", part.product_id, exc)
-        warnings.append(f"cam strategy failed for {part.product_id}: {exc}")
-        strategy = None
 
     entry = PartManifestEntry(
         part=part,
