@@ -1,6 +1,6 @@
 # Next steps + architecture state
 
-State as of 2026-05-21. Test suite **529 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
+State as of 2026-05-21. Test suite **535 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
 
 ## Module status
 
@@ -61,15 +61,19 @@ A broad real-corpus run surfaced four issues, now addressed:
 - **Hole over-count fixed.** `HoleAnalyzer` now rejects partial-arc cylinders (corner rounds, bend reliefs) and splits co-axial bores by axial gap. Counts match the AutoPOL round-hole inventory exactly (530: 49->30, 529: 47->20).
 - **Calibration sweep honours per-part labels.** `sweep.py` matches the CSV `product_id` column so multi-part assemblies can be labelled per-part.
 
+### Rolled tubes unfold; seamed tubes classify as profiel
+
+A post-fix corpus run measured holes/bends/thickness exact (4/4 vs AutoPOL), unfold ~90%, but classification only 60% - profiles mislabelled `plaat`. Two fixes: (1) `_detect_rolled_tube` - a thin-wall full-wrap (>=300 deg) cylinder pair is a developable rolled sheet, now `PARTIAL`/`seamed_section` instead of `FAILURE`/`cyclic_graph`; solid bars and thick pipes still fail. (2) A `seamed_tube` `FeatureVector` feature gates the plaat `unfoldable`/`has_bends` rewards off via an `and_not` cross-term and rewards `profiel` instead, so seamed hollow sections classify `profiel`. Classification on the labelled slice moved 12/20 -> 16/20.
+
 ## Outstanding work (in priority order)
 
 ### Grow the labelled corpus, then calibrate
 
 Only ~20 folder-labelled STEP files exist (`Zetwerk/`=plaat, `profiel/`=profiel, `samenstelling/`=anders under `Downloads/stepfile/`) - too few for a meaningful weight sweep. `stepalesengine calibrate` + `calibration/sweep.py` are ready (per-part labels now work). Needs more labelled single-part files before a real sweep.
 
-### Tapered/cut profiles misclassify
+### Short / blocky profiles still misclassify
 
-Profiles with `cross_section_constant=false` (tapered, cut, non-uniform) miss the `profiel` scorer's dominant boost and fall to `anders`/`uncertain` (6 of 13 profile files in the corpus run). A safe fix needs the calibration corpus above - hand-tuning weights against the known files would overfit and risk regressing long machined `anders` parts.
+The seamed-tube fix handled hollow-section profiles. Four corpus files remain wrong: short non-uniform profiles (`10000182371`, `803041-7028`, `333380_rev[B]`) that fail unfold, do not match a standard profile, and read `cross_section_constant=false`, plus one borderline pocketed plate (`10000362951`). Fixing them needs a profile-matcher / cross-section-detection improvement or the calibration corpus - not safely done by weight-tuning.
 
 ### Assembly part listing is per-instance (by design)
 
