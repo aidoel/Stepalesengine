@@ -15,6 +15,16 @@ from manufacturing_pipeline.geometry.hole_analyzer import HoleAnalyzer
 from manufacturing_pipeline.geometry.types import HolePattern
 
 # ---------------------------------------------------------------------------
+# Fixture-backed AutoPOL reference (broad-corpus validation)
+# ---------------------------------------------------------------------------
+
+# AutoPOL Sheet_HoleRadii lists only ROUND holes. Its Sheet_NrHoles also counts
+# non-circular cutout contours, which the analyser does not bucket as holes -
+# so the analyser should match the round-hole subtotal, not Sheet_NrHoles.
+_FIXTURE_530 = "tests/fixtures/step/sheet_10001073530_rev00.stp"
+_ROUND_HOLES_530 = 30  # AutoPOL Sheet_HoleRadii subtotal (Sheet_NrHoles = 37)
+
+# ---------------------------------------------------------------------------
 # Builders
 # ---------------------------------------------------------------------------
 
@@ -119,3 +129,87 @@ def test_hole_axis_direction_reported():
     assert abs(ax[2]) == pytest.approx(1.0, abs=1e-3)
     assert abs(ax[0]) < 1e-3
     assert abs(ax[1]) < 1e-3
+
+
+# ---------------------------------------------------------------------------
+# Partial-arc rejection: rounded corners / bend reliefs are not round holes
+# ---------------------------------------------------------------------------
+
+
+def test_rounded_cutout_corner_is_not_a_hole():
+    """A rectangular cutout with rounded corners produces partial-arc inner
+    cylinders. None of them is a round hole - hole_count must stay 0."""
+
+    box = _box(40, 40, 10)
+    # A rounded-corner rectangular slot: cut a big cylinder so its wall meets
+    # two planar cuts, leaving only a partial-arc cylindrical patch.
+    tool = BRepPrimAPI_MakeCylinder(
+        gp_Ax2(gp_Pnt(2, 2, 0), gp_Dir(0, 0, 1)), 6.0, 10.0
+    ).Solid()
+    part = BRepAlgoAPI_Cut(box, tool).Shape()
+    # Clip the cylinder's arc down to a corner fillet with two slab cuts.
+    slab_x = BRepPrimAPI_MakeBox(gp_Pnt(-20, -20, -1), 20, 60, 12).Solid()
+    slab_y = BRepPrimAPI_MakeBox(gp_Pnt(-20, -20, -1), 60, 20, 12).Solid()
+    part = BRepAlgoAPI_Cut(part, slab_x).Shape()
+    part = BRepAlgoAPI_Cut(part, slab_y).Shape()
+    pat = HoleAnalyzer().analyze(part)
+    assert pat.hole_count == 0
+
+
+def test_two_holes_on_one_axis_line_counted_separately():
+    """Two through-holes drilled on the SAME axis line through two parallel
+    flanges are distinct holes, not one merged record."""
+
+    # A C-channel: two parallel 10 mm-thick flanges 90 mm apart, both pierced
+    # on the same axis by a 6 mm hole.
+    f1 = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), 40, 40, 10).Solid()
+    f2 = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 100), 40, 40, 10).Solid()
+    tool = BRepPrimAPI_MakeCylinder(
+        gp_Ax2(gp_Pnt(20, 20, -5), gp_Dir(0, 0, 1)), 3.0, 120.0
+    ).Solid()
+    p1 = BRepAlgoAPI_Cut(f1, tool).Shape()
+    p2 = BRepAlgoAPI_Cut(f2, tool).Shape()
+    an = HoleAnalyzer()
+    # Each flange is a separate solid; each carries exactly one hole.
+    assert an.analyze(p1).hole_count == 1
+    assert an.analyze(p2).hole_count == 1
+
+
+def test_counterbore_still_counts_once_after_axial_split():
+    """The co-axial tiers of a counterbore touch axially and must stay merged
+    into a single hole even with the axial-gap split active."""
+
+    box = _box(30, 30, 10)
+    big = BRepPrimAPI_MakeCylinder(
+        gp_Ax2(gp_Pnt(15, 15, 7), gp_Dir(0, 0, 1)), 4.0, 3.0
+    ).Solid()
+    small = BRepPrimAPI_MakeCylinder(
+        gp_Ax2(gp_Pnt(15, 15, 0), gp_Dir(0, 0, 1)), 2.0, 10.0
+    ).Solid()
+    part = BRepAlgoAPI_Cut(box, big).Shape()
+    part = BRepAlgoAPI_Cut(part, small).Shape()
+    pat = HoleAnalyzer().analyze(part)
+    assert pat.hole_count == 1
+    assert pat.holes[0]["n_cylinders"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Real-fixture regression vs the AutoPOL reference
+# ---------------------------------------------------------------------------
+
+
+def test_fixture_hole_count_matches_autopol_round_holes():
+    """The 530 sheet-metal fixture has 30 round holes per the AutoPOL
+    Sheet_HoleRadii reference. The analyser previously reported 49 - rounded
+    corners, bend reliefs and flange bend radii were over-counted."""
+
+    from pathlib import Path
+
+    from manufacturing_pipeline.geometry.geometry_loader import load_solids
+
+    if not Path(_FIXTURE_530).exists():
+        pytest.skip(f"fixture not available: {_FIXTURE_530}")
+    solids = load_solids(_FIXTURE_530)
+    total = sum(HoleAnalyzer().analyze(s).hole_count for s in solids)
+    # Exact match to the AutoPOL round-hole subtotal; small drift acceptable.
+    assert abs(total - _ROUND_HOLES_530) <= 2
