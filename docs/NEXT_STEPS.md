@@ -1,6 +1,6 @@
 # Next steps + architecture state
 
-State as of 2026-05-21. Test suite **503 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
+State as of 2026-05-21. Test suite **519 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
 
 ## Module status
 
@@ -44,19 +44,35 @@ The probe failed every real sheet-metal part as `cyclic_graph`: rounded corners 
 
 `FeatureVector` gained a `has_bends` feature (unfold did not fail and `n_bends > 0`) - the strongest sheet-metal signal, since machined/freeform parts do not unfold and a flat plate has no bends. New scorer rules reward `plaat` (+1.2), suppress `anders` (-1.2, overriding the hole-density / pocket rewards a bent part trips) and mildly damp `profiel` (-0.3). Long bent parts that previously fell to `anders`/`uncertain` now classify `plaat`. Verified end-to-end in `tests/regression/test_sheet_metal_corpus.py`.
 
+### Part-name resolution + multi-solid matching fixed
+
+Multi-solid files mislabelled parts (copies took sibling names; CAD feature names like `Cut-Extrude9` leaked in). `step_strategies` now accepts `PRODUCT_DEFINITION_FORMATION` subtypes, fixes NAUO parent/child orientation and multiplicity, skips feature-tree names, and reads the authored `FILE_NAME`. The matcher gained a quantity-aware geometry-clustering strategy.
+
+### `_process_pair` split + mesh-only path tested
+
+`_process_pair` is now a thin coordinator over `_analyse_part` and `_write_part_outputs` (linked by `_PartAnalysis`). The `FeatureExtractor` mesh-only fallback gained a regression test.
+
 ## Outstanding work (in priority order)
 
-### `analyze_assembly.py` is 884 LOC
+### PARTIAL unfold collapses to `uncertain`
 
-The probe migration trimmed it slightly. With probes now staged, the orchestrator could be a thin `parse -> load -> match -> run_probes -> classify -> emit`; `_process_pair` is still the largest single function and could be split (geometry/probe phase vs. output-writing phase).
+`feature_vector.py` sets `unfoldable = (status == SUCCESS)`, so a `PARTIAL` unfold (real plates that trip thickness-variation or branching) loses the plaat `unfoldable` boost and drops to `uncertain`. A corpus run found this on every `partial` part. Decide whether `PARTIAL` should count as `unfoldable` (or carry a partial boost); re-pin the classifier baselines in the same change.
 
-### Calibration on the user's 92-file corpus
+### Branched-flange parts fail to unfold
 
-`stepalesengine calibrate` + `calibration/sweep.py` exist. Remaining work is operational: produce the folder-derived label CSV (`Zetwerk/` = plaat, `profiel/` = profiel, `samenstelling/` = anders) and run a real sweep against production data instead of the NIST set.
+The `Silo 2` assembly has ~24 parts the rewritten bend-graph traversal reports as `failure` where AutoPOL unfolds all of them. Star/branched flange topologies are not yet handled. Investigate the bend-graph traversal on these.
 
-### Mesh-only STEP fallback is untested
+### Hole over-count and assembly over-segmentation
 
-`FeatureExtractor` has a mesh-only path that no test exercises (noted in the architecture memory). Add a synthetic mesh-only fixture.
+Hole counts run high vs the AutoPOL reference (47 vs 29; 49 vs 37) - the probe counts every circular contour including slots. And the pipeline emits one `<part>` per solid instance where AutoPOL groups identical parts with a quantity, inflating per-assembly counts.
+
+### Calibration needs a larger labelled corpus
+
+`stepalesengine calibrate` + `calibration/sweep.py` exist, but only ~20 folder-labelled STEP files are available (`Zetwerk/`=plaat, `profiel/`=profiel, `samenstelling/`=anders under `Downloads/stepfile/`) - too few for a meaningful sweep. `sweep.py` also ignores the CSV `product_id` column, so multi-part assemblies cannot be labelled per-part. Needs more labelled single-part files and a `sweep.py` fix before a real sweep.
+
+### Tapered/cut profiles misclassify
+
+Profiles with `cross_section_constant=false` (tapered, cut, non-uniform) miss the `profiel` scorer's boost and fall to `anders`/`uncertain` (6 of 13 profile files in the corpus run). Pre-existing classifier weakness.
 
 ## Quick reference
 
