@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.800 -148.800 237.600 157.600" width="640" height="480" preserveAspectRatio="xMidYMid meet" style="background:#ffffff">
+<g transform="translate(0,-148.800) scale(1,-1)">
+<polyline points="0.000,0.000 0.000,-140.000" fill="none" stroke="#999999" stroke-width="0.8316" stroke-dasharray="3.3264,1.6632"/>
+<polyline points="0.000,0.000 220.000,0.000" fill="none" stroke="#999999" stroke-width="0.8316" stroke-dasharray="3.3264,1.6632"/>
+<polyline points="220.000,0.000 220.000,-140.000" fill="none" stroke="#999999" stroke-width="0.8316" stroke-dasharray="3.3264,1.6632"/>
+<polyline points="0.000,-140.000 220.000,-140.000" fill="none" stroke="#999999" stroke-width="0.8316" stroke-dasharray="3.3264,1.6632"/>
+<polyline points="62.000,-45.000 61.307,-48.037 59.364,-50.473 56.558,-51.824 53.442,-51.824 50.636,-50.473 48.693,-48.037 48.000,-45.000 48.693,-41.963 50.636,-39.527 53.442,-38.176 56.558,-38.176 59.364,-39.527 61.307,-41.963 62.000,-45.000" fill="none" stroke="#999999" stroke-width="0.8316" stroke-dasharray="3.3264,1.6632"/>
+<polyline points="172.000,-45.000 171.307,-48.037 169.364,-50.473 166.558,-51.824 163.442,-51.824 160.636,-50.473 158.693,-48.037 158.000,-45.000 158.693,-41.963 160.636,-39.527 163.442,-38.176 166.558,-38.176 169.364,-39.527 171.307,-41.963 172.000,-45.000" fill="none" stroke="#999999" stroke-width="0.8316" stroke-dasharray="3.3264,1.6632"/>
+<polyline points="62.000,-95.000 61.307,-98.037 59.364,-100.473 56.558,-101.824 53.442,-101.824 50.636,-100.473 48.693,-98.037 48.000,-95.000 48.693,-91.963 50.636,-89.527 53.442,-88.176 56.558,-88.176 59.364,-89.527 61.307,-91.963 62.000,-95.000" fill="none" stroke="#999999" stroke-width="0.8316" stroke-dasharray="3.3264,1.6632"/>
+<polyline points="172.000,-95.000 171.307,-98.037 169.364,-100.473 166.558,-101.824 163.442,-101.824 160.636,-100.473 158.693,-98.037 158.000,-95.000 158.693,-91.963 160.636,-89.527 163.442,-88.176 166.558,-88.176 169.364,-89.527 171.307,-91.963 172.000,-95.000" fill="none" stroke="#999999" stroke-width="0.8316" stroke-dasharray="3.3264,1.6632"/>
+<polyline points="0.000,0.000 0.000,-140.000" fill="none" stroke="#1a1a1a" stroke-width="0.8316" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="0.000,0.000 220.000,0.000" fill="none" stroke="#1a1a1a" stroke-width="0.8316" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="0.000,-140.000 220.000,-140.000" fill="none" stroke="#1a1a1a" stroke-width="0.8316" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="220.000,0.000 220.000,-140.000" fill="none" stroke="#1a1a1a" stroke-width="0.8316" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="62.000,-45.000 61.307,-48.037 59.364,-50.473 56.558,-51.824 53.442,-51.824 50.636,-50.473 48.693,-48.037 48.000,-45.000 48.693,-41.963 50.636,-39.527 53.442,-38.176 56.558,-38.176 59.364,-39.527 61.307,-41.963 62.000,-45.000" fill="none" stroke="#1a1a1a" stroke-width="0.8316" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="172.000,-45.000 171.307,-48.037 169.364,-50.473 166.558,-51.824 163.442,-51.824 160.636,-50.473 158.693,-48.037 158.000,-45.000 158.693,-41.963 160.636,-39.527 163.442,-38.176 166.558,-38.176 169.364,-39.527 171.307,-41.963 172.000,-45.000" fill="none" stroke="#1a1a1a" stroke-width="0.8316" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="62.000,-95.000 61.307,-98.037 59.364,-100.473 56.558,-101.824 53.442,-101.824 50.636,-100.473 48.693,-98.037 48.000,-95.000 48.693,-91.963 50.636,-89.527 53.442,-88.176 56.558,-88.176 59.364,-89.527 61.307,-91.963 62.000,-95.000" fill="none" stroke="#1a1a1a" stroke-width="0.8316" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="172.000,-95.000 171.307,-98.037 169.364,-100.473 166.558,-101.824 163.442,-101.824 160.636,-100.473 158.693,-98.037 158.000,-95.000 158.693,-91.963 160.636,-89.527 163.442,-88.176 166.558,-88.176 169.364,-89.527 171.307,-91.963 172.000,-95.000" fill="none" stroke="#1a1a1a" stroke-width="0.8316" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<text x="-4.048" y="-139.344" font-family="system-ui,sans-serif" font-size="9.504" fill="#555">TOP</text>
+</svg>

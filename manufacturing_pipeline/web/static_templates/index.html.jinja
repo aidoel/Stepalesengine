@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<meta name="description" content="Browse a STEP-file corpus in 3D and watch how each sheet-metal part unfolds into a flat blank.">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<link rel="stylesheet" href="{{ root }}assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <span class="brand"><span class="glyph" aria-hidden="true"></span>stepalesengine</span>
+    <span class="tag">STEP &rarr; classified BOM &rarr; sheet-metal unfold</span>
+    <span class="spacer"></span>
+    <span class="crumb"><a href="data/corpus.json">corpus.json</a></span>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ===== hero ===== -->
+  <section class="hero">
+    <div class="hero-text reveal">
+      <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Geometry pipeline &middot; live corpus</span>
+      <h1>The <span class="accent">3D corpus</span><br>&amp; unfold viewer.</h1>
+      <p class="lede">
+        Every STEP file is run through the full pipeline &mdash; parsed, each
+        solid <strong>classified</strong> as plate, profile or other, and, where
+        the geometry is developable sheet metal, <strong>unfolded</strong> into a
+        flat blank. Open any part to rotate the model and compare the folded CAD
+        solid against its flat pattern.
+      </p>
+      <div class="pipeline-flow" aria-label="pipeline stages">
+        <span class="node">STEP</span>
+        <span class="arr" aria-hidden="true">&rarr;</span>
+        <span class="node">parse solids</span>
+        <span class="arr" aria-hidden="true">&rarr;</span>
+        <span class="node">classify</span>
+        <span class="arr" aria-hidden="true">&rarr;</span>
+        <span class="node">unfold</span>
+        <span class="arr" aria-hidden="true">&rarr;</span>
+        <span class="node">flat pattern</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="num">{{ stats.n_parts }}</div><div class="lbl">Parts</div></div>
+        <div class="stat"><div class="num">{{ stats.n_files }}</div><div class="lbl">STEP files</div></div>
+        <div class="stat"><div class="num">{{ stats.n_unfoldable }}</div><div class="lbl">Unfoldable</div></div>
+        <div class="stat"><div class="num">{{ stats.total_bends }}</div><div class="lbl">Bends found</div></div>
+      </div>
+    </div>
+
+    {% if featured and featured.assets.folded_glb %}
+    <div class="hero-viewer reveal reveal-d1">
+      <div class="vp-head">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="ttl">featured&nbsp;/&nbsp;{{ featured.slug }}.glb</span>
+        <span class="live">live</span>
+      </div>
+      <model-viewer
+        src="{{ root }}{{ featured.assets.folded_glb }}"
+        alt="Interactive 3D model of {{ featured.name }}"
+        camera-controls auto-rotate auto-rotate-delay="0"
+        rotation-per-second="16deg" shadow-intensity="0.65" shadow-softness="0.9"
+        environment-image="neutral" exposure="1.08"
+        camera-orbit="-32deg 66deg auto" interaction-prompt="none"></model-viewer>
+      <div class="cap">
+        Featured: <strong>{{ featured.name }}</strong>
+        <span class="hint">drag &middot; scroll to zoom</span>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- ===== legend ===== -->
+  <section class="reveal reveal-d2">
+    <div class="section-head">
+      <span class="idx">01</span>
+      <h2>How to read this corpus</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <div class="lt"><span class="swatch folded" aria-hidden="true"></span>Folded</div>
+        <p>The solid as modelled in CAD &mdash; rendered as the light-blue 3D mesh.</p>
+      </div>
+      <div class="legend-item">
+        <div class="lt"><span class="swatch unfolded" aria-hidden="true"></span>Unfolded</div>
+        <p>The flat blank the engine computes by walking the bend graph &mdash; the terracotta mesh.</p>
+      </div>
+      <div class="legend-item">
+        <div class="lt"><span class="swatch bend" aria-hidden="true"></span>Bends</div>
+        <p>Each cylindrical patch joining two flanges, with angle, inner radius and fold direction.</p>
+      </div>
+      <div class="legend-item">
+        <div class="lt"><span class="swatch evid" aria-hidden="true"></span>Evidence</div>
+        <p>
+          <span class="pill pill-synthetic">synthetic</span> parts are generated
+          from OCP primitives; <span class="pill pill-real">real</span> parts are
+          production / NIST CAD. See <a href="data/corpus.json">corpus.json</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== grouped parts ===== -->
+  <section style="margin-top:42px;">
+    <div class="section-head">
+      <span class="idx">02</span>
+      <h2>Browse the corpus</h2>
+      <span class="rule"></span>
+      <span class="meta">{{ stats.n_parts }} part{{ '' if stats.n_parts == 1 else 's' }}</span>
+    </div>
+
+    {% for group in groups %}
+    <section class="group" id="{{ group.label }}">
+      <div class="group-head">
+        <span class="group-title label-{{ group.label }}">
+          <span class="gdot" aria-hidden="true"></span>{{ group.title }}
+        </span>
+        <span class="rule"></span>
+        <span class="count">{{ group.parts|length }} part{{ '' if group.parts|length == 1 else 's' }}</span>
+      </div>
+      <div class="card-grid">
+        {% for p in group.parts %}
+        <a class="part-card" href="{{ root }}parts/{{ p.slug }}.html">
+          <div class="thumb">
+            {% if p.assets.iso_svg %}
+              <img src="{{ root }}{{ p.assets.iso_svg }}" alt="Isometric projection of {{ p.name }}" loading="lazy">
+            {% else %}
+              <div class="thumb-empty">no projection</div>
+            {% endif %}
+            {% if p.n_bends %}
+              <span class="corner-tag">{{ p.n_bends }} bend{{ '' if p.n_bends == 1 else 's' }}</span>
+            {% elif p.unfold_status == 'success' %}
+              <span class="corner-tag">flat panel</span>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">{{ p.name }}</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">{{ p.source_file }}</div>
+            <div class="card-badges">
+              <span class="label label-{{ p.label }}">{{ p.label }}</span>
+              <span class="pill pill-{{ p.origin }}">{{ p.origin }}</span>
+              {% if p.unfold_status %}
+              <span class="pill pill-{{ p.unfold_status }}">unfold {{ p.unfold_status }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span class="fbrand"><span class="glyph" aria-hidden="true"></span>stepalesengine</span>
+    <span class="fspace"></span>
+    <span>
+      Static build of the corpus viewer &mdash; generated by
+      <code>manufacturing_pipeline.web.static_site</code>. The dynamic Flask UI
+      lives in <code>manufacturing_pipeline.web.server</code>.
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

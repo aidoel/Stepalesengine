@@ -1,0 +1,28 @@
+# Netlify configuration for the stepalesengine static corpus viewer.
+#
+# The site/ directory is fully pre-rendered and committed (see
+# manufacturing_pipeline/web/static_site.py). No build step runs on Netlify:
+# generating the 3D meshes and unfold flat patterns needs OpenCascade, which is
+# not available in the Netlify build image. Netlify only publishes site/.
+
+[build]
+  publish = "site"
+  command = "echo 'site/ is pre-built and committed - nothing to build on Netlify'"
+
+# Serve GLB meshes with the glTF-binary content type so <model-viewer> loads
+# them on every host.
+[[headers]]
+  for = "/models/*"
+  [headers.values]
+    Content-Type = "model/gltf-binary"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/drawings/*"
+  [headers.values]
+    Content-Type = "image/svg+xml; charset=utf-8"
+
+[[headers]]
+  for = "/steps/*"
+  [headers.values]
+    Content-Type = "application/octet-stream"

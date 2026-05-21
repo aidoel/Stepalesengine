@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='utf-8'?>
+<assembly xmlns="https://stepalesengine.dev/manifest/1" source="/home/user/Stepalesengine/corpus/synthetic_plate.step" source-mtime="1779380316.5776584" source-size="29892" generated-at="2026-05-21T16:18:48+00:00" model-version="rules-1.0.0">
+  <parts>
+    <part product-id="Open CASCADE STEP translator 7.9 1" name="Open CASCADE STEP translator 7.9 1" description="" source="product_definition" quantity="1">
+      <classification label="plaat" confidence="0.9828978522474222">
+        <scores>
+          <score class="plaat" value="1.870888232400485" />
+          <score class="profiel" value="-0.9136294108573045" />
+          <score class="anders" value="-0.27848559735929485" />
+        </scores>
+        <probabilities>
+          <probability class="plaat" value="0.9828978522474222" />
+          <probability class="profiel" value="0.0037489279306018386" />
+          <probability class="anders" value="0.01335321982197608" />
+        </probabilities>
+        <margin value="2.1493738297597798" ambiguous="false" />
+        <contributions>
+          <contribution feature="top1_face_pct" class="plaat" value="0.47868739301256824" delta="0.33508117510879776" />
+          <contribution feature="top1_face_pct,unfoldable" class="plaat" value="(0.47868739301256824, True)" delta="0.3829499144100546" />
+          <contribution feature="unfoldable,seamed_tube" class="plaat" value="(True, False)" delta="1.2" />
+          <contribution feature="has_bends,seamed_tube" class="plaat" value="(False, False)" delta="0.0" />
+          <contribution feature="aspect_ratio" class="plaat" value="1.571428570612245" delta="-0.04714285711836735" />
+          <contribution feature="name_profile_hit" class="plaat" value="0.0" delta="-0.0" />
+          <contribution feature="cross_section_constant" class="profiel" value="false" delta="0.0" />
+          <contribution feature="aspect_ratio" class="profiel" value="1.571428570612245" delta="0.1257142856489796" />
+          <contribution feature="name_profile_hit" class="profiel" value="0.0" delta="0.0" />
+          <contribution feature="profile_match_designation" class="profiel" value="0.0" delta="0.0" />
+          <contribution feature="seamed_tube" class="profiel" value="false" delta="0.0" />
+          <contribution feature="top1_face_pct" class="profiel" value="0.47868739301256824" delta="-0.23934369650628412" />
+          <contribution feature="unfoldable,seamed_tube" class="profiel" value="(True, False)" delta="-0.8" />
+          <contribution feature="has_bends,seamed_tube" class="profiel" value="(False, False)" delta="-0.0" />
+          <contribution feature="name_din_hit" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="vendor_code_present" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="bspline_pct" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="hole_density" class="anders" value="0.0012687078254899758" delta="0.001522449390587971" />
+          <contribution feature="hull_concavity" class="anders" value="0.019991953250117156" delta="0.019991953250117156" />
+          <contribution feature="top1_face_pct,unfoldable" class="anders" value="(0.47868739301256824, True)" delta="0.0" />
+          <contribution feature="pocket_complexity" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="unfoldable" class="anders" value="true" delta="-0.3" />
+          <contribution feature="has_bends" class="anders" value="false" delta="-0.0" />
+        </contributions>
+        <tiebreakers />
+        <probe-results>
+          <probe name="unfoldable" value="true" />
+        </probe-results>
+        <model-version value="rules-1.0.0" />
+      </classification>
+      <features>
+        <volume value="90552.74351968917" units="mm3" />
+        <surface-area value="63056.28324559592" units="mm2" />
+        <bbox length="220.0000002" width="140.0000002" thickness="3.0000001999999997" units="mm" />
+        <aspect-ratio value="1.571428570612245" />
+        <thickness-ratio value="0.01363636453305785" />
+        <face-area-top>
+          <face rank="1" pct="0.47868739301256824" />
+          <face rank="2" pct="0.47868739301256824" />
+          <face rank="3" pct="0.0104668395602923" />
+        </face-area-top>
+        <surface-composition>
+          <surface type="planar" pct="0.9916298973133658" />
+          <surface type="cylindrical" pct="0.008370102686634049" />
+          <surface type="conical" pct="0.0" />
+          <surface type="toroidal" pct="0.0" />
+          <surface type="spherical" pct="0.0" />
+          <surface type="bspline" pct="0.0" />
+          <surface type="other" pct="0.0" />
+        </surface-composition>
+        <edge-counts>
+          <edge kind="line" count="32" />
+          <edge kind="circle" count="16" />
+          <edge kind="ellipse" count="0" />
+          <edge kind="bspline" count="0" />
+        </edge-counts>
+        <edge-radius mean="7.0" std="7.0" />
+        <hole-count value="4" />
+        <hole-diameters>
+          <diameter value="14.0" units="mm" />
+          <diameter value="14.0" units="mm" />
+          <diameter value="14.0" units="mm" />
+          <diameter value="14.0" units="mm" />
+        </hole-diameters>
+        <sa-v-ratio value="31.26995765290371" />
+        <bounding-cylinder-fit-pct value="0.026725977749640795" />
+        <convex-hull-volume-ratio value="0.9800080467498828" />
+        <cross-section-constant value="false" />
+        <cross-section-signature>
+          <entry key="n_inner" value="0" />
+          <entry key="n_seg" value="4" />
+          <entry key="n_seg_outer" value="4" />
+          <entry key="n_seg_pre_collapse" value="4" />
+          <entry key="n_seg_post_collapse" value="4" />
+          <entry key="sym_x" value="True" />
+          <entry key="sym_y" value="True" />
+          <entry key="point_sym" value="True" />
+          <entry key="orth_ratio" value="1.0" />
+          <entry key="outer_circular" value="False" />
+          <entry key="inner_circular" value="False" />
+          <entry key="inner_bbox" value="None" />
+          <entry key="wall_thickness" value="None" />
+          <entry key="bbox_h" value="140.0" />
+          <entry key="bbox_b" value="3.0" />
+          <entry key="n_inner_wires" value="0" />
+          <entry key="hollow_ratio" value="1.0" />
+        </cross-section-signature>
+        <hollow inner-shells="0" is-hollow="false" />
+        <source value="brep" />
+      </features>
+      <unfold status="success" n-bends="0" flat-area="30184.247839896398" thickness-mean="3.0" thickness-cv="0.0">
+        <flag name="thickness_variation" value="false" />
+      </unfold>
+      <holes count="4">
+        <hole diameter="14.0" units="mm" />
+        <hole diameter="14.0" units="mm" />
+        <hole diameter="14.0" units="mm" />
+        <hole diameter="14.0" units="mm" />
+      </holes>
+      <pmi n-annotations="0" has-semantic="false" />
+      <machining-strategy primary-process="sheet_metal" setup-count="1" estimated-time-min="1.45">
+        <operation op="laser_cut" feature-ref="outer_contour" priority="100" reason="flat blank cut with hole pattern">
+          <param name="path_length_m" value="0.896" />
+          <param name="hole_count" value="4" />
+          <param name="thickness_mm" value="3.0" />
+        </operation>
+        <operation op="deburr" feature-ref="part" priority="200" reason="post-cut edge finish" />
+      </machining-strategy>
+      <flat-dxf path="parts/open_cascade_step_translator_7_9_1.dxf" />
+    </part>
+  </parts>
+</assembly>

@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MD-17-04193_2 &mdash; stepalesengine — 3D corpus &amp; unfold viewer</title>
+<meta name="description" content="3D model, unfold analysis, bend table and technical drawings for MD-17-04193_2.">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <span class="brand">
+      <span class="glyph" aria-hidden="true"></span>
+      <a href="../index.html">stepalesengine</a>
+    </span>
+    <span class="tag">STEP &rarr; classified BOM &rarr; sheet-metal unfold</span>
+    <span class="spacer"></span>
+    <span class="crumb">
+      <a href="../index.html">corpus</a>
+      <span class="sep">/</span>sheet-md-17-04194-2-4
+    </span>
+  </div>
+</header>
+
+<main class="container">
+
+  <a class="back" href="../index.html">
+    <span class="ar" aria-hidden="true">&larr;</span> Back to corpus
+  </a>
+
+  <!-- ===== part headline ===== -->
+  <div class="part-headline reveal">
+    <h1>MD-17-04193_2</h1>
+    <span class="label label-plaat">plaat</span>
+    
+    <span class="pill pill-success lg">unfold success</span>
+    
+  </div>
+  <div class="part-meta reveal">
+    <span class="mi"><span class="pill pill-real">real</span></span>
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">source</span> <code>sheet_md_17_04194_2.stp</code></span>
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">product id</span> <code>MD-17-04193_2</code></span>
+    
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">qty</span> 1&times;</span>
+    
+    
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"> </span>
+    
+  </div>
+
+  <!-- ===== HERO: folded -> unfolded 3D comparison ===== -->
+  <div class="card compare-card reveal reveal-d1">
+    <div class="cc-head">
+      <h2><span class="tick" aria-hidden="true"></span>Folded &rarr; Unfolded</h2>
+      
+        <p class="sub">The CAD solid on the left, the flat blank the unfold probe computed on the right. Drag either viewer to rotate; scroll to zoom.</p>
+      
+    </div>
+
+    
+    <div class="compare">
+      <div class="stage folded">
+        <span class="stage-tag"><span class="sw" aria-hidden="true"></span>Folded</span>
+        <model-viewer
+          src="../models/sheet-md-17-04194-2-4-folded.glb"
+          alt="Folded 3D CAD solid of MD-17-04193_2"
+          camera-controls auto-rotate auto-rotate-delay="800"
+          rotation-per-second="16deg" shadow-intensity="0.7" shadow-softness="0.9"
+          environment-image="neutral" exposure="1.06"
+          camera-orbit="-34deg 62deg auto" interaction-prompt="none"></model-viewer>
+        <div class="stage-foot"><b>As modelled in CAD</b> &mdash; the source solid</div>
+      </div>
+      <div class="fold-link" aria-hidden="true">
+        <span class="fl-label">unfold</span>
+        <span class="ring">&rarr;</span>
+        <span class="fl-label">probe</span>
+      </div>
+      <div class="stage unfolded">
+        <span class="stage-tag"><span class="sw" aria-hidden="true"></span>Unfolded</span>
+        <model-viewer
+          src="../models/sheet-md-17-04194-2-4-unfolded.glb"
+          alt="Unfolded flat blank of MD-17-04193_2"
+          camera-controls auto-rotate auto-rotate-delay="800"
+          rotation-per-second="16deg" shadow-intensity="0.7" shadow-softness="0.9"
+          environment-image="neutral" exposure="1.06"
+          camera-orbit="0deg 76deg auto" interaction-prompt="none"></model-viewer>
+        <div class="stage-foot"><b>Flat blank</b> &mdash; ready for the laser</div>
+      </div>
+    </div>
+    
+  </div>
+
+  <!-- ===== unfold analysis ===== -->
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Unfold analysis</h2>
+    
+      <div class="metric-strip">
+        <div class="m">
+          <div class="mv">2</div>
+          <div class="ml">Bends</div>
+        </div>
+        <div class="m">
+          <div class="mv">120773 <span class="u">mm&sup2;</span></div>
+          <div class="ml">Flat area</div>
+        </div>
+        <div class="m">
+          <div class="mv">1.00 <span class="u">mm</span></div>
+          <div class="ml">Thickness</div>
+        </div>
+        <div class="m">
+          <div class="mv">0.000</div>
+          <div class="ml">Thickness CV</div>
+        </div>
+      </div>
+
+      
+
+      
+        <h3>Bend table</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th class="num">Angle</th>
+                <th class="num">Inner radius</th>
+                <th>Direction</th>
+                <th class="num">Length</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td><span class="ix">1</span></td>
+                <td class="num">85.0&deg;</td>
+                <td class="num">1.00 mm</td>
+                <td><span class="dir-tag down">down</span></td>
+                <td class="num">1626.0 mm</td>
+              </tr>
+              
+              <tr>
+                <td><span class="ix">2</span></td>
+                <td class="num">85.0&deg;</td>
+                <td class="num">1.00 mm</td>
+                <td><span class="dir-tag down">down</span></td>
+                <td class="num">1626.0 mm</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      
+
+      
+        <h3>Flags</h3>
+        <div class="flags">
+          
+            
+          
+            
+            <span class="pill">synthetic_bends: 0</span>
+            
+          
+            
+          
+            
+            <span class="pill">n_planars_visited: 3</span>
+            
+          
+        </div>
+      
+    
+  </div>
+
+  <!-- ===== technical drawings ===== -->
+  
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Technical drawings</h2>
+    <div class="drawings">
+      
+        
+        
+        <figure>
+          <div class="dw">
+            <span class="vbadge">iso</span>
+            <img src="../drawings/sheet-md-17-04194-2-4-iso.svg" alt="iso projection of MD-17-04193_2" loading="lazy">
+          </div>
+          <figcaption>iso projection &mdash; hidden-line</figcaption>
+        </figure>
+        
+      
+        
+        
+        <figure>
+          <div class="dw">
+            <span class="vbadge">top</span>
+            <img src="../drawings/sheet-md-17-04194-2-4-top.svg" alt="top projection of MD-17-04193_2" loading="lazy">
+          </div>
+          <figcaption>top projection &mdash; hidden-line</figcaption>
+        </figure>
+        
+      
+        
+        
+        <figure>
+          <div class="dw">
+            <span class="vbadge">front</span>
+            <img src="../drawings/sheet-md-17-04194-2-4-front.svg" alt="front projection of MD-17-04193_2" loading="lazy">
+          </div>
+          <figcaption>front projection &mdash; hidden-line</figcaption>
+        </figure>
+        
+      
+      
+      <figure>
+        <div class="dw">
+          <span class="vbadge">flat</span>
+          <img src="../drawings/sheet-md-17-04194-2-4-flat.svg" alt="Flat pattern drawing of MD-17-04193_2" loading="lazy">
+        </div>
+        <figcaption>
+          Flat pattern &mdash; from DXF
+          <span class="legend-dots">
+            <span class="ld"><i style="background:#d6453f;" aria-hidden="true"></i>cut</span>
+            <span class="ld"><i style="background:#22a154;" aria-hidden="true"></i>holes</span>
+            <span class="ld"><i style="background:#2563eb;" aria-hidden="true"></i>bends</span>
+          </span>
+        </figcaption>
+      </figure>
+      
+    </div>
+  </div>
+  
+
+  <!-- ===== classification + geometry (two-up) ===== -->
+  <div class="grid-2">
+
+    <!-- classification -->
+    <div class="card reveal">
+      <h2><span class="tick" aria-hidden="true"></span>Classification</h2>
+      
+      <div class="scores">
+        
+        <div class="score-row top">
+          <span class="nm">plaat</span>
+          <span class="track" aria-hidden="true"><span style="width: 248.8%;"></span></span>
+          <span class="vl">2.488</span>
+        </div>
+        
+        <div class="score-row">
+          <span class="nm">profiel</span>
+          <span class="track" aria-hidden="true"><span style="width: 107.0%;"></span></span>
+          <span class="vl">1.071</span>
+        </div>
+        
+        <div class="score-row">
+          <span class="nm">anders</span>
+          <span class="track" aria-hidden="true"><span style="width: 14.8%;"></span></span>
+          <span class="vl">0.148</span>
+        </div>
+        
+      </div>
+      
+      <div class="verdict">
+        <div class="vfield">
+          <span class="vk">Label</span>
+          <span class="vv" style="text-transform:capitalize;">plaat</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Confidence</span>
+          <span class="vv">93.6%</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Margin</span>
+          <span class="vv">1.418</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Quantity</span>
+          <span class="vv">1&times;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- geometry -->
+    <div class="card reveal">
+      <h2><span class="tick" aria-hidden="true"></span>Geometry</h2>
+      <div class="kv">
+        <span class="k">Bounding box</span>
+        <span class="v">1626.0 &times; 46.1 &times; 17.4 mm</span>
+        <span class="k">Volume</span>
+        <span class="v">121091.8 mm&sup3;</span>
+        <span class="k">Surface area</span>
+        <span class="v">245864.0 mm&sup2;</span>
+        <span class="k">Aspect ratio</span>
+        <span class="v">35.31</span>
+        <span class="k">Thickness ratio</span>
+        <span class="v">0.011</span>
+        <span class="k">Geometry source</span>
+        <span class="v"><code>brep</code></span>
+        
+        <span class="k">Hollow</span>
+        <span class="v">yes</span>
+      </div>
+
+      
+        <h3>Holes &mdash; 5 detected</h3>
+        <div class="flags">
+          
+          <span class="pill">&empty; 8.50 mm</span>
+          
+          <span class="pill">&empty; 8.50 mm</span>
+          
+          <span class="pill">&empty; 8.50 mm</span>
+          
+          <span class="pill">&empty; 9.00 mm</span>
+          
+          <span class="pill">&empty; 9.00 mm</span>
+          
+        </div>
+      
+
+      
+        <h3>Profile match</h3>
+        <div class="kv">
+          <span class="k">Family</span>
+          <span class="v">unknown</span>
+          <span class="k">Standard</span>
+          <span class="v"></span>
+          
+          <span class="k">Residual</span>
+          <span class="v">inf mm</span>
+          <span class="k">Confidence</span>
+          <span class="v">0%</span>
+        </div>
+      
+
+      
+    </div>
+
+  </div>
+
+  <!-- ===== downloads ===== -->
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Downloads</h2>
+    <div class="downloads">
+      <a class="dl" href="../steps/sheet_md_17_04194_2.stp" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        </span>
+        <span class="dt"><span class="dn">STEP source</span><span class="df">.stp</span></span>
+      </a>
+      
+      <a class="dl" href="../models/sheet-md-17-04194-2-4-folded.glb" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7.3L12 12l8.7-4.7M12 12v9.5"/></svg>
+        </span>
+        <span class="dt"><span class="dn">Folded mesh</span><span class="df">.glb</span></span>
+      </a>
+      
+      
+      <a class="dl" href="../models/sheet-md-17-04194-2-4-unfolded.glb" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="1"/><path d="M12 7v10"/></svg>
+        </span>
+        <span class="dt"><span class="dn">Unfolded mesh</span><span class="df">.glb</span></span>
+      </a>
+      
+      
+      <a class="dl" href="../dxf/sheet-md-17-04194-2-4.dxf" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
+        </span>
+        <span class="dt"><span class="dn">Flat pattern</span><span class="df">.dxf</span></span>
+      </a>
+      
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span class="fbrand"><span class="glyph" aria-hidden="true"></span>stepalesengine</span>
+    <span class="fspace"></span>
+    <span>
+      Generated by <code>manufacturing_pipeline.web.static_site</code> &middot;
+      <a href="../index.html">back to corpus</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>
