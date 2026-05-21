@@ -101,10 +101,11 @@ def _write_synthetic_corpus(tmp_path: Path):
         with_holes=[(40.0, 40.0, 10.0)],
     )
 
+    # Single-part files: an empty product_id labels the file's only part.
     return [
-        LabelledPart(step_path=plate, product_id="plate", expected_label="plaat"),
-        LabelledPart(step_path=profile, product_id="rhs", expected_label="profiel"),
-        LabelledPart(step_path=pocket, product_id="pocket", expected_label="plaat"),
+        LabelledPart(step_path=plate, product_id="", expected_label="plaat"),
+        LabelledPart(step_path=profile, product_id="", expected_label="profiel"),
+        LabelledPart(step_path=pocket, product_id="", expected_label="plaat"),
     ]
 
 
