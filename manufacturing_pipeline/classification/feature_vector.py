@@ -25,6 +25,7 @@ class FeatureVector:
     top1_face_pct: float = 0.0
     unfoldable: bool = False
     has_bends: bool = False
+    seamed_tube: bool = False
     aspect_ratio: float = 0.0
     cross_section_constant: bool = False
     name_profile_hit: float = 0.0
@@ -66,6 +67,18 @@ class FeatureVector:
             and unfold.status != UnfoldStatus.FAILURE
             and unfold.n_bends > 0
         )
+        # A hollow / seamed structural section (RHS, SHS, CHS, welded channel)
+        # is a closed tube wall: the UnfoldProbe rolls it open and reports a
+        # PARTIAL unfold with ``seamed_section`` set, so ``unfoldable`` and
+        # ``has_bends`` both fire. Geometrically that is a constant-section
+        # extrusion - a profile, not bent sheet metal. This flag lets the
+        # scorer gate the sheet-metal rewards off seamed tubes without losing
+        # the unfold signal a genuine bent plate still needs.
+        seamed_tube = (
+            unfold is not None
+            and unfold.status != UnfoldStatus.FAILURE
+            and bool(unfold.flags.get("seamed_section", False))
+        )
         profile_designation_hit = (
             1.0 if (profile_match is not None and profile_match.designation) else 0.0
         )
@@ -82,6 +95,7 @@ class FeatureVector:
             top1_face_pct=top1,
             unfoldable=bool(unfoldable),
             has_bends=bool(has_bends),
+            seamed_tube=bool(seamed_tube),
             aspect_ratio=features.aspect_ratio,
             cross_section_constant=features.cross_section_constant,
             name_profile_hit=0.0,
