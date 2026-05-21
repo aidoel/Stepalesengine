@@ -5,6 +5,15 @@ or outer (boss/cylinder), groups co-axial inner cylinders into single holes
 (handles counterbores), and decides through-vs-blind by ray casting along the
 hole axis.
 
+A "hole" here means a genuine round bore: its cylindrical wall must wrap a
+near-full circle (360 degrees, usually split into two 180-degree patches by the
+surface seam). Partial-arc inner cylinders - the rounded corners of rectangular
+cutouts, bend-relief notches, or the bend radii of folded flanges - are NOT
+holes and are excluded from ``hole_count``. Co-axial bores separated by an axial
+gap (two holes drilled on the same axis line through parallel flanges) are split
+into one record each rather than merged. A countersunk/counterbored hole, whose
+co-axial cylinders touch axially, still counts once.
+
 This module is the only place in the geometry layer that decides "is this an
 inner cylinder?" - downstream code consumes the resulting :class:`HolePattern`.
 
@@ -20,6 +29,18 @@ from dataclasses import dataclass
 from .types import HolePattern
 
 logger = logging.getLogger(__name__)
+
+
+# A genuine round hole's cylindrical wall wraps a full circle (2*pi). The seam
+# of a closed cylindrical surface usually splits that wall into two 180-degree
+# patches, so we sum the angular extent of the bore-tier patches and require it
+# to reach (close to) a full turn. Partial-arc patches - rounded cutout corners,
+# bend reliefs, flange bend radii - fall well short of this and are rejected.
+_FULL_CIRCLE = 2.0 * math.pi
+_MIN_HOLE_ANGULAR_COVERAGE = _FULL_CIRCLE - math.radians(20.0)
+
+# Tolerance for treating two cylinder radii as the same bore tier.
+_RADIUS_TIER_TOL_MM = 0.05
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +116,38 @@ def _axes_collinear(
     proj = (a_loc[0] + t * a_dir[0], a_loc[1] + t * a_dir[1], a_loc[2] + t * a_dir[2])
     perp_sq = (b_loc[0] - proj[0]) ** 2 + (b_loc[1] - proj[1]) ** 2 + (b_loc[2] - proj[2]) ** 2
     return perp_sq <= dist_tol_mm * dist_tol_mm
+
+
+def _axial_span(cyl: _CylFace, base: tuple[float, float, float]) -> tuple[float, float]:
+    """Return the cylinder patch's [lo, hi] extent along the shared axis.
+
+    The patch covers ``axis_loc`` projected onto the axis, plus its v-parameter
+    range (v runs along the cylinder axis). ``base`` is a point on the shared
+    axis line used as the projection origin.
+    """
+
+    dx = cyl.axis_loc[0] - base[0]
+    dy = cyl.axis_loc[1] - base[1]
+    dz = cyl.axis_loc[2] - base[2]
+    off = dx * cyl.axis_dir[0] + dy * cyl.axis_dir[1] + dz * cyl.axis_dir[2]
+    lo = off + cyl.v_min
+    hi = off + cyl.v_max
+    return (min(lo, hi), max(lo, hi))
+
+
+def _bore_angular_coverage(group: list[_CylFace]) -> float:
+    """Total angular extent (radians) of the group's smallest-radius patches.
+
+    The smallest radius is the bore - what a fastener passes through. A genuine
+    hole's bore wall wraps a full circle; a rounded corner or bend relief only
+    covers a partial arc.
+    """
+
+    if not group:
+        return 0.0
+    r_min = min(c.radius for c in group)
+    bore = [c for c in group if c.radius - r_min <= _RADIUS_TIER_TOL_MM]
+    return sum(max(c.u_max - c.u_min, 0.0) for c in bore)
 
 
 # ---------------------------------------------------------------------------
@@ -338,19 +391,20 @@ class HoleAnalyzer:
         return out
 
     def _group_coaxial(self, inner: list[_CylFace]) -> list[list[_CylFace]]:
-        """Group inner cylinders sharing an axis line.
+        """Group inner cylinders into one record per genuine hole.
 
-        Two inner cylinders join the same group iff their axes are collinear
-        within the configured angle / distance tolerances. We do NOT require
-        equal radii - that's the point of a counterbore. We DO use axial
-        overlap or proximity to avoid grouping two distinct holes that
-        happen to share a parallel axis.
+        First gather cylinders sharing an axis *line* (collinear within the
+        configured tolerances). We do NOT require equal radii - that's the
+        point of a counterbore. Then split each collinear cluster by axial
+        gap: two bores drilled on the same axis line but through parallel
+        flanges share a line yet are distinct holes, while the co-axial
+        cylinders of a single counterbored hole touch or overlap axially.
         """
 
-        groups: list[list[_CylFace]] = []
+        lines: list[list[_CylFace]] = []
         for c in inner:
             placed = False
-            for g in groups:
+            for g in lines:
                 rep = g[0]
                 if _axes_collinear(
                     rep.axis_dir,
@@ -364,12 +418,58 @@ class HoleAnalyzer:
                     placed = True
                     break
             if not placed:
-                groups.append([c])
+                lines.append([c])
+
+        groups: list[list[_CylFace]] = []
+        for line in lines:
+            groups.extend(self._split_axial(line))
         return groups
+
+    def _split_axial(self, line: list[_CylFace]) -> list[list[_CylFace]]:
+        """Split collinear cylinders into axially-contiguous sub-groups.
+
+        Cylinders join the same hole when their axial spans overlap or are
+        separated by a gap no larger than the longest patch in the pair (so
+        the touching tiers of a counterbore stay merged) - distinct holes on
+        the same axis line, separated by a wider gap, become separate records.
+        """
+
+        if len(line) <= 1:
+            return [line]
+        base = line[0].axis_loc
+        spans = sorted(
+            ((c, _axial_span(c, base)) for c in line),
+            key=lambda item: item[1][0],
+        )
+        sub: list[list[_CylFace]] = []
+        current: list[_CylFace] = [spans[0][0]]
+        cur_hi = spans[0][1][1]
+        cur_max_len = max(spans[0][0].length, 0.0)
+        for cyl, (lo, hi) in spans[1:]:
+            gap = lo - cur_hi
+            tol = max(cur_max_len, cyl.length, 0.0)
+            if gap <= tol:
+                current.append(cyl)
+                cur_hi = max(cur_hi, hi)
+                cur_max_len = max(cur_max_len, cyl.length, 0.0)
+            else:
+                sub.append(current)
+                current = [cyl]
+                cur_hi = hi
+                cur_max_len = max(cyl.length, 0.0)
+        sub.append(current)
+        return sub
 
     def _build_hole_record(self, solid, group: list[_CylFace]) -> HoleRecord | None:
         if not group:
             return None
+
+        # Reject partial-arc groups: a genuine round hole's bore wall wraps a
+        # full circle. Rounded cutout corners, bend reliefs and flange bend
+        # radii are inner cylindrical patches too, but only span a partial arc.
+        if _bore_angular_coverage(group) < _MIN_HOLE_ANGULAR_COVERAGE:
+            return None
+
         # Diameter: take the SMALLEST radius in the group (the actual hole bore).
         # Counterbores have outer rings that share axis with a smaller inner bore;
         # the bore is what the bolt passes through.
