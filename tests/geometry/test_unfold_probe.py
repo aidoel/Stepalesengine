@@ -804,3 +804,124 @@ def test_identify_sheet_ignores_thin_sliver():
     planars, _cyls, _others, _ta, _pa, _oa = _classify_faces(solid)
     model = _identify_sheet(planars)
     assert model.thickness == pytest.approx(3.0, abs=0.3)
+
+
+# ---------------------------------------------------------------------------
+# Branched / star-shaped flange parts and rolled tubular sections
+# ---------------------------------------------------------------------------
+
+
+def _build_star_bracket():
+    """A star-shaped flange part: one base plate with four bent flanges.
+
+    Built by fusing two perpendicular U-channels that share the same base
+    plate region. The base flange ends up incident to several bends, so the
+    bend graph branches. The part is genuinely developable - it must NOT fail.
+    """
+
+    u1 = _build_u_channel(t=2.0, R=3.0, base_length=60.0, leg_length=20.0, width=40.0)
+    # Second U-channel: base 40 x width 60 - its base overlaps u1's base in
+    # the x[0,40], y[0,40] region, and its two legs run along the X-aligned
+    # hinge axis, perpendicular to u1's legs.
+    u2 = _build_u_channel(t=2.0, R=3.0, base_length=40.0, leg_length=20.0, width=60.0)
+    fused = BRepAlgoAPI_Fuse(u1, u2).Shape()
+    upg = ShapeUpgrade_UnifySameDomain(fused, True, True, True)
+    upg.Build()
+    return _first_solid(upg.Shape())
+
+
+def _build_rect_tube(
+    W: float = 60.0,
+    H: float = 40.0,
+    t: float = 3.0,
+    length: float = 120.0,
+    R: float = 3.0,
+):
+    """A sheet rolled / folded into a closed rectangular tube section.
+
+    Outer box minus inner box gives a four-walled tube open at both ends; the
+    four long corner edges are filleted into bends. The bend graph is a single
+    simple cycle. The part is still developable: slit one bend (the seam) and
+    flatten the rest - exactly what AutoPOL does. The probe must report this
+    as PARTIAL with a ``seamed_section`` flag, not FAILURE.
+    """
+
+    from OCP.BRepAdaptor import BRepAdaptor_Curve
+    from OCP.BRepFilletAPI import BRepFilletAPI_MakeFillet
+    from OCP.GeomAbs import GeomAbs_Line
+    from OCP.TopAbs import TopAbs_EDGE
+
+    outer = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), W, H, length).Solid()
+    inner = BRepPrimAPI_MakeBox(
+        gp_Pnt(t, t, -1.0), W - 2 * t, H - 2 * t, length + 2.0
+    ).Solid()
+    tube = _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
+
+    fil = BRepFilletAPI_MakeFillet(tube)
+    exp = TopExp_Explorer(tube, TopAbs_EDGE)
+    while exp.More():
+        edge = TopoDS.Edge_s(exp.Current())
+        try:
+            curve = BRepAdaptor_Curve(edge)
+            if curve.GetType() == GeomAbs_Line:
+                p0 = curve.Value(curve.FirstParameter())
+                p1 = curve.Value(curve.LastParameter())
+                # A long corner edge varies only in Z.
+                if (
+                    abs(p1.Z() - p0.Z()) > 1e-6
+                    and abs(p1.X() - p0.X()) < 1e-6
+                    and abs(p1.Y() - p0.Y()) < 1e-6
+                ):
+                    fil.Add(R, edge)
+        except Exception:
+            pass
+        exp.Next()
+    fil.Build()
+    return _first_solid(fil.Shape())
+
+
+def test_star_bracket_does_not_fail():
+    """A star-shaped flange part (one base, several bent flanges) must not
+    FAIL: branching is informational and downgrades only to PARTIAL."""
+
+    solid = _build_star_bracket()
+    res = UnfoldProbe().run(solid)
+    assert res.status != UnfoldStatus.FAILURE, (
+        f"star-shaped flange part should not fail, got {res.reason}"
+    )
+    # A base flange with three or more bend neighbours: branching flag set.
+    assert res.flags.get("branching") is True
+    assert res.n_bends >= 3
+    assert res.flat_area > 0.0
+
+
+def test_rect_tube_unfolds_as_seamed_section():
+    """A sheet rolled into a closed rectangular tube is still developable.
+
+    The bend graph is a single simple cycle; the probe slits one bend (the
+    seam) and flattens the rest -> PARTIAL with a ``seamed_section`` flag.
+    Before the seam fix this failed hard as ``cyclic_graph``.
+    """
+
+    solid = _build_rect_tube()
+    res = UnfoldProbe().run(solid)
+    assert res.status == UnfoldStatus.PARTIAL, (
+        f"rolled rectangular tube should unfold as a seamed section, "
+        f"got {res.status} ({res.reason})"
+    )
+    assert res.flags.get("seamed_section") is True
+    assert "seamed_section" in (res.reason or "")
+    # Four corner bends; all are reported even though one is the slit seam.
+    assert res.n_bends == 4
+    assert res.flat_area > 0.0
+
+
+def test_closed_box_still_fails():
+    """A genuinely closed thin-walled box is not a single simple cycle and
+    must keep failing - the seam fix must not rescue non-developable bodies."""
+
+    outer = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), 60.0, 40.0, 30.0).Solid()
+    inner = BRepPrimAPI_MakeBox(gp_Pnt(3, 3, 3), 54.0, 34.0, 24.0).Solid()
+    closed = _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
+    res = UnfoldProbe().run(closed)
+    assert res.status == UnfoldStatus.FAILURE

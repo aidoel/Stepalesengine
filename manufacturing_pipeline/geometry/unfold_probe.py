@@ -715,6 +715,57 @@ def _max_branching(neighbors: list[list[int]]) -> int:
     return max(len(set(n)) for n in neighbors)
 
 
+def _find_seam_bend(n_nodes: int, bends: list[Bend], start: int) -> int | None:
+    """Return the index of one bend to slit so a cyclic graph becomes a tree.
+
+    A sheet-metal part rolled or folded into a closed tubular section (a
+    rectangular tube, a rolled cylinder approximated by facets) is still
+    *developable*: the flat blank exists, but its two ends meet, closing the
+    bend graph into a loop. AutoPOL unfolds such a part by slitting one bend
+    (the manufacturing seam) and flattening the rest.
+
+    This is only valid when the bend graph is a *single simple cycle*: every
+    flange reachable from ``start`` has exactly two incident bends and the
+    component holds exactly as many bends as flanges. A genuinely closed body
+    (a six-walled box, a machined block) produces a denser graph - flanges of
+    degree three or more, or multiple independent cycles - and must keep
+    failing. Such a graph yields no seam here.
+
+    Returns the bend index to slit, or ``None`` when the graph is not a single
+    simple cycle.
+    """
+
+    incident: list[list[int]] = [[] for _ in range(n_nodes)]
+    for bi, b in enumerate(bends):
+        incident[b.p_in_index].append(bi)
+        incident[b.p_out_index].append(bi)
+
+    component: set[int] = {start}
+    queue = deque([start])
+    component_bends: set[int] = set()
+    while queue:
+        u = queue.popleft()
+        for bi in incident[u]:
+            component_bends.add(bi)
+            b = bends[bi]
+            v = b.p_out_index if b.p_in_index == u else b.p_in_index
+            if v not in component:
+                component.add(v)
+                queue.append(v)
+
+    if not component_bends:
+        return None
+    # Single simple cycle: |bends| == |flanges| and every flange has degree 2.
+    if len(component_bends) != len(component):
+        return None
+    for node in component:
+        if len(incident[node]) != 2:
+            return None
+    # Slit the largest-radius bend in the loop: a wider bend is the most
+    # plausible manufacturing seam and keeps the flattened tree well-formed.
+    return max(component_bends, key=lambda bi: bends[bi].radius)
+
+
 def _signed_bend_angle(
     parent_normal: tuple[float, float, float],
     child_normal: tuple[float, float, float],
@@ -1181,16 +1232,42 @@ class UnfoldProbe:
                 reason="thickness_variation" if thickness_partial else "",
             )
 
-        # Cycle detection: a cycle in the bend graph means a closed body.
+        # Cycle detection. A cycle in the bend graph closes the part into a
+        # loop. Two cases must be told apart:
+        #   * a single simple cycle - a sheet folded/rolled into a tubular
+        #     section (rectangular tube, rolled cylinder). It is still
+        #     developable: slit one bend (the seam) and flatten the rest.
+        #   * anything denser - a genuinely closed body (six-walled box,
+        #     machined block). Not developable; keep failing.
+        seam_bend: int | None = None
         if _detect_cycles(n_p, planar_neighbors, base_idx):
-            return UnfoldResult(
-                status=UnfoldStatus.FAILURE,
-                reason="cyclic_graph",
-                n_bends=len(bends),
-                thickness_mean=t_mean,
-                thickness_cv=t_cv,
-                flags={"closed_body": True},
-            )
+            seam_bend = _find_seam_bend(n_p, bends, base_idx)
+            if seam_bend is None:
+                return UnfoldResult(
+                    status=UnfoldStatus.FAILURE,
+                    reason="cyclic_graph",
+                    n_bends=len(bends),
+                    thickness_mean=t_mean,
+                    thickness_cv=t_cv,
+                    flags={"closed_body": True},
+                )
+            # Slit the seam bend: drop it from the adjacency so the BFS walks
+            # the resulting tree. The bend itself is still reported in
+            # ``n_bends`` - the part has that many physical bends - but the
+            # flat pattern needs the seam open.
+            sb = bends[seam_bend]
+            planar_bend_idx[sb.p_in_index] = [
+                bi for bi in planar_bend_idx[sb.p_in_index] if bi != seam_bend
+            ]
+            planar_bend_idx[sb.p_out_index] = [
+                bi for bi in planar_bend_idx[sb.p_out_index] if bi != seam_bend
+            ]
+            planar_neighbors[sb.p_in_index] = [
+                p for p in planar_neighbors[sb.p_in_index] if p != sb.p_out_index
+            ]
+            planar_neighbors[sb.p_out_index] = [
+                p for p in planar_neighbors[sb.p_out_index] if p != sb.p_in_index
+            ]
 
         # Branching detection: planar face connected to > 2 bends. Previously
         # this was a hard FAILURE; we now downgrade to PARTIAL so downstream
@@ -1213,14 +1290,19 @@ class UnfoldProbe:
         n_joggles = _detect_joggles(planars, bends, traversal)
 
         # Compose status / reason. Branching downgrades to PARTIAL even if
-        # thickness is OK; thickness variation also downgrades to PARTIAL.
-        partial = thickness_partial or branching
+        # thickness is OK; thickness variation also downgrades to PARTIAL. A
+        # slit seam (folded/rolled tubular section) likewise downgrades to
+        # PARTIAL: the flat pattern is valid only with the seam cut open.
+        seamed = seam_bend is not None
+        partial = thickness_partial or branching or seamed
         status = UnfoldStatus.PARTIAL if partial else UnfoldStatus.SUCCESS
         reasons: list[str] = []
         if thickness_partial:
             reasons.append("thickness_variation")
         if branching:
             reasons.append("branching")
+        if seamed:
+            reasons.append("seamed_section")
         reason = "; ".join(reasons)
 
         flags: dict = {
@@ -1232,13 +1314,19 @@ class UnfoldProbe:
         if branching:
             flags["branching"] = True
             flags["branches_found"] = max_b
+        if seamed:
+            flags["seamed_section"] = True
         if n_joggles > 0:
             flags["has_joggle"] = True
             flags["n_joggles"] = n_joggles
 
+        # The slit seam bend is a real physical bend of the part even though
+        # the BFS did not cross it; count it so n_bends matches the geometry.
+        n_bends_total = len(visited_bends) + (1 if seamed else 0)
+
         return UnfoldResult(
             status=status,
-            n_bends=len(visited_bends),
+            n_bends=n_bends_total,
             flat_area=flat_area,
             blank_bbox=None,
             thickness_mean=t_mean,
