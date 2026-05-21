@@ -102,6 +102,21 @@ def test_from_features_with_successful_unfold_sets_unfoldable_true():
     assert fv2.unfoldable is False
 
 
+def test_from_features_partial_unfold_counts_as_unfoldable():
+    """A PARTIAL unfold is genuine sheet metal (thickness variation, branching
+    flanges, seamed tubes), so it must still set ``unfoldable``. A FAILURE must
+    not."""
+    features = ManufacturingFeatures()
+    partial = FeatureVector.from_features(
+        features, unfold=UnfoldResult(status=UnfoldStatus.PARTIAL, n_bends=0)
+    )
+    assert partial.unfoldable is True
+    failed = FeatureVector.from_features(
+        features, unfold=UnfoldResult(status=UnfoldStatus.FAILURE, n_bends=0)
+    )
+    assert failed.unfoldable is False
+
+
 def test_from_features_matches_legacy_classifier_features_dict():
     """The dict produced by FeatureVector.from_features(...).as_dict() must
     match the keys the legacy ``_classifier_features`` produced."""

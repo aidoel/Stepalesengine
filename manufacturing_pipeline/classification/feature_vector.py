@@ -51,7 +51,13 @@ class FeatureVector:
         """Construct from analyzer outputs (replaces _classifier_features)."""
         top1 = features.face_area_top[0] if features.face_area_top else 0.0
         bspline_pct = features.surface_pct.get("bspline", 0.0)
-        unfoldable = unfold is not None and unfold.status == UnfoldStatus.SUCCESS
+        # A PARTIAL unfold (thickness variation, branching flanges, rolled or
+        # folded seamed tubes) is still genuine sheet metal: the probe produced
+        # a flat pattern, just not a fully clean one. Machined and freeform
+        # parts emit FAILURE, so counting PARTIAL as ``unfoldable`` keeps this
+        # feature consistent with ``has_bends`` below (also ``!= FAILURE``)
+        # without leaking machined parts into ``plaat``.
+        unfoldable = unfold is not None and unfold.status != UnfoldStatus.FAILURE
         # A part that unfolds *with bends* is unambiguously bent sheet metal:
         # machined and freeform parts do not unfold, and a flat plate has no
         # bends. PARTIAL still counts - the bends were detected.
