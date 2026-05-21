@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
-<assembly xmlns="https://stepalesengine.dev/manifest/1" source="/home/user/Stepalesengine/corpus/synthetic_bracket.step" source-mtime="1779380316.5856586" source-size="29556" generated-at="2026-05-21T16:18:47+00:00" model-version="rules-1.0.0">
+<assembly xmlns="https://stepalesengine.dev/manifest/1" source="/home/user/Stepalesengine/corpus/synthetic_bracket.step" source-mtime="1779399304.5832849" source-size="29523" generated-at="2026-05-21T21:35:18+00:00" model-version="rules-1.0.0">
   <parts>
-    <part product-id="Open CASCADE STEP translator 7.9 2" name="Open CASCADE STEP translator 7.9 2" description="" source="product_definition" quantity="1">
+    <part product-id="Synthetic L-bracket" name="Synthetic L-bracket" description="" source="product_definition" quantity="1">
       <classification label="plaat" confidence="0.9973749980732685">
         <scores>
           <score class="plaat" value="2.704401965800098" />
@@ -118,7 +118,7 @@
         </operation>
         <operation op="deburr" feature-ref="part" priority="200" reason="post-cut edge finish" />
       </machining-strategy>
-      <flat-dxf path="parts/open_cascade_step_translator_7_9_2.dxf" />
+      <flat-dxf path="parts/synthetic_l_bracket.dxf" />
     </part>
   </parts>
 </assembly>

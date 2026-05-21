@@ -61,6 +61,27 @@ def looks_like_feature_name(name: str) -> bool:
         return False
     return bool(_FEATURE_NAME_RE.match(name.strip()))
 
+
+# OpenCascade stamps a default label on STEP files exported without an authored
+# name -- "Open CASCADE STEP translator 7.9 2", "Open CASCADE STEP processor
+# 7.9", "Open CASCADE Shape Model". The string identifies the OCCT translator,
+# never the part, so it must not win the name cascade.
+_OCC_AUTONAME_RE = re.compile(r"^open\s*cascade\b", re.IGNORECASE)
+
+
+def looks_like_translator_signature(name: str) -> bool:
+    """True when ``name`` is an OpenCascade auto-generated export label.
+
+    OCCT writes ``PRODUCT('Open CASCADE STEP translator <ver> <n>', ...)`` and
+    ``FILE_NAME('Open CASCADE Shape Model', ...)`` when a STEP file is exported
+    without an explicit name. Such labels identify the translator, not the
+    part, and must lose the name cascade to a real part number / filename.
+    """
+    if not isinstance(name, str):
+        return False
+    return bool(_OCC_AUTONAME_RE.match(name.strip()))
+
+
 # Comment blocks /* ... */ in raw STEP text.
 _COMMENT_RE = re.compile(r"/\*(.*?)\*/", re.DOTALL)
 
@@ -88,6 +109,8 @@ def is_meaningful(name: str) -> bool:
     if stripped.lower() in JUNK_NAMES:
         return False
     if _AUTO_NAME_RE.match(stripped):
+        return False
+    if looks_like_translator_signature(stripped):
         return False
     return True
 
@@ -558,6 +581,10 @@ def strategy_header(header: dict, path: str) -> list[StepPart]:
         basename = os.path.splitext(os.path.basename(path))[0]
 
     header_name = _header_file_name(header)
+    if header_name and looks_like_translator_signature(header_name):
+        # An OCCT-stamped FILE_NAME ("Open CASCADE Shape Model") is no better
+        # than the on-disk basename -- drop it so the basename can win.
+        header_name = ""
     description = _header_description(header)
 
     name = header_name or basename or description or "unknown"
@@ -610,6 +637,7 @@ __all__ = [
     "JUNK_NAMES",
     "is_meaningful",
     "looks_like_feature_name",
+    "looks_like_translator_signature",
     "strategy_nauo",
     "strategy_product_definition",
     "strategy_product",

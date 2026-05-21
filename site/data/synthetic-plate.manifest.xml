@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
-<assembly xmlns="https://stepalesengine.dev/manifest/1" source="/home/user/Stepalesengine/corpus/synthetic_plate.step" source-mtime="1779380316.5776584" source-size="29892" generated-at="2026-05-21T16:18:48+00:00" model-version="rules-1.0.0">
+<assembly xmlns="https://stepalesengine.dev/manifest/1" source="/home/user/Stepalesengine/corpus/synthetic_plate.step" source-mtime="1779399304.575285" source-size="29861" generated-at="2026-05-21T21:35:21+00:00" model-version="rules-1.0.0">
   <parts>
-    <part product-id="Open CASCADE STEP translator 7.9 1" name="Open CASCADE STEP translator 7.9 1" description="" source="product_definition" quantity="1">
+    <part product-id="Synthetic flat plate" name="Synthetic flat plate" description="" source="product_definition" quantity="1">
       <classification label="plaat" confidence="0.9828978522474222">
         <scores>
           <score class="plaat" value="1.870888232400485" />
@@ -123,7 +123,7 @@
         </operation>
         <operation op="deburr" feature-ref="part" priority="200" reason="post-cut edge finish" />
       </machining-strategy>
-      <flat-dxf path="parts/open_cascade_step_translator_7_9_1.dxf" />
+      <flat-dxf path="parts/synthetic_flat_plate.dxf" />
     </part>
   </parts>
 </assembly>

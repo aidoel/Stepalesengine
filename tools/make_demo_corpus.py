@@ -94,6 +94,7 @@ def main() -> int:
         w=140.0,
         t=3.0,
         with_holes=[(55, 45, 14), (165, 45, 14), (55, 95, 14), (165, 95, 14)],
+        name="Synthetic flat plate",
     )
     notes.append(
         (
@@ -112,6 +113,7 @@ def main() -> int:
         t=3.0,
         bend_radius=4.0,
         width=60.0,
+        name="Synthetic L-bracket",
     )
     notes.append(
         (
@@ -131,6 +133,7 @@ def main() -> int:
         b=80.0,
         t=5.0,
         length=900.0,
+        name="Synthetic RHS profile",
     )
     notes.append(
         (
@@ -148,6 +151,7 @@ def main() -> int:
         b=100.0,
         t=6.0,
         length=900.0,
+        name="Synthetic CHS profile",
     )
     notes.append(
         (

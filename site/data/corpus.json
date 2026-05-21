@@ -14,8 +14,8 @@
   "parts": [
     {
       "slug": "synthetic-bracket",
-      "product_id": "Open CASCADE STEP translator 7.9 2",
-      "name": "Open CASCADE STEP translator 7.9 2",
+      "product_id": "Synthetic L-bracket",
+      "name": "Synthetic L-bracket",
       "description": "",
       "source_file": "synthetic_bracket.step",
       "origin": "synthetic",
@@ -45,9 +45,9 @@
       "unfold_reason": "",
       "unfold_flags": {
         "thickness_variation": false,
-        "synthetic_bends": "0",
+        "synthetic_bends": 0,
         "has_hem": false,
-        "n_planars_visited": "2"
+        "n_planars_visited": 2
       },
       "bends": [
         {
@@ -91,8 +91,8 @@
     },
     {
       "slug": "synthetic-plate",
-      "product_id": "Open CASCADE STEP translator 7.9 1",
-      "name": "Open CASCADE STEP translator 7.9 1",
+      "product_id": "Synthetic flat plate",
+      "name": "Synthetic flat plate",
       "description": "",
       "source_file": "synthetic_plate.step",
       "origin": "synthetic",
@@ -162,8 +162,8 @@
     },
     {
       "slug": "synthetic-profile-rhs",
-      "product_id": "Open CASCADE STEP translator 7.9 3",
-      "name": "Open CASCADE STEP translator 7.9 3",
+      "product_id": "Synthetic RHS profile",
+      "name": "Synthetic RHS profile",
       "description": "",
       "source_file": "synthetic_profile_rhs.step",
       "origin": "synthetic",
@@ -234,8 +234,8 @@
     },
     {
       "slug": "synthetic-profile-tube",
-      "product_id": "Open CASCADE STEP translator 7.9 4",
-      "name": "Open CASCADE STEP translator 7.9 4",
+      "product_id": "Synthetic CHS profile",
+      "name": "Synthetic CHS profile",
       "description": "",
       "source_file": "synthetic_profile_tube.step",
       "origin": "synthetic",
