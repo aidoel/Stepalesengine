@@ -146,3 +146,61 @@ def test_sweep_best_cell_beats_worst_cell(tmp_path: Path):
     assert result.best_cost <= costs[-1]
     if costs[0] != costs[-1]:
         assert result.best_cost < costs[-1]
+
+
+# ---------------------------------------------------------------------------
+# Per-part labelling of multi-part assembly files
+# ---------------------------------------------------------------------------
+
+
+def _write_multipart_assembly(tmp_path: Path) -> Path:
+    """Write a two-part assembly STEP file: a plate and an RHS profile."""
+    pytest.importorskip("OCP")
+    from tests.fixtures.synthetic_steps import (
+        build_plate_solid,
+        build_profile_solid,
+        translate_solid,
+        write_assembly_step,
+    )
+
+    plate = build_plate_solid(l=200.0, w=100.0, t=3.0)
+    rhs = translate_solid(
+        build_profile_solid(family="RHS", h=100.0, b=60.0, t=4.0, length=1000.0),
+        dx=400.0,
+    )
+    return write_assembly_step(
+        tmp_path / "asm.step",
+        parts=[("plate_001", plate), ("rhs_001", rhs)],
+    )
+
+
+def test_collect_features_labels_only_matching_product_id(tmp_path: Path):
+    from manufacturing_pipeline.calibration import LabelledPart
+    from manufacturing_pipeline.calibration.sweep import _collect_features
+
+    step = _write_multipart_assembly(tmp_path)
+    parts = [
+        LabelledPart(step_path=step, product_id="plate_001", expected_label="plaat"),
+        LabelledPart(step_path=step, product_id="rhs_001", expected_label="profiel"),
+    ]
+    samples = _collect_features(parts)
+
+    # Two LabelledPart rows, each matching exactly one of the two solids.
+    labels = sorted(label for label, _clf in samples)
+    assert labels == ["plaat", "profiel"]
+
+
+def test_collect_features_without_product_id_labels_every_part(tmp_path: Path):
+    from manufacturing_pipeline.calibration import LabelledPart
+    from manufacturing_pipeline.calibration.sweep import _collect_features
+
+    step = _write_multipart_assembly(tmp_path)
+    parts = [
+        LabelledPart(step_path=step, product_id="", expected_label="plaat"),
+    ]
+    samples = _collect_features(parts)
+
+    # An empty product_id keeps the back-compat behaviour: both solids in
+    # the file are labelled "plaat".
+    assert len(samples) == 2
+    assert all(label == "plaat" for label, _clf in samples)

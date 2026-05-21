@@ -16,7 +16,11 @@ def register(subparsers) -> argparse.ArgumentParser:
     )
     calibrate.add_argument(
         "labels_csv",
-        help="CSV with columns: step_path, product_id, expected_label",
+        help=(
+            "CSV with columns: step_path, product_id, expected_label. "
+            "A non-empty product_id labels only the matching part of a "
+            "multi-part file; an empty product_id labels every part."
+        ),
     )
     calibrate.add_argument(
         "--output",
