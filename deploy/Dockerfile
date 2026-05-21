@@ -11,10 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Python deps first for layer caching.
+# Python deps first for layer caching. scipy + mapbox-earcut + manifold3d are
+# needed by the web GLB routes (folded tessellation / unfolded triangulation).
 RUN pip install --no-cache-dir \
         "cadquery-ocp>=7.7" flask numpy "ezdxf>=1.3" pyyaml \
-        "reportlab>=4.0" "watchdog>=3.0" trimesh shapely
+        "reportlab>=4.0" "watchdog>=3.0" trimesh shapely \
+        scipy mapbox-earcut manifold3d
 
 # Project source + install.
 COPY pyproject.toml ./
