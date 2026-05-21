@@ -42,6 +42,7 @@ def _hardcoded_reference_scorers() -> ScorerSpec:
                 0.8,
             ),
             ("unfoldable", boolf, 1.2),
+            ("has_bends", boolf, 1.2),
             ("aspect_ratio", lambda x: -min(x, 10) / 10, 0.3),
             ("name_profile_hit", linear, -0.3),
         ],
@@ -52,6 +53,7 @@ def _hardcoded_reference_scorers() -> ScorerSpec:
             ("profile_match_designation", boolf, 0.8),
             ("top1_face_pct", linear, -0.5),
             ("unfoldable", boolf, -0.8),
+            ("has_bends", boolf, -0.3),
         ],
         "anders": [
             ("name_din_hit", linear, 0.5),
@@ -66,6 +68,7 @@ def _hardcoded_reference_scorers() -> ScorerSpec:
             ),
             ("pocket_complexity", linear, 1.4),
             ("unfoldable", boolf, -0.3),
+            ("has_bends", boolf, -1.2),
         ],
     }
 
@@ -86,6 +89,21 @@ _PROBE_FEATURES: list[dict] = [
         "hull_concavity": 0.0,
         "profile_match_designation": 0.0,
         "pocket_complexity": 0.0,
+    },
+    {  # bent sheet-metal part - exercises the has_bends rules
+        "top1_face_pct": 0.5,
+        "unfoldable": True,
+        "has_bends": True,
+        "aspect_ratio": 8.0,
+        "cross_section_constant": False,
+        "name_profile_hit": 0.0,
+        "name_din_hit": 0.0,
+        "vendor_code_present": 0.0,
+        "bspline_pct": 0.0,
+        "hole_density": 0.6,
+        "hull_concavity": 0.0,
+        "profile_match_designation": 0.0,
+        "pocket_complexity": 0.3,
     },
     {  # ideal profile
         "top1_face_pct": 0.2,

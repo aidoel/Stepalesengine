@@ -12,7 +12,7 @@ from ...cam.types import MachiningStrategy
 from ...classification.types import ClassificationResult, DecisionTrace
 from ...geometry.types import HolePattern, ManufacturingFeatures, ProfileMatch, UnfoldResult
 from ...pmi.types import PMIRecord
-from . import ProbeContext
+from . import ProbeContext, probe_result
 
 
 class CamProbe:
@@ -26,23 +26,16 @@ class CamProbe:
 
     def run(self, inp: ProbeContext) -> MachiningStrategy:
         prior = inp.prior or {}
-        holes = prior.get("holes")
-        if not isinstance(holes, HolePattern):
-            holes = HolePattern()
-        _unfold = prior.get("unfold")
-        unfold = _unfold if isinstance(_unfold, UnfoldResult) else None
-        _profile = prior.get("profile")
-        profile = _profile if isinstance(_profile, ProfileMatch) else None
-        pmi = prior.get("pmi")
-        if pmi is not None and not isinstance(pmi, PMIRecord):
-            pmi = None
-        classification = prior.get("classification")
-        if not isinstance(classification, ClassificationResult):
-            classification = ClassificationResult(
-                label="uncertain",
-                confidence=0.0,
-                trace=DecisionTrace(),
-            )
+        holes = probe_result(prior, "holes", HolePattern, HolePattern())
+        unfold = probe_result(prior, "unfold", UnfoldResult)
+        profile = probe_result(prior, "profile", ProfileMatch)
+        pmi = probe_result(prior, "pmi", PMIRecord)
+        classification = probe_result(
+            prior,
+            "classification",
+            ClassificationResult,
+            ClassificationResult(label="uncertain", confidence=0.0, trace=DecisionTrace()),
+        )
         features = inp.features if inp.features is not None else ManufacturingFeatures()
         return cam_recommend(
             features=features,

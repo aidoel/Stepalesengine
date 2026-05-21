@@ -5,12 +5,16 @@ are reported in :class:`UnfoldResult` (status, reason).
 
 Algorithm
 ---------
-1. Detect thickness ``t`` by pairing antiparallel planar faces.
-2. Classify every face as planar / cylindrical / other; reject if "other"
+1. Classify every face as planar / cylindrical / other; reject if "other"
    surfaces exceed 5% of the total area.
-3. Pick the largest planar face as the unfold base.
-4. Build a bend graph: planar faces are nodes; cylindrical patches whose
-   straight edges are shared with two planar faces are bends (edges).
+2. Build the sheet model (:func:`_identify_sheet`): pair each planar face
+   with its *nearest* antiparallel partner, cluster the gaps, and take the
+   area-heaviest cluster as the thickness ``t``. The faces in that cluster
+   are the *flanges* (sheet faces); everything else is rim.
+3. Pick the largest flange as the unfold base.
+4. Build a bend graph whose nodes are flanges: a cylindrical patch is a bend
+   only when it joins two flanges and its axis lies in their planes (a
+   rounded corner, whose axis runs along the flange normal, is not a bend).
 5. BFS from the base. On each bend, rotate the descendant face about the
    bend axis by ``-theta`` (flattening it). Compute the bend allowance
    ``BA = theta * (R + K * t)`` and add it to the cumulative flat area.
@@ -18,6 +22,7 @@ Algorithm
    - cyclic graph (closed box / tube),
    - branching factor > 2 (star-shaped flange tree),
    - thickness CV above threshold,
+   - material thicker than sheet-metal range (plate / machining work),
    - non-developable "other" faces,
    - disconnected shells.
 
@@ -35,13 +40,15 @@ from typing import Any
 
 from ..config.classification_variables import (
     UNFOLD_ANTIPARALLEL_DOT_MAX,
+    UNFOLD_BEND_AXIS_PERP_DOT_MAX,
     UNFOLD_CLOSED_BODY_CYL_AREA_RATIO,
     UNFOLD_COPLANAR_COS_LIMIT,
+    UNFOLD_FLANGE_GAP_REL_TOL,
     UNFOLD_HEM_ANGLE_MIN_DEG,
     UNFOLD_K_FACTOR,
     UNFOLD_MAX_OTHER_FACES_RATIO,
+    UNFOLD_MAX_SHEET_THICKNESS_MM,
     UNFOLD_MIN_BEND_ANGLE_DEG,
-    UNFOLD_SHEET_PAIR_THICKNESS_MULTIPLIER,
     UNFOLD_THICKNESS_CV_LIMIT,
 )
 from .types import UnfoldResult, UnfoldStatus
@@ -264,117 +271,201 @@ def _classify_faces(solid):
 # ---------------------------------------------------------------------------
 
 
-def _measure_thickness(planars: list[_PlanarFace]) -> tuple[float, float, int]:
-    """Pair near-antiparallel planar faces and return (mean_t, cv_t, n_pairs).
+@dataclass
+class _SheetModel:
+    """The sheet-metal interpretation of a solid's planar faces.
 
-    Strategy
-    --------
-    For each pair of planar faces with antiparallel-ish normals (``dot <
-    UNFOLD_ANTIPARALLEL_DOT_MAX``), record:
-      1. distance from face A's centroid projected along B's normal,
-      2. distance from face B's centroid projected along A's normal,
-      3. distance from each face's bbox corners projected onto the other face's
-         plane (this is what catches a wedge: corner-to-plane distances vary).
+    A *flange* (sheet face) is a planar face that sits directly opposite an
+    antiparallel partner face one material thickness away. Thin rim faces that
+    bound the sheet's edges are deliberately excluded: bends join flanges,
+    never rim faces, and a rounded corner between two rim faces must not be
+    mistaken for a bend.
 
-    The CV is taken across ALL probe distances, so a small taper that leaves
-    centroid-to-plane probes unchanged still shows up.
+    Attributes
+    ----------
+    thickness, thickness_cv
+        Material thickness and its coefficient of variation (taper signal).
+    flange_indices
+        Indices (into the planar-face list) of the faces identified as flanges.
+    n_pairs
+        Number of antiparallel flange pairs found.
+    """
+
+    thickness: float
+    thickness_cv: float
+    flange_indices: set[int]
+    n_pairs: int
+
+
+def _pair_gap(a: _PlanarFace, b: _PlanarFace) -> tuple[float, float]:
+    """Return ``(gap, lateral)`` for an antiparallel planar pair.
+
+    ``gap`` is the perpendicular distance between the two planes; ``lateral``
+    is the in-plane offset between the two centroids. A genuine flange pair
+    sits face-to-face, so ``lateral`` is small relative to the face size; two
+    unrelated antiparallel faces are laterally far apart.
+    """
+
+    off = (
+        b.centroid[0] - a.centroid[0],
+        b.centroid[1] - a.centroid[1],
+        b.centroid[2] - a.centroid[2],
+    )
+    proj = _dot(off, a.normal)
+    perp = (
+        off[0] - proj * a.normal[0],
+        off[1] - proj * a.normal[1],
+        off[2] - proj * a.normal[2],
+    )
+    lateral = math.sqrt(perp[0] ** 2 + perp[1] ** 2 + perp[2] ** 2)
+    return abs(proj), lateral
+
+
+def _identify_sheet(planars: list[_PlanarFace]) -> _SheetModel:
+    """Identify the flange faces and material thickness of a sheet-metal solid.
+
+    A flange's back side is the antiparallel face *closest* to it: material
+    fills the gap, so nothing parallel can sit nearer. Picking each face's
+    nearest antiparallel partner is what keeps two parallel flanges straddling
+    an air gap (a Z-bend, a U-channel) from being read as one thick pair.
+
+    The per-face gaps are then clustered and the cluster carrying the most
+    face area wins as the thickness. Area weighting is what stops a tiny
+    chamfer sliver - whose own gap is tiny - from setting the thickness the
+    way an unweighted minimum did.
     """
 
     if len(planars) < 2:
-        return 0.0, 0.0, 0
+        return _SheetModel(0.0, 0.0, set(), 0)
 
-    candidates: list[tuple[int, int, float, list[float]]] = []
+    # Each face's nearest antiparallel, overlapping partner.
+    partner_gap: dict[int, float] = {}
+    partner_of: dict[int, int] = {}
     for i in range(len(planars)):
-        for j in range(i + 1, len(planars)):
-            a, b = planars[i], planars[j]
-            d = _dot(a.normal, b.normal)
-            if d > UNFOLD_ANTIPARALLEL_DOT_MAX:
+        a = planars[i]
+        for j in range(len(planars)):
+            if i == j:
                 continue
-            probes = _probe_thickness(a, b)
-            if not probes:
+            b = planars[j]
+            if _dot(a.normal, b.normal) > UNFOLD_ANTIPARALLEL_DOT_MAX:
                 continue
-            avg = _mean(probes)
-            if avg <= 1e-6:
+            gap, lateral = _pair_gap(a, b)
+            if gap <= 1e-6:
                 continue
-            candidates.append((i, j, avg, probes))
+            # Overlap test: a back-side face sits directly behind its front
+            # (lateral offset ~ 0); reject pairs that are laterally far apart.
+            if lateral > 0.5 * math.sqrt(min(a.area, b.area)) + gap:
+                continue
+            if i not in partner_gap or gap < partner_gap[i]:
+                partner_gap[i] = gap
+                partner_of[i] = j
 
-    if not candidates:
-        return 0.0, 0.0, 0
+    if not partner_gap:
+        return _SheetModel(0.0, 0.0, set(), 0)
 
-    candidates.sort(key=lambda x: x[2])
-    used = set()
-    selected: list[tuple[float, list[float]]] = []
-    for i, j, avg, probes in candidates:
-        if i in used or j in used:
+    # Cluster the per-face gaps; the area-heaviest cluster is the thickness.
+    ordered = sorted(partner_gap.items(), key=lambda kv: kv[1])
+    clusters: list[list[int]] = []
+    cluster_min: list[float] = []
+    for face, gap in ordered:
+        if clusters and gap - cluster_min[-1] <= max(
+            UNFOLD_FLANGE_GAP_REL_TOL * cluster_min[-1], 0.15
+        ):
+            clusters[-1].append(face)
+        else:
+            clusters.append([face])
+            cluster_min.append(gap)
+
+    def _cluster_area(faces: list[int]) -> float:
+        return sum(planars[f].area for f in faces)
+
+    best = max(clusters, key=_cluster_area)
+    flange_indices: set[int] = set(best)
+    for f in best:
+        flange_indices.add(partner_of[f])
+
+    weight = sum(planars[f].area for f in best)
+    thickness = (
+        sum(planars[f].area * partner_gap[f] for f in best) / weight
+        if weight > 0
+        else partner_gap[best[0]]
+    )
+
+    all_probes: list[float] = []
+    counted: set[tuple[int, int]] = set()
+    for f in best:
+        j = partner_of[f]
+        key = (min(f, j), max(f, j))
+        if key in counted:
             continue
-        used.add(i)
-        used.add(j)
-        selected.append((avg, probes))
+        counted.add(key)
+        all_probes.extend(_probe_thickness(planars[f], planars[j]))
 
-    if not selected:
-        return 0.0, 0.0, 0
+    return _SheetModel(
+        thickness=thickness,
+        thickness_cv=_cv(all_probes),
+        flange_indices=flange_indices,
+        n_pairs=len(counted),
+    )
 
-    min_t = min(s[0] for s in selected)
-    # Keep pairs whose average is within
-    # UNFOLD_SHEET_PAIR_THICKNESS_MULTIPLIER * min_t (sheet-like pairs).
-    sheet_probes: list[float] = []
-    for avg, probes in selected:
-        if avg <= UNFOLD_SHEET_PAIR_THICKNESS_MULTIPLIER * min_t:
-            sheet_probes.extend(probes)
-    if not sheet_probes:
-        sheet_probes = [p for _, probes in selected for p in probes]
-    mean_t = _mean(sheet_probes)
-    cv_t = _cv(sheet_probes)
-    return mean_t, cv_t, len(sheet_probes) // 4
+
+def _face_vertices(face) -> list[tuple[float, float, float]]:
+    """Return the 3D positions of a face's boundary vertices.
+
+    Boundary vertices lie exactly on the face, so projecting them onto an
+    opposite face's plane gives true material-gap samples - unlike an
+    axis-aligned bounding box, which balloons for a face that is not
+    axis-aligned and yields spurious thickness variation.
+    """
+
+    from OCP.BRep import BRep_Tool
+    from OCP.TopAbs import TopAbs_VERTEX
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS
+
+    pts: list[tuple[float, float, float]] = []
+    seen: set[tuple[float, float, float]] = set()
+    exp = TopExp_Explorer(face, TopAbs_VERTEX)
+    while exp.More():
+        try:
+            p = BRep_Tool.Pnt_s(TopoDS.Vertex_s(exp.Current()))
+            key = (round(p.X(), 6), round(p.Y(), 6), round(p.Z(), 6))
+            if key not in seen:
+                seen.add(key)
+                pts.append((p.X(), p.Y(), p.Z()))
+        except Exception as exc:
+            logger.debug("_face_vertices vertex skipped: %s", exc)
+        exp.Next()
+    return pts
 
 
 def _probe_thickness(a: _PlanarFace, b: _PlanarFace) -> list[float]:
     """Sample distances between face A and face B's plane and vice-versa.
 
-    Probes from each face's bounding-box corners (in 3D) projected onto the
-    other face's plane. Returns a list of distances; for a parallel pair they
-    are all equal, for a tapered pair they vary.
+    Probes from each face's boundary vertices projected onto the other face's
+    plane. Returns a list of distances; for a parallel pair they are all
+    equal, for a tapered pair they vary.
     """
 
     try:
-        from OCP.Bnd import Bnd_Box
-        from OCP.BRepBndLib import BRepBndLib
-
-        def corners(f) -> list[tuple[float, float, float]]:
-            bb = Bnd_Box()
-            BRepBndLib.Add_s(f, bb)
-            xmn, ymn, zmn, xmx, ymx, zmx = bb.Get()
-            return [
-                (xmn, ymn, zmn),
-                (xmx, ymn, zmn),
-                (xmn, ymx, zmn),
-                (xmx, ymx, zmn),
-                (xmn, ymn, zmx),
-                (xmx, ymn, zmx),
-                (xmn, ymx, zmx),
-                (xmx, ymx, zmx),
-            ]
-
-        cs_a = corners(a.face)
-        cs_b = corners(b.face)
+        cs_a = _face_vertices(a.face) or [a.centroid]
+        cs_b = _face_vertices(b.face) or [b.centroid]
     except Exception:
         cs_a = [a.centroid]
         cs_b = [b.centroid]
 
     probes: list[float] = []
-    # A's corners projected onto B's plane (distance to plane = dot((P - B.cm), B.normal))
+    # A's vertices projected onto B's plane (distance = dot(P - B.cm, B.normal)).
     for c in cs_a + [a.centroid]:
         dx = c[0] - b.centroid[0]
         dy = c[1] - b.centroid[1]
         dz = c[2] - b.centroid[2]
-        d = abs(dx * b.normal[0] + dy * b.normal[1] + dz * b.normal[2])
-        probes.append(d)
+        probes.append(abs(dx * b.normal[0] + dy * b.normal[1] + dz * b.normal[2]))
     for c in cs_b + [b.centroid]:
         dx = c[0] - a.centroid[0]
         dy = c[1] - a.centroid[1]
         dz = c[2] - a.centroid[2]
-        d = abs(dx * a.normal[0] + dy * a.normal[1] + dz * a.normal[2])
-        probes.append(d)
+        probes.append(abs(dx * a.normal[0] + dy * a.normal[1] + dz * a.normal[2]))
     return probes
 
 
@@ -441,8 +532,14 @@ def _build_bends(
     cylinders: list[_CylPatch],
     solid,
     thickness: float,
+    flange_indices: set[int] | None = None,
 ) -> tuple[list[Bend], list[list[int]], list[list[int]]]:
     """Construct the bend graph.
+
+    A bend joins two *flange* faces (see :func:`_identify_sheet`); when
+    ``flange_indices`` is given, only those faces are eligible as the flats a
+    bend connects. This is what stops a rounded outer corner - whose cylinder
+    is adjacent only to thin rim faces - from being mistaken for a bend.
 
     Returns
     -------
@@ -516,7 +613,16 @@ def _build_bends(
         # normals are *neither coplanar nor antiparallel* with each other.
         # Two faces with antiparallel normals are the OUTER and INNER faces
         # of the same flat segment - they don't define a bend angle.
-        sorted_n = sorted(outer_neighbors, key=lambda i: -planars[i].area)
+        #
+        # Only flange faces are eligible: a bend connects two sheet faces, so
+        # restricting the candidates here is what rejects rounded corners
+        # (whose cylinder touches only rim faces).
+        eligible = outer_neighbors
+        if flange_indices is not None:
+            eligible = [i for i in outer_neighbors if i in flange_indices]
+        if len(eligible) < 2:
+            continue
+        sorted_n = sorted(eligible, key=lambda i: -planars[i].area)
         a = None
         b = None
         for i in range(len(sorted_n)):
@@ -527,10 +633,20 @@ def _build_bends(
                 n_b = planars[cand_b].normal
                 dot = _dot(n_a, n_b)
                 # exclude coplanar (dot ~ +1) AND antiparallel (dot ~ -1)
-                if abs(dot) < UNFOLD_COPLANAR_COS_LIMIT:
-                    a = cand_a
-                    b = cand_b
-                    break
+                if abs(dot) >= UNFOLD_COPLANAR_COS_LIMIT:
+                    continue
+                # A real bend's hinge axis lies in the plane of both flanges,
+                # so it is perpendicular to both normals. Reject candidates
+                # whose cylinder axis runs along a flange normal (a corner
+                # round between two flanges, not a bend).
+                if (
+                    abs(_dot(outer.axis_dir, n_a)) > UNFOLD_BEND_AXIS_PERP_DOT_MAX
+                    or abs(_dot(outer.axis_dir, n_b)) > UNFOLD_BEND_AXIS_PERP_DOT_MAX
+                ):
+                    continue
+                a = cand_a
+                b = cand_b
+                break
             if a is not None:
                 break
         if a is None or b is None:
@@ -736,14 +852,16 @@ def _select_base_face(
     planars: list[_PlanarFace],
     bends: list[Bend],
     *,
+    flange_indices: set[int] | None = None,
     area_tie_ratio: float = 0.005,
 ) -> int:
     """Pick the planar face to start the BFS unfold from.
 
-    Primary key: largest area. Among faces tied within ``area_tie_ratio`` of
-    the maximum (default 0.5%), prefer the face that participates in the
-    greatest number of detected bends (as either P_in or P_out). Final
-    deterministic tie-breaker: smallest centroid tuple (rounded), then index.
+    Only flange faces are eligible (the BFS walks the flange graph). Primary
+    key: largest area. Among faces tied within ``area_tie_ratio`` of the
+    maximum (default 0.5%), prefer the face that participates in the greatest
+    number of detected bends (as either P_in or P_out). Final deterministic
+    tie-breaker: smallest centroid tuple (rounded), then index.
     """
 
     if not planars:
@@ -756,11 +874,15 @@ def _select_base_face(
         if 0 <= b.p_out_index < len(planars):
             bend_count[b.p_out_index] += 1
 
-    max_area = max(p.area for p in planars)
+    eligible = [i for i in range(len(planars)) if flange_indices is None or i in flange_indices]
+    if not eligible:
+        eligible = list(range(len(planars)))
+
+    max_area = max(planars[i].area for i in eligible)
     if max_area <= 0.0:
-        return 0
+        return eligible[0]
     threshold = max_area * (1.0 - area_tie_ratio)
-    tied = [i for i, p in enumerate(planars) if p.area >= threshold]
+    tied = [i for i in eligible if planars[i].area >= threshold]
 
     if len(tied) == 1:
         return tied[0]
@@ -807,16 +929,20 @@ class BendDetector:
         except Exception as exc:
             logger.debug("BendDetector.detect failed at classify: %s", exc)
             return []
-        t_mean, _t_cv, _ = _measure_thickness(planars)
+        model = _identify_sheet(planars)
         try:
-            bends, _, _ = _build_bends(planars, cylinders, solid, t_mean)
+            bends, _, _ = _build_bends(
+                planars, cylinders, solid, model.thickness, model.flange_indices
+            )
         except Exception as exc:
             logger.debug("BendDetector.detect failed at build: %s", exc)
             return []
-        # Synthetic bends: two planar faces sharing a straight edge at an angle
+        # Synthetic bends: two flange faces sharing a straight edge at an angle
         # other than 0 / 180 deg, but with no cylindrical patch between them.
         try:
-            bends += self._find_synthetic_bends(planars, bends, solid)
+            bends += self._find_synthetic_bends(
+                planars, bends, solid, model.flange_indices
+            )
         except Exception as exc:
             logger.debug("BendDetector synthetic step failed: %s", exc)
         return bends
@@ -826,8 +952,13 @@ class BendDetector:
         planars: list[_PlanarFace],
         existing: list[Bend],
         solid,
+        flange_indices: set[int] | None = None,
     ) -> list[Bend]:
-        """Detect sharp planar-planar bends with no intermediate cylinder."""
+        """Detect sharp flange-flange bends with no intermediate cylinder.
+
+        Restricted to flange faces: two thin rim faces meeting at 90 deg (the
+        sharp edge of a plate) are not a bend.
+        """
 
         if len(planars) < 2:
             return []
@@ -872,6 +1003,10 @@ class BendDetector:
                 continue
             a, b = planar_ids[0], planar_ids[1]
             if a == b:
+                continue
+            if flange_indices is not None and (
+                a not in flange_indices or b not in flange_indices
+            ):
                 continue
             pair_key = (min(a, b), max(a, b))
             if pair_key in seen_pairs:
@@ -989,13 +1124,24 @@ class UnfoldProbe:
                 flags={"cyl_area_ratio": cyl_area / total_area, "closed_body": True},
             )
 
-        # Thickness
-        t_mean, t_cv, n_pairs = _measure_thickness(planars)
+        # Sheet model: thickness + the flange faces a bend may connect.
+        sheet = _identify_sheet(planars)
+        t_mean, t_cv, n_pairs = sheet.thickness, sheet.thickness_cv, sheet.n_pairs
         if t_mean <= 1e-6 or n_pairs == 0:
             return UnfoldResult(
                 status=UnfoldStatus.FAILURE,
                 reason="no_thickness",
                 flags={"n_pairs": n_pairs},
+            )
+
+        # Too thick to be sheet metal: a chunky machined block has two large
+        # parallel faces and would otherwise sail through the no-bends path.
+        if t_mean > UNFOLD_MAX_SHEET_THICKNESS_MM:
+            return UnfoldResult(
+                status=UnfoldStatus.FAILURE,
+                reason="too_thick",
+                thickness_mean=t_mean,
+                flags={"thickness_mean": t_mean},
             )
 
         thickness_partial = t_cv > self.thickness_cv_limit
@@ -1019,7 +1165,7 @@ class UnfoldProbe:
         # L-bracket pitfall where the inner-top and outer-bottom flange faces
         # tie on area and the inner face's neighbours never reach the outer-
         # cylinder bend.
-        base_idx = _select_base_face(planars, bends)
+        base_idx = _select_base_face(planars, bends, flange_indices=sheet.flange_indices)
         self._last_base_face_id = base_idx
 
         # No bends: flat plate
@@ -1242,9 +1388,10 @@ class UnfoldProbe:
             logger.debug("_compute_flat_pattern: bend detect failed: %s", exc)
             bends = []
 
-        # Pick the base using the same selector as ``run`` (largest planar,
+        # Pick the base using the same selector as ``run`` (largest flange,
         # tie-broken by bend participation).
-        base_idx = _select_base_face(planars, bends)
+        sheet = _identify_sheet(planars)
+        base_idx = _select_base_face(planars, bends, flange_indices=sheet.flange_indices)
         base = planars[base_idx]
 
         # 2D frame on base plane.

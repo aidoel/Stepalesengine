@@ -82,6 +82,18 @@ UNFOLD_HEM_ANGLE_MIN_DEG = 170.0
 # Coplanar/antiparallel cosine cut-off when picking the two flats joined by a
 # bend cylinder group.
 UNFOLD_COPLANAR_COS_LIMIT = 0.95
+# A real bend's hinge axis lies in the plane of both flanges it joins, so it is
+# perpendicular to their normals. A rounded corner's cylinder axis is parallel
+# to the flange normal instead. Reject a bend candidate when |axis . flange
+# normal| exceeds this (cos 78 deg ~ 0.20).
+UNFOLD_BEND_AXIS_PERP_DOT_MAX = 0.20
+# A flange (sheet face) pair gap is accepted as the thickness when within this
+# relative tolerance of the dominant (largest-area) antiparallel pair's gap.
+UNFOLD_FLANGE_GAP_REL_TOL = 0.20
+# Material thicker than this (mm) is plate / machining work, not sheet-metal
+# bending. A thick flat block has two large parallel faces and would otherwise
+# pass the no-bends "flat plate" path as a trivial unfold success.
+UNFOLD_MAX_SHEET_THICKNESS_MM = 20.0
 
 # ---------------------------------------------------------------------------
 # Profile matcher

@@ -1,6 +1,6 @@
 # Next steps + architecture state
 
-State as of 2026-05-20. Test suite **494 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
+State as of 2026-05-21. Test suite **503 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
 
 ## Module status
 
@@ -32,9 +32,17 @@ All items from the prior NEXT_STEPS round are implemented and tested:
 
 ## Recently landed
 
+### UnfoldProbe rewritten around a sheet model
+
+The probe failed every real sheet-metal part as `cyclic_graph`: rounded corners (vertical cylinders, axis along the sheet normal) were counted as bends, and thickness was measured by an unweighted minimum that latched onto sub-millimetre slivers. `_identify_sheet` now pairs each planar face with its nearest antiparallel partner, clusters the gaps, and takes the area-heaviest cluster as the thickness and its faces as the *flanges*. Bends are flange-to-flange only, with an axis-perpendicular-to-flange-normal test rejecting corner rounds; thickness probing samples real face vertices, not the AABB. A `too_thick` gate (`UNFOLD_MAX_SHEET_THICKNESS_MM`) keeps machined blocks out of the no-bends "flat plate" path. Verified against the AutoPOL `Sheet_*` reference: bend counts, thickness and flat-pattern extent now match. Covered by new rounded-corner / sheet-model tests in `tests/geometry/test_unfold_probe.py` and the real-part corpus `tests/regression/test_sheet_metal_corpus.py`.
+
 ### Orchestrator now runs through the probe registry
 
 `_process_pair` no longer instantiates probes inline. It builds one `ProbeContext` and drives `_REGISTRY.run_all` in three stages: `STAGE_PRE` (holes, before the cache lookup), `STAGE_CLASSIFY` (profile + unfold, cached, prefilterable via a `skip` dict), `STAGE_POST` (pmi + cam, after classification). `run_all` gained `stage` / `skip` / `prior` parameters; probes register with a stage. The registry is built once at import, so `ProfileShapeMatcher` loads its YAML tables once instead of per part. Adding a feature probe is now a single `reg.register(...)` line. Covered by `tests/pipeline/test_probes.py` (stage/skip/prior) and the existing prefilter suite.
+
+### `has_bends` scorer feature for bent sheet parts
+
+`FeatureVector` gained a `has_bends` feature (unfold did not fail and `n_bends > 0`) - the strongest sheet-metal signal, since machined/freeform parts do not unfold and a flat plate has no bends. New scorer rules reward `plaat` (+1.2), suppress `anders` (-1.2, overriding the hole-density / pocket rewards a bent part trips) and mildly damp `profiel` (-0.3). Long bent parts that previously fell to `anders`/`uncertain` now classify `plaat`. Verified end-to-end in `tests/regression/test_sheet_metal_corpus.py`.
 
 ## Outstanding work (in priority order)
 

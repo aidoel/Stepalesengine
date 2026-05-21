@@ -24,7 +24,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Generic, Protocol, TypeVar, runtime_checkable
+from typing import Generic, Protocol, TypeVar, overload, runtime_checkable
 
 from ...geometry.types import ManufacturingFeatures
 
@@ -36,6 +36,7 @@ STAGE_POST = "post"
 
 I_contra = TypeVar("I_contra", contravariant=True)
 R_co = TypeVar("R_co", covariant=True)
+_T = TypeVar("_T")
 
 
 @runtime_checkable
@@ -147,6 +148,24 @@ def default_registry() -> ProbeRegistry:
     return reg
 
 
+@overload
+def probe_result(results: dict[str, object], name: str, typ: type[_T], default: _T) -> _T: ...
+@overload
+def probe_result(
+    results: dict[str, object], name: str, typ: type[_T], default: None = ...
+) -> _T | None: ...
+def probe_result(
+    results: dict[str, object], name: str, typ: type[_T], default: _T | None = None
+) -> _T | None:
+    """Return ``results[name]`` when it is a ``typ`` instance, else ``default``.
+
+    ``run_all`` hands back an untyped ``{name: object}`` dict; every consumer
+    needs this narrow-or-default step before using a probe's result.
+    """
+    value = results.get(name)
+    return value if isinstance(value, typ) else default
+
+
 __all__ = [
     "Probe",
     "ProbeContext",
@@ -155,4 +174,5 @@ __all__ = [
     "STAGE_POST",
     "STAGE_PRE",
     "default_registry",
+    "probe_result",
 ]

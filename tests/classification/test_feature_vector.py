@@ -18,12 +18,13 @@ from manufacturing_pipeline.geometry.types import (
 )
 
 
-def test_default_feature_vector_as_dict_has_all_twelve_keys():
+def test_default_feature_vector_as_dict_has_all_keys():
     fv = FeatureVector()
     d = fv.as_dict()
     expected = {
         "top1_face_pct",
         "unfoldable",
+        "has_bends",
         "aspect_ratio",
         "cross_section_constant",
         "name_profile_hit",
@@ -36,13 +37,14 @@ def test_default_feature_vector_as_dict_has_all_twelve_keys():
         "pocket_complexity",
     }
     assert set(d.keys()) == expected
-    assert len(d) == 12
+    assert len(d) == 13
 
 
 def test_round_trip_fv_to_dict_and_back_preserves_every_field():
     fv = FeatureVector(
         top1_face_pct=0.75,
         unfoldable=True,
+        has_bends=True,
         aspect_ratio=4.2,
         cross_section_constant=True,
         name_profile_hit=1.0,

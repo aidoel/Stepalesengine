@@ -24,6 +24,7 @@ class FeatureVector:
 
     top1_face_pct: float = 0.0
     unfoldable: bool = False
+    has_bends: bool = False
     aspect_ratio: float = 0.0
     cross_section_constant: bool = False
     name_profile_hit: float = 0.0
@@ -51,6 +52,14 @@ class FeatureVector:
         top1 = features.face_area_top[0] if features.face_area_top else 0.0
         bspline_pct = features.surface_pct.get("bspline", 0.0)
         unfoldable = unfold is not None and unfold.status == UnfoldStatus.SUCCESS
+        # A part that unfolds *with bends* is unambiguously bent sheet metal:
+        # machined and freeform parts do not unfold, and a flat plate has no
+        # bends. PARTIAL still counts - the bends were detected.
+        has_bends = (
+            unfold is not None
+            and unfold.status != UnfoldStatus.FAILURE
+            and unfold.n_bends > 0
+        )
         profile_designation_hit = (
             1.0 if (profile_match is not None and profile_match.designation) else 0.0
         )
@@ -66,6 +75,7 @@ class FeatureVector:
         return cls(
             top1_face_pct=top1,
             unfoldable=bool(unfoldable),
+            has_bends=bool(has_bends),
             aspect_ratio=features.aspect_ratio,
             cross_section_constant=features.cross_section_constant,
             name_profile_hit=0.0,

@@ -28,6 +28,8 @@ from manufacturing_pipeline.geometry.unfold_probe import (
     Bend,
     BendDetector,
     UnfoldProbe,
+    _classify_faces,
+    _identify_sheet,
     _PlanarFace,
     _select_base_face,
 )
@@ -182,6 +184,54 @@ def _build_closed_tube(r_outer: float = 10.0, r_inner: float = 8.0, height: floa
         gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), r_inner, height
     ).Solid()
     return _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
+
+
+def _build_rounded_corner_plate(
+    length: float = 80.0,
+    width: float = 50.0,
+    t: float = 2.0,
+    corner_r: float = 6.0,
+    holes: tuple[tuple[float, float, float], ...] = (),
+):
+    """A flat plate whose four vertical corner edges are rounded.
+
+    This is the geometry that exposed the corner-fillet bug: each rounded
+    corner is a vertical quarter-cylinder whose axis runs along the sheet
+    normal. The probe must not mistake those cylinders for bends.
+    """
+
+    from OCP.BRepAdaptor import BRepAdaptor_Curve
+    from OCP.BRepFilletAPI import BRepFilletAPI_MakeFillet
+    from OCP.GeomAbs import GeomAbs_Line
+    from OCP.TopAbs import TopAbs_EDGE
+
+    box = BRepPrimAPI_MakeBox(length, width, t).Solid()
+    fil = BRepFilletAPI_MakeFillet(box)
+    exp = TopExp_Explorer(box, TopAbs_EDGE)
+    while exp.More():
+        edge = TopoDS.Edge_s(exp.Current())
+        try:
+            curve = BRepAdaptor_Curve(edge)
+            if curve.GetType() == GeomAbs_Line:
+                p0 = curve.Value(curve.FirstParameter())
+                p1 = curve.Value(curve.LastParameter())
+                # A vertical edge varies only in Z.
+                if (
+                    abs(p1.Z() - p0.Z()) > 1e-6
+                    and abs(p1.X() - p0.X()) < 1e-6
+                    and abs(p1.Y() - p0.Y()) < 1e-6
+                ):
+                    fil.Add(corner_r, edge)
+        except Exception:
+            pass
+        exp.Next()
+    fil.Build()
+    current = _first_solid(fil.Shape())
+    for cx, cy, dia in holes:
+        axis = gp_Ax2(gp_Pnt(cx, cy, -1.0), gp_Dir(0, 0, 1))
+        cyl = BRepPrimAPI_MakeCylinder(axis, dia / 2.0, t + 2.0).Solid()
+        current = _first_solid(BRepAlgoAPI_Cut(current, cyl).Shape())
+    return current
 
 
 # ---------------------------------------------------------------------------
@@ -680,3 +730,77 @@ def test_u_channel_has_no_joggle():
     res = UnfoldProbe().run(solid)
     assert res.flags.get("has_joggle") is not True
     assert res.status == UnfoldStatus.SUCCESS
+
+
+# ---------------------------------------------------------------------------
+# Rounded corners, sheet identification, thickness gate
+# ---------------------------------------------------------------------------
+
+
+def test_rounded_corner_plate_unfolds_with_no_bends():
+    """Regression: a flat plate with rounded corners unfolds as a flat plate.
+
+    Each rounded corner is a vertical cylinder whose axis is parallel to the
+    sheet normal. Before the sheet-model rewrite these were detected as bends,
+    formed a loop, and the plate failed as ``cyclic_graph``.
+    """
+
+    solid = _build_rounded_corner_plate(length=80.0, width=50.0, t=2.0, corner_r=6.0)
+    res = UnfoldProbe().run(solid)
+    assert res.status == UnfoldStatus.SUCCESS, res.reason
+    assert res.n_bends == 0
+    assert res.thickness_mean == pytest.approx(2.0, abs=1e-6)
+
+
+def test_rounded_corner_plate_with_holes_unfolds():
+    """Rounded corners plus through-holes: still a no-bend flat plate."""
+
+    solid = _build_rounded_corner_plate(
+        length=80.0,
+        width=50.0,
+        t=2.0,
+        corner_r=6.0,
+        holes=((20.0, 25.0, 8.0), (60.0, 25.0, 8.0)),
+    )
+    res = UnfoldProbe().run(solid)
+    assert res.status == UnfoldStatus.SUCCESS, res.reason
+    assert res.n_bends == 0
+    assert res.thickness_mean == pytest.approx(2.0, abs=1e-6)
+
+
+def test_thick_block_is_not_sheet_metal():
+    """A chunky machined block is too thick to be sheet metal."""
+
+    block = BRepPrimAPI_MakeBox(120.0, 90.0, 35.0).Solid()
+    res = UnfoldProbe().run(block)
+    assert res.status == UnfoldStatus.FAILURE
+    assert res.reason == "too_thick"
+
+
+def test_identify_sheet_thickness_on_u_channel():
+    """The two facing flanges of a U-channel straddle an air gap; the sheet
+    model must report the material thickness, not the channel width."""
+
+    solid = _build_u_channel(t=2.0, R=3.0, base_length=60.0, leg_length=20.0, width=40.0)
+    planars, _cyls, _others, _ta, _pa, _oa = _classify_faces(solid)
+    model = _identify_sheet(planars)
+    assert model.thickness == pytest.approx(2.0, abs=0.2)
+
+
+def test_identify_sheet_ignores_thin_sliver():
+    """A flat plate with a tiny chamfer must still report the real thickness:
+    the chamfer's faces are low-area and must not set the thickness."""
+
+    from OCP.BRepFilletAPI import BRepFilletAPI_MakeChamfer
+    from OCP.TopAbs import TopAbs_EDGE
+
+    box = BRepPrimAPI_MakeBox(80.0, 50.0, 3.0).Solid()
+    cham = BRepFilletAPI_MakeChamfer(box)
+    exp = TopExp_Explorer(box, TopAbs_EDGE)
+    if exp.More():
+        cham.Add(0.3, TopoDS.Edge_s(exp.Current()))
+    cham.Build()
+    solid = _first_solid(cham.Shape())
+    planars, _cyls, _others, _ta, _pa, _oa = _classify_faces(solid)
+    model = _identify_sheet(planars)
+    assert model.thickness == pytest.approx(3.0, abs=0.3)

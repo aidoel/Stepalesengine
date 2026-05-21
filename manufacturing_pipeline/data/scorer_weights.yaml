@@ -19,6 +19,12 @@ classes:
     - feature: unfoldable
       transform: bool
       weight: 1.2
+    # A successful unfold with bends is the strongest sheet-metal signal:
+    # it overrides the hole-density / pocket rewards that a bent part with
+    # many holes would otherwise leak into 'anders'.
+    - feature: has_bends
+      transform: bool
+      weight: 1.2
     - feature: aspect_ratio
       transform: neg_clamp10
       weight: 0.3
@@ -45,6 +51,12 @@ classes:
     - feature: unfoldable
       transform: bool
       weight: -0.8
+    # A bent sheet part is not a (constant-section) profile. Kept mild so a
+    # genuine angle/channel profile is still decided by cross_section_constant
+    # and profile_match_designation.
+    - feature: has_bends
+      transform: bool
+      weight: -0.3
 
   anders:
     - feature: name_din_hit
@@ -71,3 +83,8 @@ classes:
     - feature: unfoldable
       transform: bool
       weight: -0.3
+    # Machined / freeform parts do not unfold with bends; a part that does is
+    # sheet metal, so suppress the hole-density / pocket rewards above.
+    - feature: has_bends
+      transform: bool
+      weight: -1.2

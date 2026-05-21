@@ -59,6 +59,7 @@ from .probes import (
     ProbeContext,
     ProbeRegistry,
     default_registry,
+    probe_result,
 )
 
 logger = logging.getLogger(__name__)
@@ -250,8 +251,7 @@ _PREFILTER_UNFOLD_RESULT = UnfoldResult(
 
 # The probe registry is the single wiring point for per-part probes. Built
 # once at import: each probe holds its own (sometimes table-loading) state, so
-# instantiating it per part - as the old inline path did for
-# ProfileShapeMatcher - is pure waste on large assemblies.
+# instantiating it per part would reload those tables on every solid.
 _REGISTRY: ProbeRegistry = default_registry()
 
 
@@ -429,8 +429,7 @@ def _process_pair(
     # PRE stage - the hole probe. Cheap (~2 ms/part) and its hole count feeds
     # the cache signature, so it must run on every solid before the lookup.
     probe_results = _REGISTRY.run_all(ctx, stage=STAGE_PRE)
-    _holes = probe_results.get("holes")
-    holes = _holes if isinstance(_holes, HolePattern) else HolePattern()
+    holes = probe_result(probe_results, "holes", HolePattern, HolePattern())
     probe_results["holes"] = holes
     # The HoleAnalyzer fills hole_count/hole_diameters via enrich() later but
     # we also stash them on features now so the signature is meaningful for
@@ -453,10 +452,8 @@ def _process_pair(
         probe_results = _REGISTRY.run_all(
             ctx, stage=STAGE_CLASSIFY, skip=skip, prior=probe_results
         )
-        _profile = probe_results.get("profile")
-        profile_match = _profile if isinstance(_profile, ProfileMatch) else None
-        _unfold = probe_results.get("unfold")
-        unfold = _unfold if isinstance(_unfold, UnfoldResult) else None
+        profile_match = probe_result(probe_results, "profile", ProfileMatch)
+        unfold = probe_result(probe_results, "unfold", UnfoldResult)
         classification = None  # filled in below
 
     try:
@@ -509,10 +506,8 @@ def _process_pair(
     probe_results = _REGISTRY.run_all(
         ctx, stage=STAGE_POST, skip=post_skip, prior=probe_results
     )
-    _pmi = probe_results.get("pmi")
-    pmi_record = _pmi if isinstance(_pmi, PMIRecord) else None
-    _strategy = probe_results.get("cam")
-    strategy = _strategy if isinstance(_strategy, MachiningStrategy) else None
+    pmi_record = probe_result(probe_results, "pmi", PMIRecord)
+    strategy = probe_result(probe_results, "cam", MachiningStrategy)
 
     dxf_path = None
     pdf_path = None
