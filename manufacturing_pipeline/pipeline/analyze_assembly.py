@@ -363,41 +363,39 @@ def _prefilter_skips(features: ManufacturingFeatures) -> dict[str, object]:
     return skip
 
 
-def _process_pair(
+@dataclass
+class _PartAnalysis:
+    """Outputs of the geometry/probe/classify phase, consumed by the
+    output-writing phase. ``_process_pair`` is the only producer/consumer."""
+
+    part: StepPart
+    solid: object
+    features: ManufacturingFeatures
+    holes: HolePattern
+    profile_match: ProfileMatch | None
+    unfold: UnfoldResult | None
+    classification: ClassificationResult
+    pmi_record: PMIRecord | None
+    strategy: MachiningStrategy | None
+    quantity: int
+
+
+def _analyse_part(
     match: MatchResult,
     options: AnalyzeOptions,
-    parts_dir: Path | None,
     warnings: list[str],
-    source_path: Path | None = None,
-    scorers: ScorerSpec | None = None,
-) -> tuple[
-    PartManifestEntry,
-    Path | None,
-    Path | None,
-    FlatPattern | None,
-    PartDrawingMeta | None,
-]:
-    """Run the per-part pipeline for a single MatchResult.
+    source_path: Path | None,
+    scorers: ScorerSpec | None,
+) -> _PartAnalysis:
+    """Geometry + probe + classify phase for one matched (non-degenerate) solid.
 
-    Returns the manifest entry, the DXF path, the PDF path, the FlatPattern, and PartDrawingMeta.
-    ``source_path`` feeds the :class:`ProbeContext` so probes (notably PMI)
-    can read the STEP file.
-
-    When :attr:`AnalyzeOptions.prefilter` is True (the default) two
-    optimisations kick in:
-
-    * the expensive ``slice_solid + ProfileShapeMatcher`` and ``UnfoldProbe``
-      runs are skipped on parts the cheap features mark as obviously not
-      profiles or not sheet-metal;
-    * identical solids (per :func:`_solid_signature`) reuse the prior
-      ``(profile_match, unfold, holes, classification)`` tuple instead of
-      recomputing it.
+    Runs feature extraction, then the PRE / CLASSIFY / POST probe stages
+    around the duplicate-solid cache: the PRE stage (hole count) must run
+    before the cache lookup because it feeds the signature, the CLASSIFY
+    stage is cached, and the POST stage runs after classification.
     """
     node = match.node
     solid = match.solid
-
-    if solid is None:
-        return _degenerate_entry(node, warnings), None, None, None, None
 
     part = StepPart(
         product_id=node.product_id,
@@ -408,8 +406,6 @@ def _process_pair(
     )
 
     features = ManufacturingFeatures()
-    dxf_path: Path | None = None
-
     try:
         features = FeatureExtractor().extract(solid)
     except Exception as exc:
@@ -509,7 +505,39 @@ def _process_pair(
     pmi_record = probe_result(probe_results, "pmi", PMIRecord)
     strategy = probe_result(probe_results, "cam", MachiningStrategy)
 
-    dxf_path = None
+    return _PartAnalysis(
+        part=part,
+        solid=solid,
+        features=features,
+        holes=holes,
+        profile_match=profile_match,
+        unfold=unfold,
+        classification=classification,
+        pmi_record=pmi_record,
+        strategy=strategy,
+        quantity=max(node.quantity, 1),
+    )
+
+
+def _write_part_outputs(
+    analysis: _PartAnalysis,
+    options: AnalyzeOptions,
+    parts_dir: Path | None,
+    warnings: list[str],
+) -> tuple[
+    PartManifestEntry,
+    Path | None,
+    Path | None,
+    FlatPattern | None,
+    PartDrawingMeta | None,
+]:
+    """Flat-pattern + DXF/PDF writing phase; assembles the manifest entry."""
+    part = analysis.part
+    features = analysis.features
+    classification = analysis.classification
+    unfold = analysis.unfold
+
+    dxf_path: Path | None = None
     pdf_path = None
     pattern = None
     meta = None
@@ -524,14 +552,14 @@ def _process_pair(
 
     if need_pattern:
         try:
-            raw = UnfoldProbe().compute_flat_pattern(solid)
+            raw = UnfoldProbe().compute_flat_pattern(analysis.solid)
             pattern = _build_flat_pattern(raw, part_name=part.name or part.product_id)
             if pattern is not None:
                 meta = PartDrawingMeta(
                     part_name=part.name or part.product_id,
                     part_number=part.product_id,
                     material=features.material_guess or "S235",
-                    quantity=max(node.quantity, 1),
+                    quantity=analysis.quantity,
                     drawn_by="stepalesengine",
                 )
         except Exception as exc:
@@ -572,15 +600,46 @@ def _process_pair(
         part=part,
         classification=classification,
         features=features,
-        profile_match=profile_match,
+        profile_match=analysis.profile_match,
         unfold=unfold,
-        holes=holes,
-        quantity=max(node.quantity, 1),
+        holes=analysis.holes,
+        quantity=analysis.quantity,
         flat_dxf_path=flat_dxf_rel,
-        pmi=pmi_record if isinstance(pmi_record, PMIRecord) else None,
-        strategy=strategy,
+        pmi=analysis.pmi_record if isinstance(analysis.pmi_record, PMIRecord) else None,
+        strategy=analysis.strategy,
     )
     return entry, dxf_path, pdf_path, pattern, meta
+
+
+def _process_pair(
+    match: MatchResult,
+    options: AnalyzeOptions,
+    parts_dir: Path | None,
+    warnings: list[str],
+    source_path: Path | None = None,
+    scorers: ScorerSpec | None = None,
+) -> tuple[
+    PartManifestEntry,
+    Path | None,
+    Path | None,
+    FlatPattern | None,
+    PartDrawingMeta | None,
+]:
+    """Run the per-part pipeline for a single MatchResult.
+
+    A degenerate match (no solid) yields a placeholder entry. Otherwise the
+    work splits into :func:`_analyse_part` (feature extraction, the staged
+    probe run around the duplicate-solid cache, classification) and
+    :func:`_write_part_outputs` (flat pattern, DXF/PDF, manifest entry).
+
+    When :attr:`AnalyzeOptions.prefilter` is True (the default) the expensive
+    profile/unfold runs are skipped on parts the cheap features rule out, and
+    identical solids (per :func:`_solid_signature`) reuse the prior result.
+    """
+    if match.solid is None:
+        return _degenerate_entry(match.node, warnings), None, None, None, None
+    analysis = _analyse_part(match, options, warnings, source_path, scorers)
+    return _write_part_outputs(analysis, options, parts_dir, warnings)
 
 
 def _finalise_cache_hit(
