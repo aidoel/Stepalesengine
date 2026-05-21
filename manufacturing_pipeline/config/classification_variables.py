@@ -94,6 +94,12 @@ UNFOLD_FLANGE_GAP_REL_TOL = 0.20
 # bending. A thick flat block has two large parallel faces and would otherwise
 # pass the no-bends "flat plate" path as a trivial unfold success.
 UNFOLD_MAX_SHEET_THICKNESS_MM = 20.0
+# A smoothly rolled sheet (a cylinder or pipe section) is a closed body in the
+# cylinder-area sense, yet it is still developable: slit the seam and it
+# flattens to a rectangle. Such a part shows up as one coaxial cylinder group
+# with exactly an inner and an outer wall, each wrapping at least this many
+# degrees. Anything wrapping less is an open arc bend, not a rolled tube.
+UNFOLD_ROLLED_TUBE_MIN_WRAP_DEG = 300.0
 
 # ---------------------------------------------------------------------------
 # Profile matcher

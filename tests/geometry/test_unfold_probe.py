@@ -271,11 +271,38 @@ def test_u_channel_two_bends():
     assert res.n_bends == 2
 
 
-def test_closed_tube_fails_as_cyclic_or_closed():
-    solid = _build_closed_tube()
+def test_thick_walled_tube_fails_as_cyclic_or_closed():
+    """A thick-walled tube (wall outside the sheet-metal range) is solid stock,
+    not a rolled sheet, and must keep failing as a closed body."""
+
+    solid = _build_closed_tube(r_outer=30.0, r_inner=8.0, height=200.0)
     res = UnfoldProbe().run(solid)
     assert res.status == UnfoldStatus.FAILURE
     assert res.reason.startswith("cyclic") or "closed" in (res.reason or "")
+
+
+def test_thin_walled_tube_unfolds_as_rolled_section():
+    """A sheet rolled smoothly into a thin-walled tube is still developable.
+
+    The cylindrical area dwarfs the planar area, so the closed-body heuristic
+    flags it - but a single coaxial inner/outer wall pair one sheet thickness
+    apart is a rolled section: slit the seam and it flattens to a rectangle.
+    The probe reports PARTIAL with seamed_section and rolled_tube flags.
+    """
+
+    solid = _build_closed_tube(r_outer=10.0, r_inner=8.0, height=30.0)
+    res = UnfoldProbe().run(solid)
+    assert res.status == UnfoldStatus.PARTIAL, (
+        f"thin-walled rolled tube should unfold as a seamed section, "
+        f"got {res.status} ({res.reason})"
+    )
+    assert res.flags.get("rolled_tube") is True
+    assert res.flags.get("seamed_section") is True
+    assert "seamed_section" in (res.reason or "")
+    assert math.isclose(res.thickness_mean, 2.0, abs_tol=0.05)
+    # Flat blank: unrolled circumference (2*pi*mean_radius) by the length.
+    expected_area = 2.0 * math.pi * 9.0 * 30.0
+    assert math.isclose(res.flat_area, expected_area, rel_tol=0.02)
 
 
 def test_tapered_part_reports_thickness_variation():
@@ -296,7 +323,7 @@ def test_compute_flat_pattern_on_l_bracket():
 
 
 def test_compute_flat_pattern_returns_empty_on_failure():
-    solid = _build_closed_tube()
+    solid = _build_closed_tube(r_outer=30.0, r_inner=8.0, height=200.0)
     pattern = UnfoldProbe().compute_flat_pattern(solid)
     assert pattern == {}
 
@@ -442,9 +469,9 @@ def test_flat_pattern_plate_with_circular_hole():
 
 
 def test_flat_pattern_closed_tube_returns_empty():
-    """Test 5: closed tube fails the unfold -> empty dict."""
+    """Test 5: a thick-walled closed tube fails the unfold -> empty dict."""
 
-    solid = _build_closed_tube()
+    solid = _build_closed_tube(r_outer=30.0, r_inner=8.0, height=200.0)
     pattern = UnfoldProbe().compute_flat_pattern(solid)
     assert pattern == {}
 
@@ -925,3 +952,25 @@ def test_closed_box_still_fails():
     closed = _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
     res = UnfoldProbe().run(closed)
     assert res.status == UnfoldStatus.FAILURE
+
+
+def test_solid_round_bar_still_fails():
+    """A solid round bar has a single cylindrical wall and no inner bore, so it
+    is not a rolled sheet. The rolled-tube rescue must not flatten solid stock."""
+
+    bar = BRepPrimAPI_MakeCylinder(
+        gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), 12.0, 80.0
+    ).Solid()
+    res = UnfoldProbe().run(bar)
+    assert res.status == UnfoldStatus.FAILURE
+    assert res.flags.get("rolled_tube") is None
+
+
+def test_thick_walled_pipe_still_fails():
+    """A pipe whose wall exceeds the sheet-metal range is plate / machining
+    stock, not a rolled sheet, and must keep failing as a closed body."""
+
+    pipe = _build_closed_tube(r_outer=60.0, r_inner=10.0, height=40.0)
+    res = UnfoldProbe().run(pipe)
+    assert res.status == UnfoldStatus.FAILURE
+    assert res.flags.get("rolled_tube") is None

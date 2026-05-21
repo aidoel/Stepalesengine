@@ -49,6 +49,7 @@ from ..config.classification_variables import (
     UNFOLD_MAX_OTHER_FACES_RATIO,
     UNFOLD_MAX_SHEET_THICKNESS_MM,
     UNFOLD_MIN_BEND_ANGLE_DEG,
+    UNFOLD_ROLLED_TUBE_MIN_WRAP_DEG,
     UNFOLD_THICKNESS_CV_LIMIT,
 )
 from .types import UnfoldResult, UnfoldStatus
@@ -525,6 +526,93 @@ def _group_coaxial_cylinders(cylinders: list[_CylPatch]) -> list[list[_CylPatch]
         if not placed:
             groups.append([c])
     return groups
+
+
+@dataclass
+class _RolledTube:
+    """A smoothly rolled sheet-metal section (a cylinder or pipe).
+
+    Attributes
+    ----------
+    thickness
+        The wall thickness (outer radius minus inner radius).
+    mean_radius
+        The arc midline radius, ``(inner + outer) / 2``.
+    length
+        The cylinder length along the axis (mm).
+    """
+
+    thickness: float
+    mean_radius: float
+    length: float
+
+
+def _detect_rolled_tube(
+    cylinders: list[_CylPatch],
+    total_area: float,
+) -> _RolledTube | None:
+    """Detect a sheet rolled smoothly into a cylinder or pipe section.
+
+    A part rolled into a closed tubular section has cylindrical area dwarfing
+    its planar area, so the closed-body heuristic flags it as a closed body.
+    But a rolled *sheet* is still developable: slit the manufacturing seam and
+    it flattens to a rectangle - exactly what a folded faceted tube does, only
+    here the bend is one continuous roll rather than discrete creases.
+
+    A rolled tube shows a single coaxial cylinder group holding exactly two
+    wall radii: an inner bore and an outer skin, one sheet thickness apart,
+    each wrapping a near-complete circle. A genuinely non-developable closed
+    body looks different: a solid bar or boss has a single radius (no inner
+    wall); a turned / machined revolve stacks many different radii; a thick
+    pipe blank has a wall outside the sheet-metal range. None of those yield a
+    rolled-tube model here.
+
+    Returns the :class:`_RolledTube` model, or ``None`` when the cylinders are
+    not a single thin-wall full-wrap inner/outer pair.
+    """
+
+    if not cylinders or total_area <= 1e-9:
+        return None
+
+    groups = _group_coaxial_cylinders(cylinders)
+    # The rolled wall is the area-dominant coaxial group.
+    groups.sort(key=lambda g: -sum(c.area for c in g))
+    group = groups[0]
+    if sum(c.area for c in group) / total_area < UNFOLD_CLOSED_BODY_CYL_AREA_RATIO:
+        return None
+
+    # Bucket the group's patches by radius: a rolled tube has exactly an inner
+    # and an outer wall.
+    by_radius: dict[float, list[_CylPatch]] = {}
+    for c in group:
+        key = round(c.radius, 2)
+        by_radius.setdefault(key, []).append(c)
+    radii = sorted(by_radius)
+    if len(radii) != 2:
+        return None
+
+    inner_r, outer_r = radii[0], radii[1]
+    thickness = outer_r - inner_r
+    if thickness <= 1e-3 or thickness > UNFOLD_MAX_SHEET_THICKNESS_MM:
+        return None
+
+    # Each wall must wrap a near-complete circle: a partial arc is an open bend
+    # already handled by the bend graph, not a rolled closed section.
+    min_wrap = math.radians(UNFOLD_ROLLED_TUBE_MIN_WRAP_DEG)
+    for patches in by_radius.values():
+        wrap = 0.0
+        for c in patches:
+            if c.radius > 1e-9 and c.length_along_axis > 1e-9:
+                wrap += c.area / (c.radius * c.length_along_axis)
+        if wrap < min_wrap:
+            return None
+
+    length = max(c.length_along_axis for c in group)
+    return _RolledTube(
+        thickness=thickness,
+        mean_radius=0.5 * (inner_r + outer_r),
+        length=length,
+    )
 
 
 def _build_bends(
@@ -1167,8 +1255,30 @@ class UnfoldProbe:
 
         # Closed-body heuristic: a closed tube has cylindrical area dwarfing
         # planar area. Sheet-metal parts always have planar surfaces >> cyl.
+        # A sheet rolled smoothly into a cylinder or pipe is the exception:
+        # it trips this ratio yet is still developable. Route those through
+        # the rolled-tube detector before failing the part outright.
         cyl_area = sum(c.area for c in cylinders)
         if total_area > 1e-9 and cyl_area / total_area >= UNFOLD_CLOSED_BODY_CYL_AREA_RATIO:
+            rolled = _detect_rolled_tube(cylinders, total_area)
+            if rolled is not None:
+                # The flat blank is a rectangle: the unrolled circumference
+                # (2*pi*mean_radius) by the cylinder length. The seam is the
+                # slit that opens the closed section, so the part is PARTIAL
+                # with a seamed_section flag, mirroring a folded faceted tube.
+                flat_area = 2.0 * math.pi * rolled.mean_radius * max(rolled.length, 0.0)
+                return UnfoldResult(
+                    status=UnfoldStatus.PARTIAL,
+                    reason="seamed_section",
+                    n_bends=1,
+                    flat_area=flat_area,
+                    thickness_mean=rolled.thickness,
+                    flags={
+                        "seamed_section": True,
+                        "rolled_tube": True,
+                        "cyl_area_ratio": cyl_area / total_area,
+                    },
+                )
             return UnfoldResult(
                 status=UnfoldStatus.FAILURE,
                 reason="cyclic_graph",
