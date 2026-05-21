@@ -71,10 +71,10 @@ class LabelledPart:
     step_path:
         Filesystem path to a STEP (Part 21) file.
     product_id:
-        Optional product-id used for reporting; not required to match the
-        parser's output. When the STEP contains many parts the sweep
-        classifies *all* of them and aggregates against ``expected_label``,
-        which keeps the corpus building cheap.
+        Selects which part of a multi-part STEP file the label applies to.
+        When non-empty only the part whose parsed product id matches is
+        labelled; when empty every part in the file is labelled with
+        ``expected_label`` (back-compat for single-part files).
     expected_label:
         Ground-truth class: ``"plaat"``, ``"profiel"`` or ``"anders"``.
     """
@@ -214,6 +214,10 @@ def _collect_features(parts: list[LabelledPart]) -> list[tuple[str, dict]]:
     fail to parse or produce zero manifest entries are dropped with a
     no-op (the sweep cares about aggregate behaviour, not individual
     failures).
+
+    A :class:`LabelledPart` with a non-empty ``product_id`` only labels the
+    manifest entry whose parsed product id matches; one with an empty
+    ``product_id`` labels every entry in the file.
     """
     opts = AnalyzeOptions(out_dir=None, write_dxf=False, write_xml=False)
     samples: list[tuple[str, dict]] = []
@@ -223,6 +227,8 @@ def _collect_features(parts: list[LabelledPart]) -> list[tuple[str, dict]]:
         except Exception:
             continue
         for entry in result.manifest.parts:
+            if lp.product_id and entry.part.product_id != lp.product_id:
+                continue
             features = entry.features
             if features is None:
                 continue
