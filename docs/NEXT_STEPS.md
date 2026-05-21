@@ -1,6 +1,6 @@
 # Next steps + architecture state
 
-State as of 2026-05-21. Test suite **519 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
+State as of 2026-05-21. Test suite **529 passing**, **0 ruff violations**, **0 mypy errors** (81 files), ~22.5 k LOC.
 
 ## Module status
 
@@ -52,27 +52,28 @@ Multi-solid files mislabelled parts (copies took sibling names; CAD feature name
 
 `_process_pair` is now a thin coordinator over `_analyse_part` and `_write_part_outputs` (linked by `_PartAnalysis`). The `FeatureExtractor` mesh-only fallback gained a regression test.
 
+### Corpus-validation follow-ups landed
+
+A broad real-corpus run surfaced four issues, now addressed:
+
+- **PARTIAL unfold no longer collapses to `uncertain`.** `feature_vector` counts `status != FAILURE` as `unfoldable`, consistent with `has_bends`; PARTIAL plates keep the plaat boost.
+- **Rolled/folded tubular sections unfold.** A single simple cycle in the bend graph is now slit at its largest-radius bend and reported `PARTIAL` (`seamed_section`) instead of `FAILURE`. On `Silo 2` this turned 20 false failures into PARTIAL; only genuine pipes/blocks/freeform still fail.
+- **Hole over-count fixed.** `HoleAnalyzer` now rejects partial-arc cylinders (corner rounds, bend reliefs) and splits co-axial bores by axial gap. Counts match the AutoPOL round-hole inventory exactly (530: 49->30, 529: 47->20).
+- **Calibration sweep honours per-part labels.** `sweep.py` matches the CSV `product_id` column so multi-part assemblies can be labelled per-part.
+
 ## Outstanding work (in priority order)
 
-### PARTIAL unfold collapses to `uncertain`
+### Grow the labelled corpus, then calibrate
 
-`feature_vector.py` sets `unfoldable = (status == SUCCESS)`, so a `PARTIAL` unfold (real plates that trip thickness-variation or branching) loses the plaat `unfoldable` boost and drops to `uncertain`. A corpus run found this on every `partial` part. Decide whether `PARTIAL` should count as `unfoldable` (or carry a partial boost); re-pin the classifier baselines in the same change.
-
-### Branched-flange parts fail to unfold
-
-The `Silo 2` assembly has ~24 parts the rewritten bend-graph traversal reports as `failure` where AutoPOL unfolds all of them. Star/branched flange topologies are not yet handled. Investigate the bend-graph traversal on these.
-
-### Hole over-count and assembly over-segmentation
-
-Hole counts run high vs the AutoPOL reference (47 vs 29; 49 vs 37) - the probe counts every circular contour including slots. And the pipeline emits one `<part>` per solid instance where AutoPOL groups identical parts with a quantity, inflating per-assembly counts.
-
-### Calibration needs a larger labelled corpus
-
-`stepalesengine calibrate` + `calibration/sweep.py` exist, but only ~20 folder-labelled STEP files are available (`Zetwerk/`=plaat, `profiel/`=profiel, `samenstelling/`=anders under `Downloads/stepfile/`) - too few for a meaningful sweep. `sweep.py` also ignores the CSV `product_id` column, so multi-part assemblies cannot be labelled per-part. Needs more labelled single-part files and a `sweep.py` fix before a real sweep.
+Only ~20 folder-labelled STEP files exist (`Zetwerk/`=plaat, `profiel/`=profiel, `samenstelling/`=anders under `Downloads/stepfile/`) - too few for a meaningful weight sweep. `stepalesengine calibrate` + `calibration/sweep.py` are ready (per-part labels now work). Needs more labelled single-part files before a real sweep.
 
 ### Tapered/cut profiles misclassify
 
-Profiles with `cross_section_constant=false` (tapered, cut, non-uniform) miss the `profiel` scorer's boost and fall to `anders`/`uncertain` (6 of 13 profile files in the corpus run). Pre-existing classifier weakness.
+Profiles with `cross_section_constant=false` (tapered, cut, non-uniform) miss the `profiel` scorer's dominant boost and fall to `anders`/`uncertain` (6 of 13 profile files in the corpus run). A safe fix needs the calibration corpus above - hand-tuning weights against the known files would overfit and risk regressing long machined `anders` parts.
+
+### Assembly part listing is per-instance (by design)
+
+The manifest emits one `<part>` per solid instance; AutoPOL groups identical parts with a quantity. The `quantity` field already carries NAUO multiplicity, so a grouped BOM would be a presentation-layer rollup. Not a bug - listed so any per-assembly count comparison against AutoPOL accounts for it.
 
 ## Quick reference
 
