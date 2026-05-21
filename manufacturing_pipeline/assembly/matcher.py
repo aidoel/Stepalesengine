@@ -8,9 +8,11 @@ A series of strategies are tried in descending confidence:
 
 1. ``1to1``     - exactly one leaf and one solid.
 2. ``ordered``  - equal counts > 1, paired by index.
-3. ``ocaf``     - optional helper from ``parsing.occt_fallback`` that maps
+3. ``quantity`` - fewer leaves than solids: expand leaves by NAUO quantity
+                  and pair leaf groups to volume-clustered solids.
+4. ``ocaf``     - optional helper from ``parsing.occt_fallback`` that maps
                   XCAF shape labels onto solids by name.
-4. ``by_name`` / ``unmatched`` - greedy fall-back when nothing else applies.
+5. ``by_name`` / ``unmatched`` - greedy fall-back when nothing else applies.
 
 Every leaf produces exactly one :class:`MatchResult`. Solids without a leaf
 counterpart yield extra results carrying a synthetic ``AssemblyNode`` so the
@@ -21,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +32,7 @@ from ..config.classification_variables import (
     MATCH_CONFIDENCE_OCAF,
     MATCH_CONFIDENCE_ONE_TO_ONE,
     MATCH_CONFIDENCE_ORDERED,
+    MATCH_CONFIDENCE_QUANTITY,
     MATCH_CONFIDENCE_UNMATCHED_SOLID,
 )
 from .graph import AssemblyNode
@@ -61,6 +65,98 @@ def _synthetic_solid_node(index: int) -> AssemblyNode:
         is_leaf=True,
         depth=1,
     )
+
+
+def _solid_volume(solid: object) -> float | None:
+    """Best-effort volume of a ``TopoDS_Solid``. ``None`` when OCP is absent.
+
+    Used only to cluster geometrically-identical solids; precision beyond a
+    coarse bucket is irrelevant, so any failure simply opts the solid out of
+    the geometry-aware strategy.
+    """
+    try:
+        from OCP.BRepGProp import BRepGProp
+        from OCP.GProp import GProp_GProps
+    except Exception:  # pragma: no cover - OCP optional at import time
+        return None
+    try:
+        props = GProp_GProps()
+        BRepGProp.VolumeProperties_s(solid, props)
+        return abs(float(props.Mass()))
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.debug("volume probe failed: %s", exc)
+        return None
+
+
+def _expand_by_quantity(leaves: list[AssemblyNode]) -> list[AssemblyNode]:
+    """Repeat each leaf ``quantity`` times so one instance exists per solid.
+
+    NAUO multiplicity collapses repeated component instances onto a single
+    leaf carrying ``quantity``; geometry loaders explode every instance into
+    its own solid. Expanding here re-aligns the two cardinalities.
+    """
+    out: list[AssemblyNode] = []
+    for leaf in leaves:
+        for _ in range(max(int(leaf.quantity), 1)):
+            out.append(leaf)
+    return out
+
+
+def _match_by_quantity_clusters(
+    leaves: list[AssemblyNode], solids: list
+) -> list[MatchResult] | None:
+    """Pair quantity-expanded leaves to volume-clustered solids.
+
+    Returns ``None`` (so the caller falls through to the next strategy) when
+    the data does not support an unambiguous assignment: the expanded leaf
+    count must equal the solid count, every solid volume must be probeable,
+    and the leaf groups (one per distinct ``product_id``) must map onto
+    solid volume-clusters by a bijection of cluster sizes.
+    """
+    instances = _expand_by_quantity(leaves)
+    if len(instances) != len(solids) or not solids:
+        return None
+
+    volumes: list[float] = []
+    for solid in solids:
+        vol = _solid_volume(solid)
+        if vol is None:
+            return None
+        volumes.append(vol)
+
+    # Cluster solids by a coarse volume bucket (0.1 mm^3) so floating-point
+    # noise between nominally identical bodies does not split a cluster.
+    clusters: dict[float, list[int]] = defaultdict(list)
+    for idx, vol in enumerate(volumes):
+        clusters[round(vol, 1)].append(idx)
+
+    # Group leaves by product_id, preserving first-seen order.
+    leaf_groups: dict[str, list[AssemblyNode]] = {}
+    for leaf in instances:
+        leaf_groups.setdefault(leaf.product_id, []).append(leaf)
+
+    cluster_sizes = sorted(len(idxs) for idxs in clusters.values())
+    group_sizes = sorted(len(g) for g in leaf_groups.values())
+    if cluster_sizes != group_sizes:
+        return None
+    # An unambiguous size-bijection requires every group size to be unique.
+    if len(set(group_sizes)) != len(group_sizes):
+        return None
+
+    clusters_by_size = {len(idxs): idxs for idxs in clusters.values()}
+    results: list[MatchResult] = []
+    for group in leaf_groups.values():
+        solid_idxs = clusters_by_size[len(group)]
+        for leaf, solid_idx in zip(group, solid_idxs):
+            results.append(
+                MatchResult(
+                    node=leaf,
+                    solid=solids[solid_idx],
+                    confidence=MATCH_CONFIDENCE_QUANTITY,
+                    method="quantity",
+                )
+            )
+    return results
 
 
 def _try_ocaf_labels(step_path: str | Path) -> dict[str, object]:
@@ -136,6 +232,14 @@ def match_parts_to_solids(
                 )
             )
         return results
+
+    # Strategy 2b - quantity-aware geometry clustering. When NAUO multiplicity
+    # has collapsed repeated instances onto fewer leaves than there are solids,
+    # expand by quantity and pair the leaf groups to volume-clustered solids.
+    if 0 < n_leaves < n_solids:
+        quantity_results = _match_by_quantity_clusters(leaves, solids)
+        if quantity_results is not None:
+            return quantity_results
 
     # Strategy 3 - optional OCAF lookup hook.
     ocaf_map: dict[str, object] = {}

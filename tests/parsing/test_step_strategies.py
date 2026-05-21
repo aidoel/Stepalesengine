@@ -12,6 +12,7 @@ import pytest
 from manufacturing_pipeline.parsing.step_strategies import (
     JUNK_NAMES,
     is_meaningful,
+    looks_like_feature_name,
     strategy_brep_names,
     strategy_comments,
     strategy_header,
@@ -170,10 +171,11 @@ def _build_simple_assembly():
         4: ("PRODUCT", "'CHILD','Plaat 12mm','',(#9)"),
         5: ("PRODUCT_DEFINITION_FORMATION", "'','',#4"),
         6: ("PRODUCT_DEFINITION", "'design','',#5,$"),
-        # NAUO: (id, name, desc, related_pd, relating_pd, ref_designator)
+        # NAUO: (id, name, desc, relating_pd, related_pd, ref_designator)
+        # ISO order: relating (parent) first, related (child) second.
         7: (
             "NEXT_ASSEMBLY_USAGE_OCCURRENCE",
-            "'nauo-1','link','',#6,#3,'1'",
+            "'nauo-1','link','',#3,#6,'1'",
         ),
     }
 
@@ -198,10 +200,10 @@ def test_strategy_nauo_cycle_guard():
         4: ("PRODUCT", "'B','PartB','',(#9)"),
         5: ("PRODUCT_DEFINITION_FORMATION", "'','',#4"),
         6: ("PRODUCT_DEFINITION", "'design','',#5,$"),
-        # A contains B
-        7: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n1','','',#6,#3,'1'"),
+        # A contains B (relating=#3 parent, related=#6 child)
+        7: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n1','','',#3,#6,'1'"),
         # B contains A — cyclic
-        8: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n2','','',#3,#6,'1'"),
+        8: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n2','','',#6,#3,'1'"),
     }
     parts = strategy_nauo(entities)
     pids = sorted(p.product_id for p in parts)
@@ -331,3 +333,124 @@ def test_strategies_return_steppart_instances():
     parts = strategy_product(entities)
     assert parts
     assert all(isinstance(p, StepPart) for p in parts)
+
+
+# ---------------------------------------------------------------------------
+# CAD feature-name detection and brep-strategy rejection
+# ---------------------------------------------------------------------------
+
+
+def test_looks_like_feature_name_recognises_solidworks_features():
+    for name in ("Cut-Extrude9", "Boss-Extrude1", "Fillet3", "Mirror2", "Revolve1"):
+        assert looks_like_feature_name(name), name
+
+
+def test_looks_like_feature_name_rejects_real_part_numbers():
+    for name in ("MD-17-04193_2", "10001073530_Rev_00", "31686-080", "UNP 160"):
+        assert not looks_like_feature_name(name), name
+
+
+def test_strategy_brep_skips_cad_feature_names():
+    """A MANIFOLD_SOLID_BREP labelled with a SolidWorks feature name carries no
+    part identity, so the brep strategy must not emit a part for it."""
+    entities = {1: ("MANIFOLD_SOLID_BREP", "'Cut-Extrude9',#9")}
+    assert strategy_brep_names(entities) == []
+
+
+def test_strategy_brep_keeps_real_part_names():
+    entities = {1: ("MANIFOLD_SOLID_BREP", "'MD-17-04193_2',#9")}
+    parts = strategy_brep_names(entities)
+    assert [p.name for p in parts] == ["MD-17-04193_2"]
+
+
+# ---------------------------------------------------------------------------
+# PRODUCT_DEFINITION_FORMATION subtype + NAUO orientation
+# ---------------------------------------------------------------------------
+
+
+def _assembly_with_formation_subtype():
+    """ROOT contains CHILD, using PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_
+    SOURCE (the AP214 subtype) in place of the bare formation entity."""
+    return {
+        1: ("PRODUCT", "'ROOT','ROOT','',(#9)"),
+        2: ("PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE", "'','',#1,.BOUGHT."),
+        3: ("PRODUCT_DEFINITION", "'',' ',#2,$"),
+        4: ("PRODUCT", "'CHILD','CHILD','',(#9)"),
+        5: ("PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE", "'','',#4,.BOUGHT."),
+        6: ("PRODUCT_DEFINITION", "'',' ',#5,$"),
+        7: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n1','','',#3,#6,''"),
+    }
+
+
+def test_strategy_nauo_walks_formation_subtype():
+    parts = strategy_nauo(_assembly_with_formation_subtype())
+    by_id = {p.product_id: p for p in parts}
+    assert by_id["ROOT"].children == ["CHILD"]
+    assert by_id["CHILD"].children == []
+
+
+def test_strategy_product_definition_walks_formation_subtype():
+    parts = strategy_product_definition(_assembly_with_formation_subtype())
+    assert sorted(p.name for p in parts) == ["CHILD", "ROOT"]
+
+
+def test_strategy_nauo_keeps_repeated_child_instances():
+    """Three NAUOs naming the same component must produce three child entries
+    so build_assembly_graph can recover a quantity of 3."""
+    entities = {
+        1: ("PRODUCT", "'ASM','ASM','',(#9)"),
+        2: ("PRODUCT_DEFINITION_FORMATION", "'','',#1"),
+        3: ("PRODUCT_DEFINITION", "'',' ',#2,$"),
+        4: ("PRODUCT", "'PART','PART','',(#9)"),
+        5: ("PRODUCT_DEFINITION_FORMATION", "'','',#4"),
+        6: ("PRODUCT_DEFINITION", "'',' ',#5,$"),
+        7: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n1','','',#3,#6,''"),
+        8: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n2','','',#3,#6,''"),
+        9: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n3','','',#3,#6,''"),
+    }
+    parts = strategy_nauo(entities)
+    by_id = {p.product_id: p for p in parts}
+    assert by_id["ASM"].children == ["PART", "PART", "PART"]
+
+
+def test_strategy_nauo_flips_orientation_when_schema_inverted():
+    """When the authoring tool emits the PD pair swapped (component first), the
+    recurring assembly slot is still detected as the parent."""
+    entities = {
+        1: ("PRODUCT", "'ASM','ASM','',(#9)"),
+        2: ("PRODUCT_DEFINITION_FORMATION", "'','',#1"),
+        3: ("PRODUCT_DEFINITION", "'',' ',#2,$"),
+        4: ("PRODUCT", "'P1','P1','',(#9)"),
+        5: ("PRODUCT_DEFINITION_FORMATION", "'','',#4"),
+        6: ("PRODUCT_DEFINITION", "'',' ',#5,$"),
+        7: ("PRODUCT", "'P2','P2','',(#9)"),
+        8: ("PRODUCT_DEFINITION_FORMATION", "'','',#7"),
+        9: ("PRODUCT_DEFINITION", "'',' ',#8,$"),
+        # Component PD first, assembly PD (#3) second on every NAUO.
+        10: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n1','','',#6,#3,''"),
+        11: ("NEXT_ASSEMBLY_USAGE_OCCURRENCE", "'n2','','',#9,#3,''"),
+    }
+    parts = strategy_nauo(entities)
+    by_id = {p.product_id: p for p in parts}
+    assert sorted(by_id["ASM"].children) == ["P1", "P2"]
+    assert by_id["P1"].children == []
+    assert by_id["P2"].children == []
+
+
+# ---------------------------------------------------------------------------
+# strategy_header prefers the authored FILE_NAME over the on-disk basename
+# ---------------------------------------------------------------------------
+
+
+def test_strategy_header_prefers_file_name_field_over_basename():
+    """parse_header yields FILE_NAME as a raw arg list; its first arg is the
+    authored name and must beat a renamed on-disk basename."""
+    header = {"file_name": ["'10001073530_Rev_00.stp'", "'2026-03-24'"]}
+    parts = strategy_header(header, "/tmp/exports/sheet_10001073530_rev00.stp")
+    assert len(parts) == 1
+    assert parts[0].name == "10001073530_Rev_00"
+
+
+def test_strategy_header_falls_back_to_basename_without_file_name():
+    parts = strategy_header({}, "/tmp/exports/31686-080.stp")
+    assert parts[0].name == "31686-080"

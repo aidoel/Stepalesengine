@@ -83,9 +83,10 @@ def make_step_text(
         child_pd = pd_refs[child_idx]
         nauo_id = next_id
         next_id += 1
+        # ISO 10303 attribute order: relating_pd (parent) then related_pd (child).
         lines.append(
             f"#{nauo_id}=NEXT_ASSEMBLY_USAGE_OCCURRENCE("
-            f"'nauo-{nauo_id}','link','',#{child_pd},#{parent_pd},'1');"
+            f"'nauo-{nauo_id}','link','',#{parent_pd},#{child_pd},'1');"
         )
 
     for ent in extra_entities:

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections import Counter
 
 from .standard_label import normalize_standard
 from .step_tokenizer import decode_step_string, split_args
@@ -34,6 +35,31 @@ _AUTO_NAME_RE = re.compile(
     r"^(part|solid|body|component|item|object)[_\-]?\d*$",
     re.IGNORECASE,
 )
+
+# CAD modelling-feature names that authoring tools (notably SolidWorks) leak
+# into PRODUCT / MANIFOLD_SOLID_BREP arg-0. They name a feature in the build
+# tree, never the part, so they must not win the name cascade over a real
+# part number recovered from the header / filename.
+_FEATURE_NAME_RE = re.compile(
+    r"^(cut|boss|base)?[\-_ ]?"
+    r"(extrude|extrusion|revolve|revolution|sweep|loft|fillet|chamfer|mirror"
+    r"|pattern|shell|draft|rib|dome|wrap|hole|hem|flange|bend|cutlist"
+    r"|surface[\-_ ]?cut|knit|thicken|move[\-_ ]?face)"
+    r"[\-_ ]?\d*$",
+    re.IGNORECASE,
+)
+
+
+def looks_like_feature_name(name: str) -> bool:
+    """True when ``name`` is a CAD modelling-feature label, not a part name.
+
+    Recognises SolidWorks-style tokens like ``Cut-Extrude9``, ``Boss-Extrude1``,
+    ``Fillet3``, ``Mirror2``. Such labels name a step in the feature tree and
+    must lose the name cascade to a genuine part number.
+    """
+    if not isinstance(name, str):
+        return False
+    return bool(_FEATURE_NAME_RE.match(name.strip()))
 
 # Comment blocks /* ... */ in raw STEP text.
 _COMMENT_RE = re.compile(r"/\*(.*?)\*/", re.DOTALL)
@@ -158,6 +184,16 @@ def _entity_name(entities: dict[int, tuple[str, str]], ref: int) -> str:
     return rec[0].upper()
 
 
+def _is_formation(entities: dict[int, tuple[str, str]], ref: int) -> bool:
+    """True if ``ref`` is a PRODUCT_DEFINITION_FORMATION or a known subtype.
+
+    AP214/AP242 files commonly use ``PRODUCT_DEFINITION_FORMATION_WITH_
+    SPECIFIED_SOURCE`` in place of the bare entity, so a plain equality check
+    misses the formation and the PD -> PRODUCT walk dead-ends.
+    """
+    return _entity_name(entities, ref).startswith("PRODUCT_DEFINITION_FORMATION")
+
+
 def _resolve_product_name(
     entities: dict[int, tuple[str, str]],
     pd_ref: int,
@@ -189,13 +225,13 @@ def _resolve_product_name(
     for idx in (2, 3, 1, 0):
         if idx < len(pd_args):
             cand = _ref_id(pd_args[idx])
-            if cand is not None and _entity_name(entities, cand) == "PRODUCT_DEFINITION_FORMATION":
+            if cand is not None and _is_formation(entities, cand):
                 pdf_ref = cand
                 break
     if pdf_ref is None:
         for a in pd_args:
             cand = _ref_id(a)
-            if cand is not None and _entity_name(entities, cand) == "PRODUCT_DEFINITION_FORMATION":
+            if cand is not None and _is_formation(entities, cand):
                 pdf_ref = cand
                 break
 
@@ -248,58 +284,78 @@ def _product_id_name(prod_args: list[str]) -> tuple[str, str, str]:
 # ---------------------------------------------------------------------------
 
 
+def _nauo_pd_pair(
+    entities: dict[int, tuple[str, str]], raw_args: str
+) -> tuple[int, int] | None:
+    """Extract the ordered ``(first_pd, second_pd)`` ref pair from a NAUO.
+
+    Returns the two PRODUCT_DEFINITION refs in their lexical order, or ``None``
+    when the entity does not carry two of them. Orientation (which is the
+    assembly) is decided later by :func:`strategy_nauo`.
+    """
+    try:
+        args = _split(raw_args)
+    except Exception:
+        return None
+    if len(args) < 5:
+        return None
+
+    pd_refs: list[int] = [
+        c
+        for c in (_ref_id(a) for a in args[3:])
+        if c is not None and _entity_name(entities, c) == "PRODUCT_DEFINITION"
+    ]
+    if len(pd_refs) < 2:
+        pd_refs = [
+            c
+            for c in (_ref_id(a) for a in args)
+            if c is not None and _entity_name(entities, c) == "PRODUCT_DEFINITION"
+        ]
+    if len(pd_refs) < 2:
+        return None
+    return (pd_refs[0], pd_refs[1])
+
+
 def strategy_nauo(entities: dict[int, tuple[str, str]]) -> list[StepPart]:
     """Walk NEXT_ASSEMBLY_USAGE_OCCURRENCE entries and build a parent→children list."""
     if not entities:
         return []
 
-    parts: dict[str, StepPart] = {}
-    edges: list[tuple[str, str]] = []
-
-    # First pass: discover relating/related product_definitions across all NAUOs.
-    visited_pd: set = set()
+    # First pass: collect every NAUO's ordered PD pair.
+    pairs: list[tuple[int, int]] = []
     for _ref, (etype, raw_args) in entities.items():
         if etype.upper() != "NEXT_ASSEMBLY_USAGE_OCCURRENCE":
             continue
-        try:
-            args = _split(raw_args)
-        except Exception:
-            continue
-        if len(args) < 5:
-            continue
+        pair = _nauo_pd_pair(entities, raw_args)
+        if pair is not None:
+            pairs.append(pair)
 
-        # Canonical NAUO arg order:
-        # 0: id, 1: name, 2: description, 3: related_pd, 4: relating_pd, 5: ref_designator
-        # Many AP versions swap these — be tolerant and pick the first two PD refs.
-        pd_refs: list[int] = []
-        for a in args[3:]:
-            cand = _ref_id(a)
-            if cand is None:
-                continue
-            if _entity_name(entities, cand) == "PRODUCT_DEFINITION":
-                pd_refs.append(cand)
-        if len(pd_refs) < 2:
-            # Try all args as a last resort.
-            pd_refs = [
-                c
-                for c in (_ref_id(a) for a in args)
-                if c is not None and _entity_name(entities, c) == "PRODUCT_DEFINITION"
-            ]
-        if len(pd_refs) < 2:
-            continue
+    if not pairs:
+        return []
 
-        # Spec: relating is parent, related is child. The canonical order in the
-        # entity is (related_pd, relating_pd) but AP variants differ. We default
-        # to "first ref = related (child), second ref = relating (parent)" which
-        # matches the documented layout in §3 of the plan.
-        related_pd, relating_pd = pd_refs[0], pd_refs[1]
+    # Decide orientation. The ISO 10303 schema orders the attributes
+    # (relating_product_definition, related_product_definition): the relating
+    # PD is the assembly (parent), the related PD is the component (child).
+    # Some authoring tools emit the pair swapped, so we cross-check against the
+    # observed structure: the assembly PD recurs across many NAUOs in one slot
+    # while components each appear once. The parent slot is the one whose
+    # most-repeated PD - counting only PDs exclusive to that slot - recurs the
+    # most. Ties fall back to the canonical schema order (first = parent).
+    first_slot = Counter(a for a, _b in pairs)
+    second_slot = Counter(b for _a, b in pairs)
+    first_only = {pd for pd in first_slot if pd not in second_slot}
+    second_only = {pd for pd in second_slot if pd not in first_slot}
+    first_parent_score = max((first_slot[pd] for pd in first_only), default=0)
+    second_parent_score = max((second_slot[pd] for pd in second_only), default=0)
+    parent_is_first = second_parent_score <= first_parent_score
 
-        parent_pid, parent_name, parent_desc = _resolve_product_name(
-            entities, relating_pd, visited=set(visited_pd)
-        )
-        child_pid, child_name, child_desc = _resolve_product_name(
-            entities, related_pd, visited=set(visited_pd)
-        )
+    parts: dict[str, StepPart] = {}
+    for relating_ref, related_ref in pairs:
+        if not parent_is_first:
+            relating_ref, related_ref = related_ref, relating_ref
+
+        parent_pid, parent_name, parent_desc = _resolve_product_name(entities, relating_ref)
+        child_pid, child_name, child_desc = _resolve_product_name(entities, related_ref)
 
         if not parent_pid and not parent_name:
             continue
@@ -319,9 +375,10 @@ def strategy_nauo(entities: dict[int, tuple[str, str]]) -> list[StepPart]:
                     source="nauo",
                 )
 
-        if child_pid not in parts[parent_pid].children:
-            parts[parent_pid].children.append(child_pid)
-        edges.append((parent_pid, child_pid))
+        # Append on every NAUO occurrence, including repeats: each NAUO is a
+        # distinct component instance. build_assembly_graph collapses repeated
+        # child ids into a quantity, so multiplicity must survive to here.
+        parts[parent_pid].children.append(child_pid)
 
     # Filter out parts whose names are not meaningful AND who have no children.
     # Keep a part if it has children — its name might be junk but the structure matters.
@@ -418,6 +475,11 @@ def strategy_brep_names(entities: dict[int, tuple[str, str]]) -> list[StepPart]:
         name = _clean_string_arg(args[0])
         if not is_meaningful(name):
             continue
+        # A brep solid labelled with a CAD modelling-feature name (Cut-Extrude9,
+        # Fillet3, ...) carries no part identity; skip it so the cascade can
+        # reach the header strategy and recover the real part number.
+        if looks_like_feature_name(name):
+            continue
         pid = f"#{ref}"
         key = (pid, name)
         if key in seen:
@@ -435,33 +497,76 @@ def strategy_brep_names(entities: dict[int, tuple[str, str]]) -> list[StepPart]:
     return out
 
 
+def _header_file_name(header: dict) -> str:
+    """Recover the FILE_NAME name field (sans extension) from a parsed header.
+
+    ``parse_header`` returns each header entity as the raw lexical arg list, so
+    FILE_NAME's first arg is the authored file name. CAD exporters write the
+    real part number there even when the on-disk file has been renamed.
+    """
+    if not isinstance(header, dict):
+        return ""
+    file_name = header.get("file_name") or header.get("FILE_NAME") or []
+    raw = ""
+    if isinstance(file_name, (list, tuple)) and file_name:
+        raw = _clean_string_arg(str(file_name[0]))
+    elif isinstance(file_name, str):
+        raw = file_name
+    elif isinstance(file_name, dict):
+        raw = file_name.get("name") or ""
+    raw = (raw or "").strip()
+    if not raw:
+        return ""
+    return os.path.splitext(os.path.basename(raw))[0]
+
+
+def _header_description(header: dict) -> str:
+    """Recover a free-text description from the header, best effort.
+
+    Prefers FILE_DESCRIPTION; falls back to a ``description`` carried on a
+    dict-shaped FILE_NAME entry.
+    """
+    if not isinstance(header, dict):
+        return ""
+    block = header.get("file_description") or header.get("FILE_DESCRIPTION") or []
+    if isinstance(block, (list, tuple)) and block:
+        text = _clean_string_arg(str(block[0])).strip()
+        if text:
+            return text
+    elif isinstance(block, str) and block.strip():
+        return block.strip()
+    elif isinstance(block, dict):
+        text = (block.get("description") or "").strip()
+        if text:
+            return text
+
+    file_name = header.get("file_name") or header.get("FILE_NAME") or {}
+    if isinstance(file_name, dict):
+        return (file_name.get("description") or "").strip()
+    return ""
+
+
 def strategy_header(header: dict, path: str) -> list[StepPart]:
-    """Fallback synthetic part from FILE_NAME description + filename basename."""
+    """Fallback synthetic part from the FILE_NAME field or filename basename.
+
+    The authored FILE_NAME field is preferred over the on-disk basename: it
+    carries the real part number even when the file has been renamed (and the
+    basename gathered an unrelated ``sheet_`` prefix or similar).
+    """
     basename = ""
     if path:
         basename = os.path.splitext(os.path.basename(path))[0]
 
-    description = ""
-    if isinstance(header, dict):
-        file_name = header.get("FILE_NAME") or header.get("file_name") or {}
-        if isinstance(file_name, dict):
-            description = file_name.get("description") or file_name.get("name") or ""
-        elif isinstance(file_name, str):
-            description = file_name
-        if not description:
-            desc_block = header.get("FILE_DESCRIPTION") or header.get("file_description") or {}
-            if isinstance(desc_block, dict):
-                description = desc_block.get("description", "") or ""
-            elif isinstance(desc_block, str):
-                description = desc_block
+    header_name = _header_file_name(header)
+    description = _header_description(header)
 
-    name = basename or description or "unknown"
-    pid = basename or name
+    name = header_name or basename or description or "unknown"
+    pid = name
     return [
         StepPart(
             product_id=pid,
             name=name,
-            description=description or basename,
+            description=description or name,
             children=[],
             source="header",
         )
@@ -504,6 +609,7 @@ def strategy_comments(raw: str, path: str) -> list[StepPart]:
 __all__ = [
     "JUNK_NAMES",
     "is_meaningful",
+    "looks_like_feature_name",
     "strategy_nauo",
     "strategy_product_definition",
     "strategy_product",

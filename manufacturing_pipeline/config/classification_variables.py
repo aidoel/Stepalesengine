@@ -139,5 +139,8 @@ OBB_PRINCIPAL_AXIS_MIN_RATIO = 1.2
 MATCH_CONFIDENCE_ONE_TO_ONE = 1.0
 MATCH_CONFIDENCE_ORDERED = 0.8
 MATCH_CONFIDENCE_OCAF = 0.7
+# Quantity-aware geometry clustering: leaf instances expanded by NAUO quantity
+# and paired to volume-clustered solids.
+MATCH_CONFIDENCE_QUANTITY = 0.75
 MATCH_CONFIDENCE_BY_NAME = 0.4
 MATCH_CONFIDENCE_UNMATCHED_SOLID = 0.2

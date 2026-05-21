@@ -142,3 +142,50 @@ def test_analyze_assembly_runs_on_tessellated_step(tmp_path):
     assert entry.classification.label in {"plaat", "profiel", "anders", "uncertain"}
     # The classifier should see the mesh-derived features.
     assert entry.features.source == "mesh"
+
+
+# ---------------------------------------------------------------------------
+# Documented invariant: extract never raises and always returns populated
+# features, including on the mesh-only fallback path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("shape", ["octahedron", "cube", "tetrahedron"])
+def test_mesh_extract_never_raises_and_populates_features(shape):
+    """For every tessellation-only fixture the extractor must take the mesh
+    path, return a ManufacturingFeatures, and never raise.
+
+    This pins the plan invariant "FeatureExtractor.extract never raises and
+    always returns populated features" for the otherwise-unreachable mesh
+    branch. Cross-section slicing is left enabled so the whole post-mesh tail
+    of ``extract`` is exercised, not just the bulk-metric block.
+    """
+
+    solid = make_tessellated_solid(shape, size=50.0)
+
+    feats = FeatureExtractor().extract(solid)
+
+    assert isinstance(feats, ManufacturingFeatures)
+    assert feats.source == "mesh"
+
+    # Bulk metrics are filled from the triangulation, not left at defaults.
+    assert feats.volume > 0.0
+    assert feats.surface_area > 0.0
+    assert feats.bbox_dims_sorted != (0.0, 0.0, 0.0)
+    L, W, T = feats.bbox_dims_sorted
+    assert L >= W >= T
+
+    # Container fields stay populated dict/list instances (never None).
+    assert isinstance(feats.surface_pct, dict) and feats.surface_pct
+    assert isinstance(feats.edge_counts, dict) and feats.edge_counts
+    assert isinstance(feats.face_area_top, list) and len(feats.face_area_top) == 3
+
+    # Derived scalars must stay finite and within their documented ranges.
+    assert feats.sa_v_ratio >= 0.0
+    assert 0.0 <= feats.pocket_complexity <= 1.0
+    assert 0.0 <= feats.bounding_cylinder_fit_pct <= 1.0
+    assert 0.0 < feats.convex_hull_volume_ratio <= 1.5
+
+    # Holes are owned by the HoleAnalyzer; the extractor leaves them at default.
+    assert feats.hole_count == 0
+    assert feats.hole_diameters == []
