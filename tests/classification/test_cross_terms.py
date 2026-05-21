@@ -110,3 +110,63 @@ def test_default_plaat_cross_term_punishes_non_unfoldable_lookalikes():
     # And the fake-plaat case should be classified as ``anders``, not ``plaat``.
     assert fake_plaat.label == "anders", fake_plaat.trace.scores
     assert real_plaat.label == "plaat", real_plaat.trace.scores
+
+
+def test_seamed_tube_unfold_does_not_reward_plaat():
+    """A seamed hollow section unfolds with bends like a bent plate, but it is
+    a constant-section profile. The ``and_not`` cross-terms must gate the
+    plaat unfold rewards off ``seamed_tube`` so the tube does not score as
+    ``plaat`` - while a genuine bent plate (same unfold, no seam) still does.
+    """
+    clf = ScoreClassifier(scorers=default_scorers(), conf_thr=0.0)
+    bent = {
+        "top1_face_pct": 0.16,
+        "unfoldable": True,
+        "has_bends": True,
+        "aspect_ratio": 13.0,
+        "cross_section_constant": False,
+        "name_profile_hit": 0.0,
+        "name_din_hit": 0.0,
+        "vendor_code_present": 0.0,
+        "bspline_pct": 0.0,
+        "hole_density": 0.0,
+        "hull_concavity": 0.0,
+        "profile_match_designation": 0.0,
+        "pocket_complexity": 0.0,
+    }
+    bent_plate = clf.classify({**bent, "seamed_tube": False})
+    seamed = clf.classify({**bent, "seamed_tube": True})
+
+    # The seam strips ~2.4 of plaat reward and adds 1.5 to profiel.
+    assert seamed.trace.scores["plaat"] < bent_plate.trace.scores["plaat"]
+    assert seamed.trace.scores["profiel"] > bent_plate.trace.scores["profiel"]
+    # A seamed tube must not win as plaat; it is a profile.
+    assert seamed.trace.scores["profiel"] > seamed.trace.scores["plaat"]
+    assert bent_plate.trace.scores["plaat"] > bent_plate.trace.scores["profiel"]
+
+
+def test_seamed_constant_section_tube_classifies_as_profiel():
+    """A hollow constant-section tube that the UnfoldProbe rolls open
+    (PARTIAL unfold, seamed_section flag) must classify as ``profiel`` - the
+    cross_section_constant + seamed_tube signals together beat the gated-off
+    plaat unfold rewards. This is the corpus failure that motivated the flag.
+    """
+    clf = ScoreClassifier(scorers=default_scorers(), conf_thr=0.0)
+    tube = {
+        "top1_face_pct": 0.16,
+        "unfoldable": True,
+        "has_bends": True,
+        "seamed_tube": True,
+        "aspect_ratio": 13.0,
+        "cross_section_constant": True,
+        "name_profile_hit": 0.0,
+        "name_din_hit": 0.0,
+        "vendor_code_present": 0.0,
+        "bspline_pct": 0.0,
+        "hole_density": 0.0,
+        "hull_concavity": 0.8,
+        "profile_match_designation": 0.0,
+        "pocket_complexity": 0.28,
+    }
+    res = clf.classify(tube)
+    assert res.label == "profiel", res.trace.scores

@@ -77,6 +77,17 @@ def _top1_times_not_unfoldable(v: tuple[Any, ...]) -> float:
     return v[0] * (0.0 if v[1] else 1.0)
 
 
+def _and_not(v: tuple[Any, ...]) -> float:
+    """1.0 when ``v[0]`` is truthy AND ``v[1]`` is falsy, else 0.0.
+
+    Used to gate a sheet-metal reward (``unfoldable`` / ``has_bends``) off the
+    ``seamed_tube`` flag: a seamed hollow section unfolds with bends like a
+    bent plate, but it is a constant-section profile, so the plate reward must
+    not fire for it.
+    """
+    return 1.0 if (v[0] and not v[1]) else 0.0
+
+
 # Registry of named transforms allowed from YAML. Keep small and well-known;
 # never eval anything from the YAML file.
 _TRANSFORMS: dict[str, Callable[..., float]] = {
@@ -86,6 +97,7 @@ _TRANSFORMS: dict[str, Callable[..., float]] = {
     "clamp10": _clamp10,
     "top1_times_unfoldable": _top1_times_unfoldable,
     "top1_times_not_unfoldable": _top1_times_not_unfoldable,
+    "and_not": _and_not,
 }
 
 

@@ -25,6 +25,7 @@ def test_default_feature_vector_as_dict_has_all_keys():
         "top1_face_pct",
         "unfoldable",
         "has_bends",
+        "seamed_tube",
         "aspect_ratio",
         "cross_section_constant",
         "name_profile_hit",
@@ -37,7 +38,7 @@ def test_default_feature_vector_as_dict_has_all_keys():
         "pocket_complexity",
     }
     assert set(d.keys()) == expected
-    assert len(d) == 13
+    assert len(d) == 14
 
 
 def test_round_trip_fv_to_dict_and_back_preserves_every_field():
@@ -45,6 +46,7 @@ def test_round_trip_fv_to_dict_and_back_preserves_every_field():
         top1_face_pct=0.75,
         unfoldable=True,
         has_bends=True,
+        seamed_tube=True,
         aspect_ratio=4.2,
         cross_section_constant=True,
         name_profile_hit=1.0,
@@ -115,6 +117,42 @@ def test_from_features_partial_unfold_counts_as_unfoldable():
         features, unfold=UnfoldResult(status=UnfoldStatus.FAILURE, n_bends=0)
     )
     assert failed.unfoldable is False
+
+
+def test_from_features_sets_seamed_tube_only_for_seamed_partial_unfold():
+    """``seamed_tube`` fires only when a non-FAILURE unfold carries the
+    ``seamed_section`` flag. A genuine bent plate (no flag) and a FAILURE
+    unfold both leave it False, so the sheet-metal rewards keep firing."""
+    features = ManufacturingFeatures()
+
+    seamed = FeatureVector.from_features(
+        features,
+        unfold=UnfoldResult(
+            status=UnfoldStatus.PARTIAL,
+            n_bends=4,
+            flags={"seamed_section": True},
+        ),
+    )
+    assert seamed.seamed_tube is True
+    assert seamed.unfoldable is True
+    assert seamed.has_bends is True
+
+    bent_plate = FeatureVector.from_features(
+        features,
+        unfold=UnfoldResult(status=UnfoldStatus.SUCCESS, n_bends=2, flags={}),
+    )
+    assert bent_plate.seamed_tube is False
+
+    failed = FeatureVector.from_features(
+        features,
+        unfold=UnfoldResult(
+            status=UnfoldStatus.FAILURE,
+            n_bends=0,
+            flags={"seamed_section": True},
+        ),
+    )
+    # A FAILURE unfold is not a tube either - the flag is moot.
+    assert failed.seamed_tube is False
 
 
 def test_from_features_matches_legacy_classifier_features_dict():
