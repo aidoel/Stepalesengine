@@ -33,3 +33,7 @@ htmlcov/
 .coverage
 .coverage.*
 coverage.xml
+
+# Deploy build context (customer geometry - never commit)
+corpus_steps/
+corpus_report/
