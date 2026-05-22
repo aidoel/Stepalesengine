@@ -4,10 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-05-16
+## [Unreleased] - 2026-05-22
 
 ### Added
 
+- **Web** (`web/`, `serve_corpus.py`): GLB meshes and SVG projections are
+  cached per app instead of recomputed from the STEP file on every request;
+  `serve_corpus` renders the corpus index via a new `render_html_string()`
+  and caches it, dropping a per-request temp-file round trip. The corpus
+  report now shares the per-file viewer's `base.css` theme, carries viewport
+  meta on every page, and gains corpus-overview / part-list navigation links
+  and a landing header.
+- **Geometry** (`geometry/unfold_probe.py`): the flat-pattern unfold bridges a
+  Z-section's split bend graph - `_pair_opposite_faces` pairs the two surfaces
+  of each flat segment, both unfold BFS loops bridge an unreached component
+  through a paired face (only when it reaches a not-yet-covered segment, so
+  single-skin parts are unchanged), and the unfold rotation targets the parent
+  face's flattened normal instead of the global `+n_base`. A Z-section now
+  develops to a complete flat blank instead of dropping its far flange.
 - **Parser** (`manufacturing_pipeline/parsing/`): defensive Part 21 tokenizer
   (encoding cascade, X-encoded strings, doubled-quote escapes, balanced-paren
   argument splitting); six-strategy cascade (NAUO, PRODUCT_DEFINITION, PRODUCT,
@@ -51,6 +65,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Geometry** (`geometry/unfold_probe.py`): `n_bends` now counts distinct
+  bend hinge lines (`_count_physical_bends`) rather than bends crossed by the
+  unfold BFS, which undercounted a Z-section whose opposite-folding flange
+  sits off the base face's bend-graph component.
 - Cleanup pass (Phase 10): pulled fillet/circularity/symmetry/sheet-pair
   thresholds out of `geometry/cross_section.py` and `geometry/unfold_probe.py`
   into `config/classification_variables.py`; promoted assembly-matcher
@@ -63,3 +81,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   several unused imports (`tempfile`, `defaultdict`, duplicated `BRep_Tool`
   imports, `Iterable`, `os`, `PackageNotFoundError`, `gp_Ax3`, `Path`,
   `TDF_Attribute`).
+
+### Fixed
+
+- **Web** (`web/`, `serve_corpus.py`): per-file viewer templates use Flask
+  `url_for()` instead of emitting absolute URLs (`/glb/...`, `/dxf/...`),
+  which 404'd under the `serve-corpus` `/file/<name>/` mount - the 3D viewer,
+  technical drawings and downloads were all broken on the deployed corpus
+  viewer.
+- **Web** (`web/templates/detail.html.jinja`): the `'%.3f'` number format is
+  guarded against string-valued `Contribution.value` (cross-term features
+  render as tuples/booleans); the part-detail page used to 500 on those parts.
+- **Web** (`validate.py`): `render_html_report` no longer leaks the server
+  filesystem path into the report title/body; the always-zero "Duration"
+  column and wall-time KPIs are dropped when the report is rebuilt from
+  stored manifests (no timing data there).
+- **Web** (`validate.py`): `/diff?other=` is confined to the corpus report
+  root (`create_app` gained a `diff_root` argument), so a public deployment
+  cannot be coaxed into reading arbitrary server files.
