@@ -705,6 +705,131 @@ def _build_z_bend(
     return _first_solid(prism)
 
 
+def _build_z_purlin(
+    t: float = 3.0,
+    R: float = 4.0,
+    flange: float = 50.0,
+    web_h: float = 80.0,
+    width: float = 240.0,
+):
+    """A Z-section / Z-purlin: bottom flange one way, web, top flange the other.
+
+    The two bends fold in *opposite* directions, so they attach to opposite
+    faces of the middle web and the bend graph splits into components a single
+    BFS cannot span. Pre-fix the flat pattern only covered the base face's
+    component, dropping the far flange.
+
+    The cross-section is a constant-thickness closed polygon in the XZ plane;
+    the inner (concave) corner of each fold is filleted with ``R`` and the
+    matching outer (convex) corner with ``R + t`` so the sheet stays constant
+    thickness. The face is then prismed ``width`` mm along +Y. This mirrors
+    the proven Z-purlin recipe in ``corpus_steps`` (``build_zbracket`` plus
+    ``sheet_metal_profile``); it is inlined here because ``corpus_steps/`` is
+    gitignored and must not be imported.
+    """
+    from OCP.BRep import BRep_Tool
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_MakePolygon
+    from OCP.BRepFilletAPI import BRepFilletAPI_MakeFillet2d
+    from OCP.TopAbs import TopAbs_VERTEX
+
+    # Web vertical strip: outer face at x=0, inner face at x=t. Bottom flange
+    # extends in -X from the web bottom; top flange extends in +X from the
+    # web top.
+    xb = -flange  # far end of bottom flange
+    xt = flange + t  # far end of top flange
+    z0 = 0.0
+    z1 = t  # top of bottom flange
+    z2 = web_h  # bottom of top flange
+    z3 = web_h + t  # top of top flange
+
+    # Closed CCW polygon (first vertex not repeated).
+    section = [
+        (xb, z0),  # 0  outer corner, bottom flange far bottom
+        (t, z0),  # 1  outer corner, bottom flange right bottom (BEND A outer)
+        (t, z2),  # 2  inner corner, web meets top flange (BEND B inner)
+        (xt, z2),  # 3  inner corner, top flange far underside
+        (xt, z3),  # 4  outer corner, top flange far top
+        (0.0, z3),  # 5  outer corner, top flange / web (BEND B outer)
+        (0.0, z1),  # 6  inner corner, web meets bottom flange (BEND A inner)
+        (xb, z1),  # 7  inner corner, bottom flange far top
+    ]
+    # Fold A (bottom flange / web): outer convex corner 1 -> R+t, inner 6 -> R.
+    # Fold B (web / top flange): outer convex corner 5 -> R+t, inner 2 -> R.
+    bends = [(1, R + t), (6, R), (5, R + t), (2, R)]
+
+    poly = BRepBuilderAPI_MakePolygon()
+    for x, z in section:
+        poly.Add(gp_Pnt(float(x), 0.0, float(z)))
+    poly.Close()
+    if not poly.IsDone():
+        raise AssertionError("Z-purlin cross-section polygon build failed")
+    face = BRepBuilderAPI_MakeFace(poly.Wire(), True).Face()
+
+    targets = {
+        (round(float(section[i][0]), 3), round(float(section[i][1]), 3)): float(rad)
+        for i, rad in bends
+    }
+    mf = BRepFilletAPI_MakeFillet2d(face)
+    seen: set[tuple[float, float]] = set()
+    exp = TopExp_Explorer(face, TopAbs_VERTEX)
+    while exp.More():
+        vtx = TopoDS.Vertex_s(exp.Current())
+        pnt = BRep_Tool.Pnt_s(vtx)
+        key = (round(pnt.X(), 3), round(pnt.Z(), 3))
+        radius = targets.get(key)
+        if radius is not None and key not in seen:
+            seen.add(key)
+            mf.AddFillet(vtx, radius)
+        exp.Next()
+    mf.Build()
+    if not mf.IsDone():
+        raise AssertionError("fillet2d on Z-purlin cross-section failed")
+    face = TopoDS.Face_s(mf.Shape())
+
+    prism = BRepPrimAPI_MakePrism(face, gp_Vec(0.0, float(width), 0.0)).Shape()
+    return _first_solid(prism)
+
+
+def test_z_section_fully_unfolds_spanning_all_three_segments():
+    """A Z-purlin develops to the full flat blank: flange + web + flange.
+
+    Its two bends fold in opposite directions, so they attach to opposite
+    faces of the middle web and the bend graph splits into two components.
+    Pre-fix a single unfold BFS could not bridge them and the far flange was
+    dropped. The fix bridges an unreached component through the twin face of
+    an already-placed segment, so the developed blank now spans all three
+    segments.
+    """
+    flange = 50.0
+    web_h = 80.0
+    width = 240.0
+    solid = _build_z_purlin(t=3.0, R=4.0, flange=flange, web_h=web_h, width=width)
+
+    pattern = UnfoldProbe().compute_flat_pattern(solid)
+    assert pattern, "Z-purlin should produce a non-empty flat pattern"
+    assert len(pattern["bend_lines"]) == 2, (
+        f"Z-purlin has exactly two bend lines, got {len(pattern['bend_lines'])}"
+    )
+
+    # The developed extent must span flange + web + flange. The blank's
+    # in-section dimension runs perpendicular to the prism (+Y) axis; the
+    # other axis is just the prism width. Take whichever side is NOT the
+    # ~width axis as the developed (unrolled section) extent.
+    xmin, ymin, xmax, ymax = pattern["bbox"]
+    dx = xmax - xmin
+    dy = ymax - ymin
+    width_side = min((dx, dy), key=lambda d: abs(d - width))
+    developed = dx if width_side is dy else dy
+
+    # Pre-fix the far flange was dropped, so the developed extent covered at
+    # most web + one flange. A fully-unfolded Z spans web + both flanges
+    # (minus a little bend-allowance shortfall), which clearly exceeds it.
+    assert developed > web_h + flange, (
+        f"developed extent {developed:.2f} mm should exceed web + one flange "
+        f"({web_h + flange:.2f} mm); the far flange looks dropped"
+    )
+
+
 def test_t_bracket_is_partial_with_branching_flag():
     """T-shaped bracket: a planar face has 3 bend neighbours -> PARTIAL."""
     solid = _build_t_bracket()
