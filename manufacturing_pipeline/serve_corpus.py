@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -49,6 +50,13 @@ _logger = logging.getLogger("stepalesengine.serve_corpus")
 
 EXIT_OK = 0
 EXIT_BAD_PATH = 2
+
+#: Environment variable read by :func:`wsgi_app` to locate the corpus report
+#: directory when the app is served under a WSGI server such as gunicorn.
+CORPUS_DIR_ENV = "STEPALESENGINE_CORPUS_DIR"
+#: Fallback corpus report directory, matching the path baked into the
+#: deployment image (``deploy/Dockerfile``).
+DEFAULT_CORPUS_DIR = "/app/corpus/report"
 
 
 # ---------------------------------------------------------------------------
@@ -264,6 +272,32 @@ def create_corpus_app(report_dir: Path | str) -> Any:
 
 
 # ---------------------------------------------------------------------------
+# WSGI entrypoint (for gunicorn and other production servers)
+# ---------------------------------------------------------------------------
+
+
+def wsgi_app() -> Any:
+    """Build the corpus WSGI application for a production server.
+
+    The report directory is read from the :data:`CORPUS_DIR_ENV` environment
+    variable, falling back to :data:`DEFAULT_CORPUS_DIR`. This is the
+    gunicorn-friendly factory; serve with::
+
+        gunicorn 'manufacturing_pipeline.serve_corpus:app'
+
+    where ``app`` is the module-level callable built from this factory.
+    """
+    report_dir = Path(
+        os.environ.get(CORPUS_DIR_ENV, DEFAULT_CORPUS_DIR)
+    ).expanduser()
+    return create_corpus_app(report_dir)
+
+
+#: Module-level WSGI callable for ``gunicorn manufacturing_pipeline.serve_corpus:app``.
+app = wsgi_app()
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -297,4 +331,4 @@ def main(argv: list[str] | None = None) -> int:
     return EXIT_OK
 
 
-__all__ = ["create_corpus_app", "main"]
+__all__ = ["app", "create_corpus_app", "main", "wsgi_app"]

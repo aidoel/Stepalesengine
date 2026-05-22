@@ -1,9 +1,9 @@
-# Deploying the corpus viewer (step.erpdoel.nl)
+# Deploying the corpus viewer (step.stadsbeheer.tech)
 
 `deploy/Dockerfile` builds a self-contained image: Python + `cadquery-ocp` +
 the project + a corpus of STEP files. `validate-corpus` runs at build time so
 the per-file manifests carry container-correct source paths; the container
-then runs `serve-corpus` (Flask) on port 5000.
+then serves the corpus viewer with `gunicorn` on port 5000.
 
 ## Build
 
@@ -21,8 +21,15 @@ docker build -f deploy/Dockerfile -t step-corpus .
 docker run -p 5000:5000 step-corpus
 ```
 
+The container's `CMD` runs `gunicorn` against the
+`manufacturing_pipeline.serve_corpus:app` WSGI entrypoint (a production
+server, replacing werkzeug's development server). The corpus report
+directory is read from the `STEPALESENGINE_CORPUS_DIR` environment variable,
+which the image sets to `/app/corpus/report`; override it to serve a
+different report directory. Adjust `--workers` in the `CMD` to taste.
+
 ## Coolify
 
 Deploy as a Coolify application (Dockerfile build, context = repo root with
-`corpus_steps/` added), domain `step.erpdoel.nl`, container port 5000.
+`corpus_steps/` added), domain `step.stadsbeheer.tech`, container port 5000.
 Coolify provides the reverse proxy and automatic HTTPS.

@@ -14,7 +14,7 @@ dependencies = [
 [project.optional-dependencies]
 occt = ["cadquery-ocp>=7.7"]
 dev = ["pytest>=7.0", "pytest-cov>=4.1", "hypothesis>=6.0", "ruff>=0.6", "pre-commit>=3.7", "mypy>=1.10"]
-web = ["flask>=3.0"]
+web = ["flask>=3.0", "gunicorn>=21.0"]
 
 [project.scripts]
 stepalesengine = "manufacturing_pipeline.cli:main"
