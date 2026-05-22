@@ -85,7 +85,8 @@ def test_render_html_report_contains_path_pills_and_table(tmp_path: Path) -> Non
 
     text = html_path.read_text(encoding="utf-8")
     assert html_path.exists()
-    assert str(corpus) in text  # corpus path
+    # The server filesystem path must not leak into the rendered report.
+    assert str(corpus) not in text
     assert "<table" in text
     assert "label-plaat" in text or "label-profiel" in text or "label-uncertain" in text
     assert "STEP corpus validation" in text

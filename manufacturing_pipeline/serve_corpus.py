@@ -25,7 +25,6 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -42,7 +41,7 @@ from manufacturing_pipeline.validate import (
     CorpusFile,
     CorpusReport,
     _build_anomalies,
-    render_html_report,
+    render_html_string,
 )
 from manufacturing_pipeline.web.server import create_app as create_file_app
 
@@ -208,21 +207,19 @@ def _build_outer_app(
     app.config["REPORT_DIR"] = report_dir
     app.config["DISCOVERED"] = discovered
 
+    # The set of discovered manifests is fixed for the life of the process
+    # (mounts are built once at startup), so the rendered index is rendered
+    # once and cached — no per-request manifest re-read or temp-file round
+    # trip.
+    _index_cache: dict[str, str] = {}
+
     @app.get("/")
     def index() -> tuple[str, int, dict[str, str]]:
-        report = _build_report_from_disk(report_dir, discovered)
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".html", delete=False, encoding="utf-8"
-        ) as tmp:
-            tmp_path = Path(tmp.name)
-        try:
-            render_html_report(report, tmp_path, link_mode=bool(discovered))
-            html = tmp_path.read_text(encoding="utf-8")
-        finally:
-            try:
-                tmp_path.unlink()
-            except OSError:
-                pass
+        html = _index_cache.get("html")
+        if html is None:
+            report = _build_report_from_disk(report_dir, discovered)
+            html = render_html_string(report, link_mode=bool(discovered))
+            _index_cache["html"] = html
         return (html, 200, {"Content-Type": "text/html; charset=utf-8"})
 
     @app.get("/file/<safe_name>")
@@ -254,6 +251,7 @@ def create_corpus_app(report_dir: Path | str) -> Any:
             sub_app = create_file_app(
                 f.manifest_path,
                 out_dir=f.manifest_path.parent,
+                diff_root=report_dir,
             )
         except Exception as exc:  # noqa: BLE001 - one bad file mustn't kill the corpus
             _logger.warning(

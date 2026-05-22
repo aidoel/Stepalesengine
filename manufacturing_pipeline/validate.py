@@ -351,19 +351,31 @@ def validate_corpus(
 # ---------------------------------------------------------------------------
 
 
-_HTML_STYLE = """
-:root { color-scheme: light dark; }
-* { box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-       margin: 0; padding: 24px; max-width: 1400px; margin: 0 auto;
-       background: #fafafa; color: #1a1a1a; }
+def _shared_css() -> str:
+    """Return the shared web-UI stylesheet (``web/templates/base.css``).
+
+    The corpus report and the per-file viewer then render from one theme.
+    Returns an empty string if the file cannot be read, so report generation
+    still succeeds from an unusual install layout.
+    """
+    css_path = Path(__file__).parent / "web" / "templates" / "base.css"
+    try:
+        return css_path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+# Corpus-report-only CSS. The shared visual theme — body, cards, labels,
+# links, typography — lives in base.css (loaded by _shared_css); this block
+# adds just the dashboard widgets the corpus index needs on top of it.
+_CORPUS_EXTRA_CSS = """
+body { max-width: 1400px; margin: 0 auto; }
 h1 { font-size: 24px; margin: 0 0 6px 0; }
 h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em;
      color: #555; margin: 24px 0 10px 0; }
-.muted { color: #777; font-size: 13px; }
-.card { background: white; border: 1px solid #e5e5e5; border-radius: 8px;
-        padding: 18px; margin-bottom: 16px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.corpus-header { margin-bottom: 18px; }
+.corpus-header .lede { font-size: 15px; color: #555; max-width: 72ch;
+                       margin: 6px 0 10px 0; line-height: 1.5; }
 .kpi-row { display: flex; flex-wrap: wrap; gap: 16px; }
 .kpi { flex: 1 1 140px; padding: 12px 16px; background: #f5f5f5;
        border-radius: 6px; }
@@ -375,12 +387,6 @@ h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em;
 .dist-seg { height: 100%; }
 .dist-legend { font-size: 12px; color: #555; display: flex; flex-wrap: wrap;
                gap: 12px; }
-.label { display: inline-block; padding: 2px 8px; border-radius: 4px;
-         font-size: 11px; font-weight: 600; }
-.label-plaat     { background: #d9e8ff; color: #0b3a82; }
-.label-profiel   { background: #d6f5d6; color: #1f5e1f; }
-.label-anders    { background: #fff4c5; color: #6b5300; }
-.label-uncertain { background: #e5e5e5; color: #555; }
 .anomaly-list { margin: 0; padding-left: 18px; font-size: 13px; }
 .anomaly-list li { margin: 2px 0; }
 .anomaly-empty { color: #1f5e1f; font-size: 13px; }
@@ -392,10 +398,11 @@ h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em;
 .toolbar input[type=search]:focus { outline: none; border-color: #1a5dd9;
            box-shadow: 0 0 0 3px rgba(26,93,217,0.15); }
 .toolbar .count { font-size: 13px; color: #555; font-variant-numeric: tabular-nums; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; box-shadow: none; }
 th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #ddd;
      cursor: pointer; user-select: none; background: #fafafa;
-     position: sticky; top: 0; font-weight: 600; }
+     position: sticky; top: 0; font-weight: 600; text-transform: none;
+     letter-spacing: 0; font-size: 13px; color: #1a1a1a; }
 th.sort-asc::after { content: " \\25B2"; color: #999; font-size: 10px; }
 th.sort-desc::after { content: " \\25BC"; color: #999; font-size: 10px; }
 td { padding: 6px 10px; border-bottom: 1px solid #f0f0f0;
@@ -406,8 +413,6 @@ tr.row-bad { background: #fff7f7; }
 .pmi-dot.off { background: #ddd; }
 .path-cell { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
              font-size: 12px; word-break: break-all; }
-.path-cell a { color: #1a5dd9; text-decoration: none; }
-.path-cell a:hover { text-decoration: underline; }
 .warn-cell { font-size: 11px; color: #821818; }
 .link-note { color: #1a5dd9; font-size: 13px; margin: 4px 0 0 0; }
 """
@@ -458,7 +463,9 @@ def _render_anomalies_html(report: CorpusReport) -> str:
     return f'<ul class="anomaly-list">{items}</ul>'
 
 
-def _render_file_rows(files: list[CorpusFile], *, link_mode: bool = False) -> str:
+def _render_file_rows(
+    files: list[CorpusFile], *, link_mode: bool = False, show_duration: bool = True
+) -> str:
     rows = []
     for f in files:
         labels_html = " ".join(
@@ -486,6 +493,11 @@ def _render_file_rows(files: list[CorpusFile], *, link_mode: bool = False) -> st
             if warn_text
             else ""
         )
+        duration_td = (
+            f'<td data-sort="{f.duration_s:.3f}">{f.duration_s:.2f}s</td>'
+            if show_duration
+            else ""
+        )
         rows.append(
             f'<tr class="{ok_class}" data-ok="{"1" if f.ok else "0"}">'
             f'<td class="path-cell">{path_html}'
@@ -497,7 +509,7 @@ def _render_file_rows(files: list[CorpusFile], *, link_mode: bool = False) -> st
             f'<td data-sort="{f.n_holes}">{f.n_holes}</td>'
             f'<td data-sort="{f.n_bends}">{f.n_bends}</td>'
             f"<td>{pmi_dot}</td>"
-            f'<td data-sort="{f.duration_s:.3f}">{f.duration_s:.2f}s</td>'
+            f"{duration_td}"
             f"</tr>"
         )
     return "\n".join(rows)
@@ -555,16 +567,17 @@ _SORT_JS = """
 """
 
 
-def render_html_report(
+def render_html_string(
     report: CorpusReport,
-    out_path: Path,
     *,
     link_mode: bool | None = None,
-) -> Path:
-    """Render the report as a styled, self-contained HTML page.
+) -> str:
+    """Render the corpus report as a self-contained HTML document string.
 
-    The HTML embeds its own CSS + a tiny JS for column sort and a search
-    filter. No external assets.
+    The HTML embeds its own CSS + a small JS for column sort and a search
+    filter; no external assets are referenced. Returning a string (rather than
+    only writing a file) lets :mod:`manufacturing_pipeline.serve_corpus` serve
+    the report straight from memory.
 
     Parameters
     ----------
@@ -575,12 +588,14 @@ def render_html_report(
         When None (default), link mode is auto-detected: turned on iff at
         least one file record has a non-empty ``safe_name``.
     """
-    out_path = Path(out_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
     if link_mode is None:
         link_mode = any(bool(f.safe_name) for f in report.files)
 
+    # Wall-time / mean-time carry information only for a live validate-corpus
+    # run. When the report is rebuilt from stored manifests there is no
+    # timing, so those KPIs and the Duration column are dropped rather than
+    # shown as a misleading 0.
+    has_timing = report.total_duration_s > 0.0
     avg_duration = (
         report.total_duration_s / report.total_files if report.total_files else 0.0
     )
@@ -591,18 +606,33 @@ def render_html_report(
         if link_mode
         else ""
     )
+    timing_kpis = (
+        '    <div class="kpi"><div class="k">Wall time</div>'
+        f'<div class="v">{report.total_duration_s:.1f}s</div></div>\n'
+        '    <div class="kpi"><div class="k">Mean / file</div>'
+        f'<div class="v">{avg_duration:.2f}s</div></div>\n'
+        if has_timing
+        else ""
+    )
+    duration_th = "        <th>Duration</th>\n" if has_timing else ""
+    style = _shared_css() + _CORPUS_EXTRA_CSS
 
-    body = f"""<!doctype html>
+    return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>STEP corpus validation - {html.escape(report.root)}</title>
-<style>{_HTML_STYLE}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STEP corpus validation</title>
+<style>{style}</style>
 </head>
 <body>
-<h1>STEP corpus validation</h1>
-<p class="muted">Corpus path: <code>{html.escape(report.root)}</code></p>
-{link_note}
+<header class="corpus-header">
+  <h1>STEP corpus validation</h1>
+  <p class="lede">Feature detection, sheet-metal unfold and bill-of-materials
+  classification run across a corpus of STEP assemblies — every file gets a
+  verdict, every part a label, hole count and bend count.</p>
+  {link_note}
+</header>
 
 <div class="card">
   <div class="kpi-row">
@@ -611,9 +641,7 @@ def render_html_report(
     <div class="kpi"><div class="k">Failed</div><div class="v" style="color:#821818">{report.failed_count}</div></div>
     <div class="kpi"><div class="k">Parts</div><div class="v">{report.parts_total}</div></div>
     <div class="kpi"><div class="k">Size</div><div class="v">{report.total_size_mb:.1f} MB</div></div>
-    <div class="kpi"><div class="k">Wall time</div><div class="v">{report.total_duration_s:.1f}s</div></div>
-    <div class="kpi"><div class="k">Mean / file</div><div class="v">{avg_duration:.2f}s</div></div>
-  </div>
+{timing_kpis}  </div>
 </div>
 
 <h2>Label distribution</h2>
@@ -643,11 +671,10 @@ def render_html_report(
         <th>Holes</th>
         <th>Bends</th>
         <th>PMI</th>
-        <th>Duration</th>
-      </tr>
+{duration_th}      </tr>
     </thead>
     <tbody>
-{_render_file_rows(report.files, link_mode=link_mode)}
+{_render_file_rows(report.files, link_mode=link_mode, show_duration=has_timing)}
     </tbody>
   </table>
 </div>
@@ -656,7 +683,23 @@ def render_html_report(
 </body>
 </html>
 """
-    out_path.write_text(body, encoding="utf-8")
+
+
+def render_html_report(
+    report: CorpusReport,
+    out_path: Path,
+    *,
+    link_mode: bool | None = None,
+) -> Path:
+    """Render the corpus report as a styled, self-contained HTML page on disk.
+
+    Thin wrapper over :func:`render_html_string`; see it for ``link_mode``.
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(
+        render_html_string(report, link_mode=link_mode), encoding="utf-8"
+    )
     return out_path
 
 
@@ -715,5 +758,6 @@ __all__ = [
     "CorpusReport",
     "validate_corpus",
     "render_html_report",
+    "render_html_string",
     "render_markdown_report",
 ]

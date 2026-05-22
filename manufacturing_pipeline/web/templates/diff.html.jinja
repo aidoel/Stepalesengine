@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Diff — {{ manifest.source_path | basename }}</title>
 <style>{{ css|safe }}
 .diff-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -29,7 +30,10 @@
 </head>
 <body>
 <div class="layout">
-  <p><a href="/">&larr; back to manifest</a></p>
+  <p class="muted">
+    {% if request.script_root %}<a href="/">&larr; Corpus overview</a> &middot; {% endif %}
+    <a href="{{ url_for('index') }}">&larr; back to part list</a>
+  </p>
   <h1>Diff</h1>
   <p class="muted">
     Base: <code>{{ manifest.source_path | basename }}</code>
@@ -37,7 +41,7 @@
   </p>
 
   <div class="card">
-    <form class="diff-form" method="get" action="/diff">
+    <form class="diff-form" method="get" action="{{ url_for('diff_view') }}">
       <input type="text" name="other" placeholder="/path/to/other_manifest.xml"
              value="{{ other_path or '' }}" aria-label="other manifest path">
       <button type="submit">Compare</button>

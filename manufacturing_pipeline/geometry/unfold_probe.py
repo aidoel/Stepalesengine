@@ -528,6 +528,42 @@ def _group_coaxial_cylinders(cylinders: list[_CylPatch]) -> list[list[_CylPatch]
     return groups
 
 
+def _count_physical_bends(bends: list[Bend], thickness: float) -> int:
+    """Count distinct physical bends (hinge lines) in a bend list.
+
+    One physical corner is represented in ``bends`` more than once: its inner
+    and its outer surface each yield a record — a cylindrical fillet and/or a
+    sharp synthetic edge — so a constant-thickness corner is two records and a
+    box-minus-box tube wall is a fillet plus a sharp edge. Every record of one
+    corner shares that corner's hinge line up to the sheet thickness. Grouping
+    records by hinge line (parallel axis, within a thickness-scaled
+    perpendicular distance) and counting the groups gives the true physical
+    bend count — robust to how the unfold BFS walked, so it does not
+    undercount a Z-section whose opposite-folding flange sits off the base
+    face's component.
+    """
+    # A corner's inner and outer surface records sit within ~thickness of each
+    # other for a clean constant-thickness bend, and up to ~3*thickness apart
+    # for a non-concentric or sharp-cornered one. Distinct corners are a flange
+    # length apart, far beyond this. 3*thickness separates the two cleanly.
+    merge_dist = max(3.0 * float(thickness), 1.5)
+    representatives: list[Bend] = []
+    for b in bends:
+        if any(
+            _axes_collinear(
+                rep.axis_dir,
+                rep.axis_loc,
+                b.axis_dir,
+                b.axis_loc,
+                dist_tol_mm=merge_dist,
+            )
+            for rep in representatives
+        ):
+            continue
+        representatives.append(b)
+    return len(representatives)
+
+
 @dataclass
 class _RolledTube:
     """A smoothly rolled sheet-metal section (a cylinder or pipe).
@@ -1430,9 +1466,13 @@ class UnfoldProbe:
             flags["has_joggle"] = True
             flags["n_joggles"] = n_joggles
 
-        # The slit seam bend is a real physical bend of the part even though
-        # the BFS did not cross it; count it so n_bends matches the geometry.
-        n_bends_total = len(visited_bends) + (1 if seamed else 0)
+        # n_bends is the count of physical bends. Each physical corner appears
+        # in `bends` more than once (inner + outer surface; fillet and/or sharp
+        # edge), and _bfs_unfold only crosses bends in the base face's graph
+        # component — missing a Z-section's opposite-folding flange. Counting
+        # distinct hinge lines over the whole bend list is robust to both, and
+        # the slit seam bend, still in `bends`, is counted with the rest.
+        n_bends_total = _count_physical_bends(bends, t_mean)
 
         return UnfoldResult(
             status=status,
