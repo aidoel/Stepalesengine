@@ -101,9 +101,9 @@ def test_mesh_cube_volume_within_5_percent(size):
     feats = FeatureExtractor(enable_cross_section=False).extract(solid)
     assert feats.source == "mesh"
     expected = size**3
-    assert feats.volume == pytest.approx(expected, rel=0.05), (
-        f"mesh volume {feats.volume} vs expected {expected}"
-    )
+    assert feats.volume == pytest.approx(
+        expected, rel=0.05
+    ), f"mesh volume {feats.volume} vs expected {expected}"
 
 
 @pytest.mark.parametrize("size", [25.0, 50.0, 100.0])
@@ -114,9 +114,9 @@ def test_mesh_cube_surface_area_within_5_percent(size):
     feats = FeatureExtractor(enable_cross_section=False).extract(solid)
     assert feats.source == "mesh"
     expected = 6.0 * size * size
-    assert feats.surface_area == pytest.approx(expected, rel=0.05), (
-        f"mesh surface area {feats.surface_area} vs expected {expected}"
-    )
+    assert feats.surface_area == pytest.approx(
+        expected, rel=0.05
+    ), f"mesh surface area {feats.surface_area} vs expected {expected}"
 
 
 # ---------------------------------------------------------------------------

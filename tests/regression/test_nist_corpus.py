@@ -143,9 +143,9 @@ def test_nist_baseline(filename: str, expected: dict, tmp_path: Path) -> None:
     labels: dict[str, int] = {}
     for part in result.manifest.parts:
         labels[part.classification.label] = labels.get(part.classification.label, 0) + 1
-    assert labels == expected["labels"], (
-        f"label distribution mismatch for {filename}: got {labels}, expected {expected['labels']}"
-    )
+    assert (
+        labels == expected["labels"]
+    ), f"label distribution mismatch for {filename}: got {labels}, expected {expected['labels']}"
 
     if "pmi" in expected:
         pmi = result.manifest.parts[0].pmi

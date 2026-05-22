@@ -1,6 +1,7 @@
-# Corpus viewer for step.erpdoel.nl - Flask serve-corpus + OCP, corpus baked in.
-# Build context = repo root. A corpus_steps/ directory with the STEP files to
-# showcase must be present in the context at build time (gitignored).
+# Corpus viewer for step.stadsbeheer.tech - gunicorn serve-corpus + OCP,
+# corpus baked in. Build context = repo root. A corpus_steps/ directory with
+# the STEP files to showcase must be present in the context at build time
+# (gitignored).
 #   docker build -f deploy/Dockerfile -t step-corpus .
 FROM python:3.12-slim
 
@@ -14,7 +15,7 @@ WORKDIR /app
 # Python deps first for layer caching. scipy + mapbox-earcut + manifold3d are
 # needed by the web GLB routes (folded tessellation / unfolded triangulation).
 RUN pip install --no-cache-dir \
-        "cadquery-ocp>=7.7" flask numpy "ezdxf>=1.3" pyyaml \
+        "cadquery-ocp>=7.7" flask gunicorn numpy "ezdxf>=1.3" pyyaml \
         "reportlab>=4.0" "watchdog>=3.0" trimesh shapely \
         scipy mapbox-earcut manifold3d
 
@@ -30,6 +31,10 @@ RUN python -m manufacturing_pipeline.cli validate-corpus /app/corpus/steps \
         --write-outputs --out-dir /app/corpus/report \
         --html /app/corpus/report/report.html --workers 4 || true
 
+# Corpus directory read by the gunicorn WSGI entrypoint
+# (manufacturing_pipeline.serve_corpus:app).
+ENV STEPALESENGINE_CORPUS_DIR=/app/corpus/report
+
 EXPOSE 5000
-CMD ["python", "-m", "manufacturing_pipeline.cli", "serve-corpus", \
-     "/app/corpus/report", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", \
+     "manufacturing_pipeline.serve_corpus:app"]

@@ -41,9 +41,9 @@ def test_ideal_plaat_clears_confidence_threshold():
     }
     res = _classify(features)
     assert res.label == "plaat", res.trace.probabilities
-    assert res.confidence >= 0.70, (
-        f"plaat conf={res.confidence:.3f} below 0.70; probs={res.trace.probabilities}"
-    )
+    assert (
+        res.confidence >= 0.70
+    ), f"plaat conf={res.confidence:.3f} below 0.70; probs={res.trace.probabilities}"
 
 
 def test_ideal_profiel_clears_confidence_threshold():
@@ -61,9 +61,9 @@ def test_ideal_profiel_clears_confidence_threshold():
     }
     res = _classify(features)
     assert res.label == "profiel", res.trace.probabilities
-    assert res.confidence >= 0.70, (
-        f"profiel conf={res.confidence:.3f} below 0.70; probs={res.trace.probabilities}"
-    )
+    assert (
+        res.confidence >= 0.70
+    ), f"profiel conf={res.confidence:.3f} below 0.70; probs={res.trace.probabilities}"
 
 
 def test_ideal_anders_clears_confidence_threshold():
@@ -81,9 +81,9 @@ def test_ideal_anders_clears_confidence_threshold():
     }
     res = _classify(features)
     assert res.label == "anders", res.trace.probabilities
-    assert res.confidence >= 0.70, (
-        f"anders conf={res.confidence:.3f} below 0.70; probs={res.trace.probabilities}"
-    )
+    assert (
+        res.confidence >= 0.70
+    ), f"anders conf={res.confidence:.3f} below 0.70; probs={res.trace.probabilities}"
 
 
 def test_ambiguous_case_stays_uncertain_or_low_confidence():
@@ -124,9 +124,9 @@ def test_ideal_plaat_requires_both_top1_and_unfoldable():
         "profile_match_designation": None,
     }
     res = _classify(features)
-    assert res.label != "plaat", (
-        f"non-unfoldable top1=0.45 leaked into plaat: probs={res.trace.probabilities}"
-    )
+    assert (
+        res.label != "plaat"
+    ), f"non-unfoldable top1=0.45 leaked into plaat: probs={res.trace.probabilities}"
 
 
 def test_lbracket_clears_relaxed_confidence_threshold():
@@ -144,6 +144,6 @@ def test_lbracket_clears_relaxed_confidence_threshold():
     }
     res = _classify(features)
     assert res.label == "plaat", res.trace.probabilities
-    assert res.confidence >= 0.65, (
-        f"L-bracket conf={res.confidence:.3f} below 0.65; probs={res.trace.probabilities}"
-    )
+    assert (
+        res.confidence >= 0.65
+    ), f"L-bracket conf={res.confidence:.3f} below 0.65; probs={res.trace.probabilities}"

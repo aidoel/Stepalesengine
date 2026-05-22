@@ -18,6 +18,7 @@ occt = ["cadquery-ocp>=7.7"]
 dev = ["pytest>=7.0", "pytest-cov>=4.1", "hypothesis>=6.0", "ruff>=0.6", "pre-commit>=3.7", "mypy>=1.10"]
 web = [
     "flask>=3.0",
+    "gunicorn>=21.0",
     "trimesh>=4.0",
     "mapbox-earcut>=1.0",
     "manifold3d>=2.0",

@@ -423,12 +423,12 @@ def test_flat_pattern_l_bracket_area_and_bend_line():
     hole_area = sum(_polygon_area(h) for h in pattern["holes"])
     total_area = outer_area - hole_area
 
-    assert total_area >= (A1 + A2) - 1e-6, (
-        f"unfolded area {total_area:.2f} must be >= flat areas {A1 + A2:.2f}"
-    )
-    assert total_area == pytest.approx(expected, rel=1e-2), (
-        f"unfolded area {total_area:.2f} != A1+A2+BA*L = {expected:.2f}"
-    )
+    assert (
+        total_area >= (A1 + A2) - 1e-6
+    ), f"unfolded area {total_area:.2f} must be >= flat areas {A1 + A2:.2f}"
+    assert total_area == pytest.approx(
+        expected, rel=1e-2
+    ), f"unfolded area {total_area:.2f} != A1+A2+BA*L = {expected:.2f}"
 
 
 def test_flat_pattern_u_channel():
@@ -446,9 +446,9 @@ def test_flat_pattern_u_channel():
     xmin, _ymin, xmax, _ymax = pattern["bbox"]
     bbox_length = xmax - xmin
     # When unfolded, the U should have length > base flange length.
-    assert bbox_length > base_length, (
-        f"unfolded U bbox length {bbox_length:.2f} should exceed base {base_length:.2f}"
-    )
+    assert (
+        bbox_length > base_length
+    ), f"unfolded U bbox length {bbox_length:.2f} should exceed base {base_length:.2f}"
 
 
 def test_flat_pattern_plate_with_circular_hole():
@@ -495,13 +495,13 @@ def test_lbracket_base_face_tie_break():
     probe = UnfoldProbe()
     res = probe.run(solid)
     assert res.status == UnfoldStatus.SUCCESS
-    assert res.n_bends == 1, (
-        f"L-bracket with symmetric legs must yield n_bends=1, got {res.n_bends}"
-    )
+    assert (
+        res.n_bends == 1
+    ), f"L-bracket with symmetric legs must yield n_bends=1, got {res.n_bends}"
     # Sanity: the unfolded flat area exceeds the area of a single flange.
-    assert res.flat_area > 40.0 * 40.0, (
-        f"flat_area {res.flat_area:.2f} should exceed single-flange area 1600"
-    )
+    assert (
+        res.flat_area > 40.0 * 40.0
+    ), f"flat_area {res.flat_area:.2f} should exceed single-flange area 1600"
 
 
 def test_base_face_prefers_bend_participation():
@@ -535,9 +535,9 @@ def test_base_face_prefers_bend_participation():
         length=10.0,
     )
     chosen = _select_base_face(planars, [bend])
-    assert chosen == 1, (
-        f"base selector should pick the bend-participating face (idx=1), got {chosen}"
-    )
+    assert (
+        chosen == 1
+    ), f"base selector should pick the bend-participating face (idx=1), got {chosen}"
 
     # End-to-end: build a U-channel and confirm the probe's chosen base
     # participates in a bend by checking that n_bends >= 1 and the flat
@@ -705,6 +705,131 @@ def _build_z_bend(
     return _first_solid(prism)
 
 
+def _build_z_purlin(
+    t: float = 3.0,
+    R: float = 4.0,
+    flange: float = 50.0,
+    web_h: float = 80.0,
+    width: float = 240.0,
+):
+    """A Z-section / Z-purlin: bottom flange one way, web, top flange the other.
+
+    The two bends fold in *opposite* directions, so they attach to opposite
+    faces of the middle web and the bend graph splits into components a single
+    BFS cannot span. Pre-fix the flat pattern only covered the base face's
+    component, dropping the far flange.
+
+    The cross-section is a constant-thickness closed polygon in the XZ plane;
+    the inner (concave) corner of each fold is filleted with ``R`` and the
+    matching outer (convex) corner with ``R + t`` so the sheet stays constant
+    thickness. The face is then prismed ``width`` mm along +Y. This mirrors
+    the proven Z-purlin recipe in ``corpus_steps`` (``build_zbracket`` plus
+    ``sheet_metal_profile``); it is inlined here because ``corpus_steps/`` is
+    gitignored and must not be imported.
+    """
+    from OCP.BRep import BRep_Tool
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_MakePolygon
+    from OCP.BRepFilletAPI import BRepFilletAPI_MakeFillet2d
+    from OCP.TopAbs import TopAbs_VERTEX
+
+    # Web vertical strip: outer face at x=0, inner face at x=t. Bottom flange
+    # extends in -X from the web bottom; top flange extends in +X from the
+    # web top.
+    xb = -flange  # far end of bottom flange
+    xt = flange + t  # far end of top flange
+    z0 = 0.0
+    z1 = t  # top of bottom flange
+    z2 = web_h  # bottom of top flange
+    z3 = web_h + t  # top of top flange
+
+    # Closed CCW polygon (first vertex not repeated).
+    section = [
+        (xb, z0),  # 0  outer corner, bottom flange far bottom
+        (t, z0),  # 1  outer corner, bottom flange right bottom (BEND A outer)
+        (t, z2),  # 2  inner corner, web meets top flange (BEND B inner)
+        (xt, z2),  # 3  inner corner, top flange far underside
+        (xt, z3),  # 4  outer corner, top flange far top
+        (0.0, z3),  # 5  outer corner, top flange / web (BEND B outer)
+        (0.0, z1),  # 6  inner corner, web meets bottom flange (BEND A inner)
+        (xb, z1),  # 7  inner corner, bottom flange far top
+    ]
+    # Fold A (bottom flange / web): outer convex corner 1 -> R+t, inner 6 -> R.
+    # Fold B (web / top flange): outer convex corner 5 -> R+t, inner 2 -> R.
+    bends = [(1, R + t), (6, R), (5, R + t), (2, R)]
+
+    poly = BRepBuilderAPI_MakePolygon()
+    for x, z in section:
+        poly.Add(gp_Pnt(float(x), 0.0, float(z)))
+    poly.Close()
+    if not poly.IsDone():
+        raise AssertionError("Z-purlin cross-section polygon build failed")
+    face = BRepBuilderAPI_MakeFace(poly.Wire(), True).Face()
+
+    targets = {
+        (round(float(section[i][0]), 3), round(float(section[i][1]), 3)): float(rad)
+        for i, rad in bends
+    }
+    mf = BRepFilletAPI_MakeFillet2d(face)
+    seen: set[tuple[float, float]] = set()
+    exp = TopExp_Explorer(face, TopAbs_VERTEX)
+    while exp.More():
+        vtx = TopoDS.Vertex_s(exp.Current())
+        pnt = BRep_Tool.Pnt_s(vtx)
+        key = (round(pnt.X(), 3), round(pnt.Z(), 3))
+        radius = targets.get(key)
+        if radius is not None and key not in seen:
+            seen.add(key)
+            mf.AddFillet(vtx, radius)
+        exp.Next()
+    mf.Build()
+    if not mf.IsDone():
+        raise AssertionError("fillet2d on Z-purlin cross-section failed")
+    face = TopoDS.Face_s(mf.Shape())
+
+    prism = BRepPrimAPI_MakePrism(face, gp_Vec(0.0, float(width), 0.0)).Shape()
+    return _first_solid(prism)
+
+
+def test_z_section_fully_unfolds_spanning_all_three_segments():
+    """A Z-purlin develops to the full flat blank: flange + web + flange.
+
+    Its two bends fold in opposite directions, so they attach to opposite
+    faces of the middle web and the bend graph splits into two components.
+    Pre-fix a single unfold BFS could not bridge them and the far flange was
+    dropped. The fix bridges an unreached component through the twin face of
+    an already-placed segment, so the developed blank now spans all three
+    segments.
+    """
+    flange = 50.0
+    web_h = 80.0
+    width = 240.0
+    solid = _build_z_purlin(t=3.0, R=4.0, flange=flange, web_h=web_h, width=width)
+
+    pattern = UnfoldProbe().compute_flat_pattern(solid)
+    assert pattern, "Z-purlin should produce a non-empty flat pattern"
+    assert (
+        len(pattern["bend_lines"]) == 2
+    ), f"Z-purlin has exactly two bend lines, got {len(pattern['bend_lines'])}"
+
+    # The developed extent must span flange + web + flange. The blank's
+    # in-section dimension runs perpendicular to the prism (+Y) axis; the
+    # other axis is just the prism width. Take whichever side is NOT the
+    # ~width axis as the developed (unrolled section) extent.
+    xmin, ymin, xmax, ymax = pattern["bbox"]
+    dx = xmax - xmin
+    dy = ymax - ymin
+    width_side = min((dx, dy), key=lambda d: abs(d - width))
+    developed = dx if width_side is dy else dy
+
+    # Pre-fix the far flange was dropped, so the developed extent covered at
+    # most web + one flange. A fully-unfolded Z spans web + both flanges
+    # (minus a little bend-allowance shortfall), which clearly exceeds it.
+    assert developed > web_h + flange, (
+        f"developed extent {developed:.2f} mm should exceed web + one flange "
+        f"({web_h + flange:.2f} mm); the far flange looks dropped"
+    )
+
+
 def test_t_bracket_is_partial_with_branching_flag():
     """T-shaped bracket: a planar face has 3 bend neighbours -> PARTIAL."""
     solid = _build_t_bracket()
@@ -742,9 +867,9 @@ def test_z_bend_flags_joggle():
     """Z-shape (serial joggle): two opposite-sign bends in a row -> joggle."""
     solid = _build_z_bend()
     res = UnfoldProbe().run(solid)
-    assert res.status == UnfoldStatus.SUCCESS, (
-        f"Z-bend should unfold cleanly, got {res.status} ({res.reason})"
-    )
+    assert (
+        res.status == UnfoldStatus.SUCCESS
+    ), f"Z-bend should unfold cleanly, got {res.status} ({res.reason})"
     assert res.flags.get("has_joggle") is True
     assert res.flags.get("n_joggles", 0) >= 1
     # Both bends must have been traversed.
@@ -911,9 +1036,9 @@ def test_star_bracket_does_not_fail():
 
     solid = _build_star_bracket()
     res = UnfoldProbe().run(solid)
-    assert res.status != UnfoldStatus.FAILURE, (
-        f"star-shaped flange part should not fail, got {res.reason}"
-    )
+    assert (
+        res.status != UnfoldStatus.FAILURE
+    ), f"star-shaped flange part should not fail, got {res.reason}"
     # A base flange with three or more bend neighbours: branching flag set.
     assert res.flags.get("branching") is True
     assert res.n_bends >= 3
@@ -970,3 +1095,67 @@ def test_thick_walled_pipe_still_fails():
     res = UnfoldProbe().run(pipe)
     assert res.status == UnfoldStatus.FAILURE
     assert res.flags.get("rolled_tube") is None
+
+
+# ---------------------------------------------------------------------------
+# Regression: sharp-cornered (un-filleted) tube exercises the synthetic-bend
+# path. _build_rect_tube above fillets its corners, so it only ever drove the
+# cylindrical-bend detector; nothing in the suite exercised a sharp corner.
+# _find_synthetic_bends took FindKey()'s generic TopoDS_Shape straight into
+# BRepAdaptor_Curve, which only accepts a TopoDS_Edge -> the ctor raised
+# TypeError for every edge, the loop swallowed it, and a sharp-cornered tube
+# reported 0 bends and unfolded as a flat plate.
+# ---------------------------------------------------------------------------
+
+
+def _build_sharp_rect_tube(
+    W: float = 60.0,
+    H: float = 100.0,
+    t: float = 4.0,
+    length: float = 120.0,
+):
+    """A four-walled rectangular tube with sharp (un-filleted) 90 deg corners.
+
+    Outer box minus inner box, no corner fillets: the four corner bends have no
+    cylindrical patch, so they can only be found as *synthetic* bends.
+    """
+
+    outer = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), W, H, length).Solid()
+    inner = BRepPrimAPI_MakeBox(gp_Pnt(t, t, 0), W - 2 * t, H - 2 * t, length).Solid()
+    return _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
+
+
+def test_bend_detector_finds_sharp_tube_corner_bends():
+    """The synthetic-bend detector must find the four sharp corner bends.
+
+    Direct regression for the missing TopoDS.Edge_s cast in
+    _find_synthetic_bends: before the fix this returned an empty list because
+    BRepAdaptor_Curve rejected every (un-cast) FindKey shape.
+    """
+
+    solid = _build_sharp_rect_tube()
+    bends = BendDetector().detect(solid)
+    synthetic = [b for b in bends if b.is_synthetic]
+    assert synthetic, "sharp tube corners must be found as synthetic bends"
+    assert all(
+        abs(math.degrees(b.angle_rad) - 90.0) < 1.0 for b in synthetic
+    ), "each sharp corner is a 90 deg bend"
+
+
+def test_sharp_rect_tube_unfolds_as_seamed_section():
+    """A sharp-cornered rectangular tube is a closed cyclic bend graph.
+
+    It must unfold PARTIAL with a ``seamed_section`` flag and four bends -
+    exactly like the filleted ``_build_rect_tube`` - not slip through the
+    no-bends flat-plate path as SUCCESS / n_bends=0.
+    """
+
+    solid = _build_sharp_rect_tube()
+    res = UnfoldProbe().run(solid)
+    assert res.status == UnfoldStatus.PARTIAL, (
+        f"sharp-cornered tube should unfold as a seamed section, "
+        f"got {res.status} ({res.reason})"
+    )
+    assert res.flags.get("seamed_section") is True
+    assert res.n_bends == 4
+    assert res.flat_area > 0.0

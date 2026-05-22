@@ -24,8 +24,8 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -42,7 +42,7 @@ from manufacturing_pipeline.validate import (
     CorpusFile,
     CorpusReport,
     _build_anomalies,
-    render_html_report,
+    render_html_string,
 )
 from manufacturing_pipeline.web.server import create_app as create_file_app
 
@@ -50,6 +50,13 @@ _logger = logging.getLogger("stepalesengine.serve_corpus")
 
 EXIT_OK = 0
 EXIT_BAD_PATH = 2
+
+#: Environment variable read by :func:`wsgi_app` to locate the corpus report
+#: directory when the app is served under a WSGI server such as gunicorn.
+CORPUS_DIR_ENV = "STEPALESENGINE_CORPUS_DIR"
+#: Fallback corpus report directory, matching the path baked into the
+#: deployment image (``deploy/Dockerfile``).
+DEFAULT_CORPUS_DIR = "/app/corpus/report"
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +140,17 @@ def _record_from_manifest(
     except OSError:
         size = 0
 
+    # A thumb.svg sitting next to the manifest was written by
+    # validate-corpus --write-outputs; embed it inline so the served report
+    # shows the per-row geometry preview without an extra route.
+    thumbnail_svg = ""
+    thumb_path = manifest_path.parent / "thumb.svg"
+    try:
+        if thumb_path.is_file():
+            thumbnail_svg = thumb_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        _logger.debug("could not read thumbnail %s: %s", thumb_path, exc)
+
     record = CorpusFile(
         relative_path=rel,
         size_bytes=size,
@@ -148,6 +166,7 @@ def _record_from_manifest(
         bbox_max_mm=bbox_max_mm,
         is_ap242=False,
         safe_name=safe_name,
+        thumbnail_svg=thumbnail_svg,
     )
     record.warnings = _build_anomalies(record)
     return record
@@ -204,21 +223,19 @@ def _build_outer_app(
     app.config["REPORT_DIR"] = report_dir
     app.config["DISCOVERED"] = discovered
 
+    # The set of discovered manifests is fixed for the life of the process
+    # (mounts are built once at startup), so the rendered index is rendered
+    # once and cached — no per-request manifest re-read or temp-file round
+    # trip.
+    _index_cache: dict[str, str] = {}
+
     @app.get("/")
     def index() -> tuple[str, int, dict[str, str]]:
-        report = _build_report_from_disk(report_dir, discovered)
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".html", delete=False, encoding="utf-8"
-        ) as tmp:
-            tmp_path = Path(tmp.name)
-        try:
-            render_html_report(report, tmp_path, link_mode=bool(discovered))
-            html = tmp_path.read_text(encoding="utf-8")
-        finally:
-            try:
-                tmp_path.unlink()
-            except OSError:
-                pass
+        html = _index_cache.get("html")
+        if html is None:
+            report = _build_report_from_disk(report_dir, discovered)
+            html = render_html_string(report, link_mode=bool(discovered))
+            _index_cache["html"] = html
         return (html, 200, {"Content-Type": "text/html; charset=utf-8"})
 
     @app.get("/file/<safe_name>")
@@ -250,6 +267,7 @@ def create_corpus_app(report_dir: Path | str) -> Any:
             sub_app = create_file_app(
                 f.manifest_path,
                 out_dir=f.manifest_path.parent,
+                diff_root=report_dir,
             )
         except Exception as exc:  # noqa: BLE001 - one bad file mustn't kill the corpus
             _logger.warning("could not mount per-file viewer for %s: %s", f.safe_name, exc)
@@ -257,6 +275,30 @@ def create_corpus_app(report_dir: Path | str) -> Any:
         mounts[f"/file/{f.safe_name}"] = sub_app
 
     return DispatcherMiddleware(outer.wsgi_app, mounts)
+
+
+# ---------------------------------------------------------------------------
+# WSGI entrypoint (for gunicorn and other production servers)
+# ---------------------------------------------------------------------------
+
+
+def wsgi_app() -> Any:
+    """Build the corpus WSGI application for a production server.
+
+    The report directory is read from the :data:`CORPUS_DIR_ENV` environment
+    variable, falling back to :data:`DEFAULT_CORPUS_DIR`. This is the
+    gunicorn-friendly factory; serve with::
+
+        gunicorn 'manufacturing_pipeline.serve_corpus:app'
+
+    where ``app`` is the module-level callable built from this factory.
+    """
+    report_dir = Path(os.environ.get(CORPUS_DIR_ENV, DEFAULT_CORPUS_DIR)).expanduser()
+    return create_corpus_app(report_dir)
+
+
+#: Module-level WSGI callable for ``gunicorn manufacturing_pipeline.serve_corpus:app``.
+app = wsgi_app()
 
 
 # ---------------------------------------------------------------------------
@@ -293,4 +335,4 @@ def main(argv: list[str] | None = None) -> int:
     return EXIT_OK
 
 
-__all__ = ["create_corpus_app", "main"]
+__all__ = ["app", "create_corpus_app", "main", "wsgi_app"]

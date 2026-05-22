@@ -322,6 +322,45 @@ def _pair_gap(a: _PlanarFace, b: _PlanarFace) -> tuple[float, float]:
     return abs(proj), lateral
 
 
+def _pair_opposite_faces(planars: list[_PlanarFace], thickness: float) -> dict[int, int]:
+    """Map each planar face to the opposite surface of the same flat segment.
+
+    The two surfaces of one sheet segment are antiparallel, overlapping, and
+    exactly the material thickness apart. This pairing lets the unfold bridge
+    a Z-section: its opposite-direction folds attach to opposite faces of the
+    middle flange, so the bend graph splits into components a single BFS
+    cannot span.
+    """
+
+    twin: dict[int, int] = {}
+    if thickness <= 1e-9:
+        return twin
+    tol = max(UNFOLD_FLANGE_GAP_REL_TOL * thickness, 0.15)
+    for i in range(len(planars)):
+        a = planars[i]
+        best_j = -1
+        best_gap = 0.0
+        for j in range(len(planars)):
+            if i == j:
+                continue
+            b = planars[j]
+            if _dot(a.normal, b.normal) > UNFOLD_ANTIPARALLEL_DOT_MAX:
+                continue
+            gap, lateral = _pair_gap(a, b)
+            if abs(gap - thickness) > tol:
+                continue
+            # Overlap test (mirrors _identify_sheet): the back-side face sits
+            # directly behind its front, so the lateral offset is small.
+            if lateral > 0.5 * math.sqrt(min(a.area, b.area)) + gap:
+                continue
+            if best_j < 0 or gap < best_gap:
+                best_j = j
+                best_gap = gap
+        if best_j >= 0:
+            twin[i] = best_j
+    return twin
+
+
 def _identify_sheet(planars: list[_PlanarFace]) -> _SheetModel:
     """Identify the flange faces and material thickness of a sheet-metal solid.
 
@@ -526,6 +565,42 @@ def _group_coaxial_cylinders(cylinders: list[_CylPatch]) -> list[list[_CylPatch]
         if not placed:
             groups.append([c])
     return groups
+
+
+def _count_physical_bends(bends: list[Bend], thickness: float) -> int:
+    """Count distinct physical bends (hinge lines) in a bend list.
+
+    One physical corner is represented in ``bends`` more than once: its inner
+    and its outer surface each yield a record — a cylindrical fillet and/or a
+    sharp synthetic edge — so a constant-thickness corner is two records and a
+    box-minus-box tube wall is a fillet plus a sharp edge. Every record of one
+    corner shares that corner's hinge line up to the sheet thickness. Grouping
+    records by hinge line (parallel axis, within a thickness-scaled
+    perpendicular distance) and counting the groups gives the true physical
+    bend count — robust to how the unfold BFS walked, so it does not
+    undercount a Z-section whose opposite-folding flange sits off the base
+    face's component.
+    """
+    # A corner's inner and outer surface records sit within ~thickness of each
+    # other for a clean constant-thickness bend, and up to ~3*thickness apart
+    # for a non-concentric or sharp-cornered one. Distinct corners are a flange
+    # length apart, far beyond this. 3*thickness separates the two cleanly.
+    merge_dist = max(3.0 * float(thickness), 1.5)
+    representatives: list[Bend] = []
+    for b in bends:
+        if any(
+            _axes_collinear(
+                rep.axis_dir,
+                rep.axis_loc,
+                b.axis_dir,
+                b.axis_loc,
+                dist_tol_mm=merge_dist,
+            )
+            for rep in representatives
+        ):
+            continue
+        representatives.append(b)
+    return len(representatives)
 
 
 @dataclass
@@ -1104,6 +1179,7 @@ class BendDetector:
         from OCP.GeomAbs import GeomAbs_Line
         from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
         from OCP.TopExp import TopExp
+        from OCP.TopoDS import TopoDS
         from OCP.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
 
         # Edge -> faces map
@@ -1118,7 +1194,15 @@ class BendDetector:
         seen_pairs = set(existing_pairs)
 
         for k in range(1, m.Size() + 1):
-            edge = m.FindKey(k)
+            # FindKey returns a generic TopoDS_Shape; BRepAdaptor_Curve only
+            # accepts a TopoDS_Edge, so cast first. Without the cast the ctor
+            # raises TypeError for every edge and the loop below finds no
+            # synthetic bends at all (a sharp-cornered RHS / channel / I-beam
+            # then reports 0 bends and unfolds as a flat plate).
+            try:
+                edge = TopoDS.Edge_s(m.FindKey(k))
+            except Exception:
+                continue
             try:
                 curve = BRepAdaptor_Curve(edge)
             except Exception:
@@ -1426,9 +1510,13 @@ class UnfoldProbe:
             flags["has_joggle"] = True
             flags["n_joggles"] = n_joggles
 
-        # The slit seam bend is a real physical bend of the part even though
-        # the BFS did not cross it; count it so n_bends matches the geometry.
-        n_bends_total = len(visited_bends) + (1 if seamed else 0)
+        # n_bends is the count of physical bends. Each physical corner appears
+        # in `bends` more than once (inner + outer surface; fillet and/or sharp
+        # edge), and _bfs_unfold only crosses bends in the base face's graph
+        # component — missing a Z-section's opposite-folding flange. Counting
+        # distinct hinge lines over the whole bend list is robust to both, and
+        # the slit seam bend, still in `bends`, is counted with the rest.
+        n_bends_total = _count_physical_bends(bends, t_mean)
 
         return UnfoldResult(
             status=status,
@@ -1473,30 +1561,73 @@ class UnfoldProbe:
         bend_idx)`` tuples in BFS order. The traversal log lets callers
         compute signed rotation angles per bend (parent -> child) for
         downstream analyses like joggle detection.
+
+        A Z-section's bends attach to opposite faces of its middle flange, so
+        the bend graph splits into components a single BFS cannot span. After
+        the walk from ``base``, each unreached component is bridged through
+        the twin (opposite surface of the same flat segment) of a visited
+        face — provided that bridge reaches an as-yet-uncovered segment — and
+        unfolded too, so the flat area covers the whole part.
         """
+
+        twin = _pair_opposite_faces(planars, thickness)
+
+        def _seg(f: int) -> int:
+            tw = twin.get(f, f)
+            return f if f <= tw else tw
 
         visited_planars = {base}
         visited_bends: set = set()
         traversal: list[tuple[int, int, int]] = []
+        covered: set = {_seg(base)}
         flat_area = planars[base].area
-        queue: deque = deque([base])
 
-        while queue:
-            cur = queue.popleft()
-            for bi in planar_bend_idx[cur]:
-                if bi in visited_bends:
-                    continue
+        def _walk(start: int) -> None:
+            nonlocal flat_area
+            queue: deque = deque([start])
+            while queue:
+                cur = queue.popleft()
+                for bi in planar_bend_idx[cur]:
+                    if bi in visited_bends:
+                        continue
+                    b = bends[bi]
+                    nxt = b.p_out_index if b.p_in_index == cur else b.p_in_index
+                    if nxt in visited_planars or _seg(nxt) in covered:
+                        continue
+                    visited_bends.add(bi)
+                    visited_planars.add(nxt)
+                    covered.add(_seg(nxt))
+                    traversal.append((cur, nxt, bi))
+                    flat_area += planars[nxt].area
+                    ba = self._bend_allowance(b, thickness)
+                    flat_area += ba * max(b.length, 0.0)
+                    queue.append(nxt)
+
+        _walk(base)
+
+        def _reaches_uncovered(f: int) -> bool:
+            for bi in planar_bend_idx[f]:
                 b = bends[bi]
-                nxt = b.p_out_index if b.p_in_index == cur else b.p_in_index
-                if nxt in visited_planars:
+                nx = b.p_out_index if b.p_in_index == f else b.p_in_index
+                if _seg(nx) not in covered:
+                    return True
+            return False
+
+        bridged = True
+        while bridged:
+            bridged = False
+            for f in range(len(planars)):
+                if f in visited_planars or not planar_bend_idx[f]:
                     continue
-                visited_bends.add(bi)
-                visited_planars.add(nxt)
-                traversal.append((cur, nxt, bi))
-                flat_area += planars[nxt].area
-                ba = self._bend_allowance(b, thickness)
-                flat_area += ba * max(b.length, 0.0)
-                queue.append(nxt)
+                tw = twin.get(f)
+                if tw is None or tw not in visited_planars:
+                    continue
+                if not _reaches_uncovered(f):
+                    continue
+                visited_planars.add(f)  # same flat segment as its twin
+                _walk(f)
+                bridged = True
+                break
 
         return flat_area, visited_planars, visited_bends, traversal
 
@@ -1604,6 +1735,17 @@ class UnfoldProbe:
         queue: deque = deque([base_idx])
         visited_bends: set = set()
 
+        # Face-pairing lets the BFS bridge a Z-section's split bend graph
+        # (see _bfs_unfold). ``covered`` tracks which flat segments already
+        # have a face placed, keyed by the lower of a face index and its twin.
+        twin = _pair_opposite_faces(planars, result.thickness_mean or 0.0)
+
+        def _seg(f: int) -> int:
+            tw = twin.get(f, f)
+            return f if f <= tw else tw
+
+        covered: set = {_seg(base_idx)}
+
         while queue:
             cur = queue.popleft()
             T_cur = transforms[cur]
@@ -1615,7 +1757,7 @@ class UnfoldProbe:
                     continue
                 b = bends[bi]
                 nxt = b.p_out_index if b.p_in_index == cur else b.p_in_index
-                if nxt in transforms:
+                if nxt in transforms or _seg(nxt) in covered:
                     continue
                 visited_bends.add(bi)
 
@@ -1633,13 +1775,17 @@ class UnfoldProbe:
                 hinge_dir = hinge_dir / (np.linalg.norm(hinge_dir) + 1e-18)
                 hinge_loc = (T_cur[:3, :3] @ axis_loc_world) + T_cur[:3, 3]
 
-                # Determine signed rotation angle that maps n_child to +n_base.
-                cos_a = float(np.clip(np.dot(n_child, n_base_arr), -1.0, 1.0))
+                # Determine the signed rotation that maps n_child onto the
+                # parent's own flattened normal n_cur. Targeting n_cur rather
+                # than the global +n_base is what lets a bridged Z-section
+                # component — entered through a face whose flattened normal is
+                # -n_base — keep unfolding consistently; for a single-skin part
+                # every n_cur equals n_base, so behaviour is unchanged.
+                cos_a = float(np.clip(np.dot(n_child, n_cur), -1.0, 1.0))
                 angle_mag = math.acos(cos_a)
-                # Sign: pick alpha so that R(hinge_dir, alpha) * n_child == +n_base.
-                # Use cross product: cross(n_child, n_base) should align with hinge_dir
-                # for a positive rotation.
-                cross_cb = np.cross(n_child, n_base_arr)
+                # Sign: cross(n_child, n_cur) should align with hinge_dir for a
+                # positive rotation.
+                cross_cb = np.cross(n_child, n_cur)
                 sign = 1.0 if float(np.dot(cross_cb, hinge_dir)) >= 0 else -1.0
                 alpha = sign * angle_mag
 
@@ -1653,8 +1799,8 @@ class UnfoldProbe:
                 # between the parent and the child.
                 t_mean_for_BA = result.thickness_mean or 0.0
                 BA_disp = float(b.angle_rad) * (float(b.radius) + self.k * t_mean_for_BA)
-                # In-plane perpendicular = n_base x hinge_dir (right-hand rule).
-                perp_in_plane = np.cross(n_base_arr, hinge_dir)
+                # In-plane perpendicular = n_cur x hinge_dir (right-hand rule).
+                perp_in_plane = np.cross(n_cur, hinge_dir)
                 perp_in_plane = perp_in_plane / (np.linalg.norm(perp_in_plane) + 1e-18)
                 # Decide which sign of perp points AWAY from the parent. Compute
                 # the parent's centroid after T_cur and project it onto perp;
@@ -1668,6 +1814,7 @@ class UnfoldProbe:
                 T_translate[:3, 3] = translation
                 T_child = T_translate @ T_child_rot
                 transforms[nxt] = T_child
+                covered.add(_seg(nxt))
 
                 # Determine bend "direction" tag (up / down) based on the
                 # 3D bend geometry (before any unfold transform). "up" means
@@ -1710,6 +1857,30 @@ class UnfoldProbe:
                     }
                 )
                 queue.append(nxt)
+
+            if not queue:
+                # Bridge an opposite-fold component: a face whose twin is
+                # already placed shares that twin's flat segment (same
+                # transform, no rotation) and can carry the bend graph into
+                # an as-yet-uncovered segment — a Z-section's far flange.
+                for f in range(n_p):
+                    if f in transforms or not planar_bend_idx[f]:
+                        continue
+                    tw = twin.get(f)
+                    if tw is None or tw not in transforms:
+                        continue
+                    reaches_new = False
+                    for bi in planar_bend_idx[f]:
+                        bb = bends[bi]
+                        nx = bb.p_out_index if bb.p_in_index == f else bb.p_in_index
+                        if _seg(nx) not in covered:
+                            reaches_new = True
+                            break
+                    if not reaches_new:
+                        continue
+                    transforms[f] = transforms[tw].copy()
+                    queue.append(f)
+                    break
 
         # ------------------------------------------------------------------
         # Wire sampling: for each visited planar face, sample its wires and

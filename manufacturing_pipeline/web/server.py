@@ -92,15 +92,23 @@ def create_app(
     *,
     out_dir: str | Path | None = None,
     debug: bool = False,
+    diff_root: str | Path | None = None,
 ) -> Flask:
     """Build a Flask app rooted at the given ``manifest.xml``.
 
     ``out_dir`` defaults to the manifest's parent directory; DXF files are
     served relative to ``out_dir / 'parts'`` matching the layout produced by
     :mod:`manufacturing_pipeline.pipeline.analyze_assembly`.
+
+    ``diff_root`` confines the ``/diff?other=`` manifest path: when set, only
+    manifests resolving inside that directory may be compared. The corpus
+    viewer passes its report root so a public deployment cannot be coaxed
+    into reading arbitrary server files. ``None`` (the standalone local
+    default) leaves the path unconstrained.
     """
     manifest_path = Path(manifest_path).resolve()
     out_dir_path = Path(out_dir).resolve() if out_dir is not None else manifest_path.parent
+    diff_root_path = Path(diff_root).resolve() if diff_root is not None else None
     manifest = read_xml(manifest_path)
 
     app = Flask(__name__)
@@ -111,6 +119,12 @@ def create_app(
 
     # Index parts by product_id for O(1) lookup.
     by_id: dict[str, PartManifestEntry] = {e.part.product_id: e for e in manifest.parts}
+
+    # Per-app render caches. The manifest and its source STEP file are
+    # immutable for the lifetime of the app, so each GLB mesh / SVG projection
+    # — an expensive OCP recompute — is memoised on first request.
+    _glb_cache: dict[str, bytes] = {}
+    _svg_cache: dict[str, str] = {}
 
     # ----- Jinja filters
     @app.template_filter("basename")
@@ -186,12 +200,16 @@ def create_app(
     def glb_folded(product_id: str):
         if product_id not in by_id:
             abort(404, description=f"unknown product_id: {product_id!r}")
-        source = Path(manifest.source_path)
-        if not source.is_file():
-            abort(404, description=f"source STEP not available: {source}")
-        data = folded_glb(source, product_id)
+        cache_key = f"folded:{product_id}"
+        data = _glb_cache.get(cache_key)
         if data is None:
-            abort(500, description=f"failed to mesh {product_id}")
+            source = Path(manifest.source_path)
+            if not source.is_file():
+                abort(404, description=f"source STEP not available: {source}")
+            data = folded_glb(source, product_id)
+            if data is None:
+                abort(500, description=f"failed to mesh {product_id}")
+            _glb_cache[cache_key] = data
         return (data, 200, {"Content-Type": "model/gltf-binary"})
 
     @app.get("/glb/unfolded/<path:product_id>")
@@ -199,6 +217,10 @@ def create_app(
         entry = by_id.get(product_id)
         if entry is None:
             abort(404, description=f"unknown product_id: {product_id!r}")
+        cache_key = f"unfolded:{product_id}"
+        cached = _glb_cache.get(cache_key)
+        if cached is not None:
+            return (cached, 200, {"Content-Type": "model/gltf-binary"})
         # We need the flat pattern; recompute it from the source solid so we
         # don't depend on the cached DXF (we want real 2D polygons in mm).
         source = Path(manifest.source_path)
@@ -236,26 +258,29 @@ def create_app(
         data = unfolded_glb(pattern)
         if data is None:
             abort(500, description=f"failed to mesh unfolded {product_id}")
+        _glb_cache[cache_key] = data
         return (data, 200, {"Content-Type": "model/gltf-binary"})
 
     @app.get("/step-svg/<path:product_id>")
     def step_svg(product_id: str):
-        from flask import request
-
         if product_id not in by_id:
             abort(404, description=f"unknown product_id: {product_id!r}")
         view = request.args.get("view", "iso")
-        source = Path(manifest.source_path)
-        if not source.is_file():
-            abort(404, description=f"source STEP not available: {source}")
-        try:
-            svgs = render_part_views(source, product_id, views=(view,), width=600, height=450)
-        except Exception as exc:
-            _logger.exception("step_to_svg failed for %s view=%s", product_id, view)
-            abort(500, description=f"failed to render {product_id}: {exc}")
-        svg = svgs.get(view)
-        if not svg:
-            abort(404, description=f"no projection for {product_id} view={view}")
+        cache_key = f"step:{product_id}:{view}"
+        svg = _svg_cache.get(cache_key)
+        if svg is None:
+            source = Path(manifest.source_path)
+            if not source.is_file():
+                abort(404, description=f"source STEP not available: {source}")
+            try:
+                svgs = render_part_views(source, product_id, views=(view,), width=600, height=450)
+            except Exception as exc:
+                _logger.exception("step_to_svg failed for %s view=%s", product_id, view)
+                abort(500, description=f"failed to render {product_id}: {exc}")
+            svg = svgs.get(view)
+            if not svg:
+                abort(404, description=f"no projection for {product_id} view={view}")
+            _svg_cache[cache_key] = svg
         return (svg, 200, {"Content-Type": "image/svg+xml; charset=utf-8"})
 
     @app.get("/dxf-svg/<path:filename>")
@@ -263,11 +288,15 @@ def create_app(
         dxf_path = _resolve_dxf(out_dir_path, filename)
         if dxf_path is None:
             abort(404, description=f"dxf not found: {filename!r}")
-        try:
-            svg = dxf_to_svg(dxf_path)
-        except Exception as exc:  # surface readable errors during dev
-            _logger.exception("dxf_to_svg failed for %s", dxf_path)
-            abort(500, description=f"failed to render {filename}: {exc}")
+        cache_key = f"dxf:{dxf_path}"
+        svg = _svg_cache.get(cache_key)
+        if svg is None:
+            try:
+                svg = dxf_to_svg(dxf_path)
+            except Exception as exc:  # surface readable errors during dev
+                _logger.exception("dxf_to_svg failed for %s", dxf_path)
+                abort(500, description=f"failed to render {filename}: {exc}")
+            _svg_cache[cache_key] = svg
         return (svg, 200, {"Content-Type": "image/svg+xml; charset=utf-8"})
 
     @app.get("/api/manifest")
@@ -328,6 +357,16 @@ def create_app(
             resolved = other_path.resolve()
         except OSError as exc:
             return _diff_error(f"invalid path: {exc}", other_raw), 400
+        # Path confinement: a public corpus deployment must not be able to
+        # read manifests outside its own report tree.
+        if diff_root_path is not None:
+            try:
+                resolved.relative_to(diff_root_path)
+            except ValueError:
+                return (
+                    _diff_error("path is outside the permitted directory", other_raw),
+                    403,
+                )
         if not resolved.is_file():
             return _diff_error(f"manifest not found: {other_raw}", other_raw), 404
         try:

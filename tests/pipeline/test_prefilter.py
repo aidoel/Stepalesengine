@@ -407,6 +407,6 @@ def test_prefilter_records_synthetic_reason_on_thick_block(tmp_path: Path):
     entry = result.manifest.parts[0]
     assert entry.unfold is not None
     assert entry.unfold.status == UnfoldStatus.FAILURE
-    assert entry.unfold.reason.startswith("prefilter:"), (
-        f"expected reason to start with 'prefilter:', got {entry.unfold.reason!r}"
-    )
+    assert entry.unfold.reason.startswith(
+        "prefilter:"
+    ), f"expected reason to start with 'prefilter:', got {entry.unfold.reason!r}"

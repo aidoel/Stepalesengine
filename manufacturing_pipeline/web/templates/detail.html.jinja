@@ -2,13 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ entry.part.product_id }} — {{ entry.part.name }}</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <style>{{ css|safe }}</style>
 </head>
 <body>
 <div class="layout">
-  <p><a href="/">&larr; back to manifest</a></p>
+  <p class="muted">
+    {% if request.script_root %}<a href="/">&larr; Corpus overview</a> &middot; {% endif %}
+    <a href="{{ url_for('index') }}">&larr; back to part list</a>
+  </p>
   <h1>
     {{ entry.part.product_id }}
     <span class="label label-{{ entry.classification.label }}">
@@ -44,8 +48,8 @@
           <tr>
             <td>{{ c.feature }}</td>
             <td>{{ c.cls }}</td>
-            <td>{{ '%.3f'|format(c.value) }}</td>
-            <td>{{ '%.3f'|format(c.delta) }}</td>
+            <td>{{ '%.3f'|format(c.value) if c.value is number else c.value }}</td>
+            <td>{{ '%.3f'|format(c.delta) if c.delta is number else c.delta }}</td>
           </tr>
         {% endfor %}
         </tbody>
@@ -208,7 +212,7 @@
     <div class="model-compare">
       <figure>
         <model-viewer
-          src="/glb/folded/{{ entry.part.product_id }}"
+          src="{{ url_for('glb_folded', product_id=entry.part.product_id) }}"
           alt="Folded 3D model of {{ entry.part.name }}"
           camera-controls
           auto-rotate
@@ -224,7 +228,7 @@
       <div class="fold-arrow" aria-hidden="true">&rarr;</div>
       <figure>
         <model-viewer
-          src="/glb/unfolded/{{ entry.part.product_id }}"
+          src="{{ url_for('glb_unfolded', product_id=entry.part.product_id) }}"
           alt="Unfolded 3D blank of {{ entry.part.name }}"
           camera-controls
           auto-rotate
@@ -244,9 +248,9 @@
         <strong>Thickness:</strong> {{ '%.2f'|format(entry.unfold.thickness_mean) }} mm &nbsp;|&nbsp;
         <strong>Flat area:</strong> {{ '%.1f'|format(entry.unfold.flat_area) }} mm&sup2; &nbsp;|&nbsp;
       {% endif %}
-      <a href="/dxf/{{ dxf_filename }}">Download .dxf</a> &nbsp;|&nbsp;
-      <a href="/glb/folded/{{ entry.part.product_id }}" download>folded.glb</a> &nbsp;|&nbsp;
-      <a href="/glb/unfolded/{{ entry.part.product_id }}" download>unfolded.glb</a>
+      <a href="{{ url_for('dxf_raw', filename=dxf_filename) }}">Download .dxf</a> &nbsp;|&nbsp;
+      <a href="{{ url_for('glb_folded', product_id=entry.part.product_id) }}" download>folded.glb</a> &nbsp;|&nbsp;
+      <a href="{{ url_for('glb_unfolded', product_id=entry.part.product_id) }}" download>unfolded.glb</a>
     </p>
   </div>
 
@@ -254,12 +258,12 @@
     <h2>Folded &rarr; Unfolded &mdash; technical drawing view</h2>
     <div class="fold-compare">
       <figure>
-        <object type="image/svg+xml" data="/step-svg/{{ entry.part.product_id }}?view=iso" width="440" height="360"></object>
+        <object type="image/svg+xml" data="{{ url_for('step_svg', product_id=entry.part.product_id, view='iso') }}" width="440" height="360"></object>
         <figcaption>Iso projection (HLR)</figcaption>
       </figure>
       <div class="fold-arrow" aria-hidden="true">&rarr;</div>
       <figure>
-        <object type="image/svg+xml" data="/dxf-svg/{{ dxf_filename }}" width="440" height="360"></object>
+        <object type="image/svg+xml" data="{{ url_for('dxf_svg', filename=dxf_filename) }}" width="440" height="360"></object>
         <figcaption>Flat pattern (DXF)</figcaption>
       </figure>
     </div>
@@ -276,23 +280,23 @@
   <div class="card">
     <h2>3D viewer</h2>
     <model-viewer
-      src="/glb/folded/{{ entry.part.product_id }}"
+      src="{{ url_for('glb_folded', product_id=entry.part.product_id) }}"
       alt="3D model of {{ entry.part.name }}"
       camera-controls auto-rotate
       shadow-intensity="0.6"
       exposure="1.0"
       environment-image="neutral"
       style="width: 100%; height: 480px; background: linear-gradient(180deg,#f7f9fc 0%,#e6ebf2 100%);"></model-viewer>
-    <p><a href="/glb/folded/{{ entry.part.product_id }}" download>Download .glb</a></p>
+    <p><a href="{{ url_for('glb_folded', product_id=entry.part.product_id) }}" download>Download .glb</a></p>
   </div>
   {% endif %}
 
   <div class="card">
     <h2>Original part &mdash; technical views</h2>
     <div class="views">
-      <object type="image/svg+xml" data="/step-svg/{{ entry.part.product_id }}?view=top" width="320" height="240"></object>
-      <object type="image/svg+xml" data="/step-svg/{{ entry.part.product_id }}?view=front" width="320" height="240"></object>
-      <object type="image/svg+xml" data="/step-svg/{{ entry.part.product_id }}?view=iso" width="320" height="240"></object>
+      <object type="image/svg+xml" data="{{ url_for('step_svg', product_id=entry.part.product_id, view='top') }}" width="320" height="240"></object>
+      <object type="image/svg+xml" data="{{ url_for('step_svg', product_id=entry.part.product_id, view='front') }}" width="320" height="240"></object>
+      <object type="image/svg+xml" data="{{ url_for('step_svg', product_id=entry.part.product_id, view='iso') }}" width="320" height="240"></object>
     </div>
     <p class="legend">
       <span class="visible"></span> visible edges

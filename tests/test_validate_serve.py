@@ -14,6 +14,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -32,6 +33,7 @@ from manufacturing_pipeline.validate import (  # noqa: E402
 )
 from tests.fixtures.synthetic_steps import (  # noqa: E402
     write_flat_plate_step,
+    write_lbracket_step,
     write_profile_step,
 )
 
@@ -46,6 +48,26 @@ def _seed_two_steps(directory: Path) -> tuple[Path, Path]:
     a = write_flat_plate_step(directory / "plate.step", l=100, w=50, t=2.0)
     b = write_profile_step(directory / "rhs.step", family="RHS", h=80, b=40, t=3.0, length=300)
     return a, b
+
+
+def _seed_lbracket(directory: Path) -> Path:
+    """Write a single sheet-metal L-bracket STEP into ``directory``.
+
+    An L-bracket is ``unfoldable``, so its classification trace carries
+    cross-term contributions (e.g. ``unfoldable,seamed_tube``) whose
+    ``Contribution.value`` is a tuple-string such as ``"(True, False)"``.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    return write_lbracket_step(directory / "lbracket.step")
+
+
+def _only_product_id(out_dir: Path, safe_name: str) -> str:
+    """Read the lone part's product_id out of a per-file manifest."""
+    from manufacturing_pipeline.io.xml_writer import read_xml
+
+    manifest = read_xml(out_dir / safe_name / "manifest.xml")
+    assert manifest.parts, f"manifest {safe_name} has no parts"
+    return manifest.parts[0].part.product_id
 
 
 def _free_port() -> int:
@@ -115,6 +137,23 @@ def test_corpus_index_returns_200_with_both_rows_linked(tmp_path: Path) -> None:
     safe_b = _safe_dir_name("rhs")
     assert f'href="/file/{safe_a}/"' in body
     assert f'href="/file/{safe_b}/"' in body
+
+
+def test_corpus_index_embeds_disk_thumbnails(tmp_path: Path) -> None:
+    """The served index reads each <safe_name>/thumb.svg and inlines it."""
+    corpus = tmp_path / "corpus"
+    _seed_two_steps(corpus)
+    out_dir = tmp_path / "report"
+    validate_corpus(corpus, workers=1, out_dir=out_dir, write_outputs=True)
+
+    # validate-corpus --write-outputs should have left thumb.svg on disk.
+    assert (out_dir / _safe_dir_name("plate") / "thumb.svg").is_file()
+
+    client = Client(create_corpus_app(out_dir))
+    body = client.get("/").get_data(as_text=True)
+    assert "<th>Preview</th>" in body
+    assert 'class="thumb-cell"' in body
+    assert body.count("<svg") >= 2
 
 
 def test_corpus_file_route_delegates_to_per_file_viewer(tmp_path: Path) -> None:
@@ -238,3 +277,108 @@ def test_serve_corpus_cli_smoke_responds_on_port(tmp_path: Path) -> None:
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait(timeout=5.0)
+
+
+# ---------------------------------------------------------------------------
+# Regression tests
+# ---------------------------------------------------------------------------
+
+
+def test_per_file_part_detail_urls_are_mount_prefixed(tmp_path: Path) -> None:
+    """A per-file part-detail page resolves its asset URLs under the mount.
+
+    The detail/index templates now build links with Flask ``url_for()``. Under
+    the ``/file/<safe>/`` corpus mount that yields mount-prefixed URLs; a bare
+    absolute ``/glb/folded/<id>`` (the pre-fix output) would 404 because the
+    dispatcher only routes ``/file/<safe>/...`` to the per-file viewer.
+    """
+    corpus = tmp_path / "corpus"
+    _seed_lbracket(corpus)
+    out_dir = tmp_path / "report"
+    validate_corpus(corpus, workers=1, out_dir=out_dir, write_outputs=True)
+
+    safe = _safe_dir_name("lbracket")
+    product_id = _only_product_id(out_dir, safe)
+
+    client = Client(create_corpus_app(out_dir))
+    quoted = urllib.parse.quote(product_id, safe="")
+    resp = client.get(f"/file/{safe}/part/{quoted}")
+    assert resp.status_code == 200, resp.get_data(as_text=True)[:400]
+
+    body = resp.get_data(as_text=True)
+    # The 3D viewer src must be mount-prefixed...
+    assert f"/file/{safe}/glb/folded/" in body
+    # ...and never a bare absolute path that the dispatcher cannot route.
+    assert '"/glb/folded/' not in body
+
+    # The bare unprefixed GLB route 404s through the corpus app: it never
+    # reaches the per-file viewer because it lacks the /file/<safe>/ prefix.
+    bare = client.get(f"/glb/folded/{quoted}")
+    assert bare.status_code == 404
+
+
+def test_diff_path_confinement_blocks_arbitrary_files(tmp_path: Path) -> None:
+    """``/diff?other=`` is confined to the report root by ``diff_root``.
+
+    The corpus app passes the report directory as ``diff_root`` to
+    ``create_app``, so a public deployment cannot be coaxed into reading a
+    manifest (or any file) outside its own report tree.
+    """
+    corpus = tmp_path / "corpus"
+    _seed_two_steps(corpus)
+    out_dir = tmp_path / "report"
+    validate_corpus(corpus, workers=1, out_dir=out_dir, write_outputs=True)
+
+    safe_a = _safe_dir_name("plate")
+    safe_b = _safe_dir_name("rhs")
+
+    client = Client(create_corpus_app(out_dir))
+
+    # A path outside the report root is rejected with 403.
+    escaped = client.get(f"/file/{safe_a}/diff?other=/etc/passwd")
+    assert escaped.status_code == 403
+
+    # A real sibling manifest inside the report dir is permitted (200).
+    sibling = out_dir / safe_b / "manifest.xml"
+    assert sibling.is_file()
+    allowed = client.get(f"/file/{safe_a}/diff?other={urllib.parse.quote(str(sibling))}")
+    assert allowed.status_code == 200
+
+
+def test_detail_page_survives_string_valued_contribution(tmp_path: Path) -> None:
+    """The detail page renders 200 when a contribution value is a string.
+
+    ``Contribution.value`` is typed ``float | str``; cross-term features
+    render as tuple/bool strings (e.g. ``"(True, False)"``). ``detail.html.jinja``
+    now guards ``'%.3f'|format`` with an ``is number`` test. An L-bracket is
+    ``unfoldable``, so its trace carries ``unfoldable,seamed_tube`` cross-term
+    contributions with a tuple-string value, and their large deltas land them
+    in the top-5 shown on the page. Pre-fix this 500'd.
+    """
+    corpus = tmp_path / "corpus"
+    _seed_lbracket(corpus)
+    out_dir = tmp_path / "report"
+    validate_corpus(corpus, workers=1, out_dir=out_dir, write_outputs=True)
+
+    safe = _safe_dir_name("lbracket")
+    product_id = _only_product_id(out_dir, safe)
+
+    # Confirm the trace really does carry a string-valued top contribution,
+    # otherwise the test would pass vacuously.
+    from manufacturing_pipeline.io.xml_writer import read_xml
+
+    manifest = read_xml(out_dir / safe / "manifest.xml")
+    contributions = sorted(
+        manifest.parts[0].classification.trace.contributions,
+        key=lambda c: abs(c.delta),
+        reverse=True,
+    )[:5]
+    assert any(isinstance(c.value, str) for c in contributions), (
+        "expected a string-valued contribution in the top-5; got "
+        f"{[(c.feature, type(c.value).__name__) for c in contributions]}"
+    )
+
+    client = Client(create_corpus_app(out_dir))
+    quoted = urllib.parse.quote(product_id, safe="")
+    resp = client.get(f"/file/{safe}/part/{quoted}")
+    assert resp.status_code == 200, resp.get_data(as_text=True)[:400]

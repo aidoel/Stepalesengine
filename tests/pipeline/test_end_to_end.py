@@ -266,9 +266,9 @@ def test_lbracket_reports_one_bend_and_writes_bend_line_dxf(tmp_path: Path):
     outer_total = 0.0
     for poly in doc.modelspace().query('LWPOLYLINE[layer=="OUTER"]'):
         outer_total += _polygon_area(list(poly.get_points("xy")))
-    assert math.isclose(outer_total, expected, rel_tol=0.01), (
-        f"outer area {outer_total:.2f} != expected {expected:.2f}"
-    )
+    assert math.isclose(
+        outer_total, expected, rel_tol=0.01
+    ), f"outer area {outer_total:.2f} != expected {expected:.2f}"
 
 
 # ---------------------------------------------------------------------------
@@ -289,9 +289,9 @@ def test_rhs_profile_is_recognised_as_profiel(tmp_path: Path):
 
     # Winning class must be 'profiel' (label may still be 'uncertain' due to
     # the conf threshold). cross_section_constant must be True.
-    assert _winner_class(entry) == "profiel", (
-        f"RHS profile should win as 'profiel', got {_winner_class(entry)!r}"
-    )
+    assert (
+        _winner_class(entry) == "profiel"
+    ), f"RHS profile should win as 'profiel', got {_winner_class(entry)!r}"
     assert entry.features is not None
     assert entry.features.cross_section_constant is True
 
@@ -333,9 +333,9 @@ def test_chs_profile_is_recognised_as_profiel(tmp_path: Path):
     assert len(manifest.parts) == 1
     entry = manifest.parts[0]
 
-    assert _winner_class(entry) == "profiel", (
-        f"CHS profile should win as 'profiel', got {_winner_class(entry)!r}"
-    )
+    assert (
+        _winner_class(entry) == "profiel"
+    ), f"CHS profile should win as 'profiel', got {_winner_class(entry)!r}"
     assert entry.features is not None
     assert entry.features.cross_section_constant is True
     # Diameter survives in the bbox dims.
@@ -387,9 +387,11 @@ def test_multi_part_assembly_lists_three_named_parts(tmp_path: Path):
 
     manifest = read_xml(out / "manifest.xml")
     names = sorted(p.part.name for p in manifest.parts)
-    assert names == ["lbracket_001", "plate_001", "rhs_001"], (
-        f"part names did not round-trip: {names}"
-    )
+    assert names == [
+        "lbracket_001",
+        "plate_001",
+        "rhs_001",
+    ], f"part names did not round-trip: {names}"
     assert len(manifest.parts) == 3
 
     by_name = {p.part.name: p for p in manifest.parts}
@@ -449,9 +451,9 @@ def test_manifest_xml_round_trips_via_read_xml(tmp_path: Path):
     # Every part must carry a non-empty decision-trace contributions list -
     # the score classifier always emits one Contribution per (class, feature).
     for entry in parsed.parts:
-        assert entry.classification.trace.contributions, (
-            f"empty contributions for part {entry.part.name!r}"
-        )
+        assert (
+            entry.classification.trace.contributions
+        ), f"empty contributions for part {entry.part.name!r}"
 
     # Source path / model version / generated-at survive the round-trip.
     assert parsed.source_path.endswith("asm.step")
@@ -485,9 +487,9 @@ def test_cli_subprocess_analyzes_a_tiny_plate(tmp_path: Path):
         text=True,
         timeout=120,
     )
-    assert proc.returncode == 0, (
-        f"CLI subprocess exited {proc.returncode}\nstdout: {proc.stdout}\nstderr: {proc.stderr}"
-    )
+    assert (
+        proc.returncode == 0
+    ), f"CLI subprocess exited {proc.returncode}\nstdout: {proc.stdout}\nstderr: {proc.stderr}"
     assert (out / "manifest.xml").exists()
 
     parsed = read_xml(out / "manifest.xml")
