@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>stepalesengine — 3D corpus &amp; unfold viewer</title>
+<meta name="description" content="Browse a STEP-file corpus in 3D and watch how each sheet-metal part unfolds into a flat blank.">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <span class="brand"><span class="glyph" aria-hidden="true"></span>stepalesengine</span>
+    <span class="tag">STEP &rarr; classified BOM &rarr; sheet-metal unfold</span>
+    <span class="spacer"></span>
+    <span class="crumb"><a href="data/corpus.json">corpus.json</a></span>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ===== hero ===== -->
+  <section class="hero">
+    <div class="hero-text reveal">
+      <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Geometry pipeline &middot; live corpus</span>
+      <h1>The <span class="accent">3D corpus</span><br>&amp; unfold viewer.</h1>
+      <p class="lede">
+        Every STEP file is run through the full pipeline &mdash; parsed, each
+        solid <strong>classified</strong> as plate, profile or other, and, where
+        the geometry is developable sheet metal, <strong>unfolded</strong> into a
+        flat blank. Open any part to rotate the model and compare the folded CAD
+        solid against its flat pattern.
+      </p>
+      <div class="pipeline-flow" aria-label="pipeline stages">
+        <span class="node">STEP</span>
+        <span class="arr" aria-hidden="true">&rarr;</span>
+        <span class="node">parse solids</span>
+        <span class="arr" aria-hidden="true">&rarr;</span>
+        <span class="node">classify</span>
+        <span class="arr" aria-hidden="true">&rarr;</span>
+        <span class="node">unfold</span>
+        <span class="arr" aria-hidden="true">&rarr;</span>
+        <span class="node">flat pattern</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="num">10</div><div class="lbl">Parts</div></div>
+        <div class="stat"><div class="num">7</div><div class="lbl">STEP files</div></div>
+        <div class="stat"><div class="num">8</div><div class="lbl">Unfoldable</div></div>
+        <div class="stat"><div class="num">5</div><div class="lbl">Bends found</div></div>
+      </div>
+    </div>
+
+    
+    <div class="hero-viewer reveal reveal-d1">
+      <div class="vp-head">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="ttl">featured&nbsp;/&nbsp;synthetic-bracket.glb</span>
+        <span class="live">live</span>
+      </div>
+      <model-viewer
+        src="models/synthetic-bracket-folded.glb"
+        alt="Interactive 3D model of Synthetic L-bracket"
+        camera-controls auto-rotate auto-rotate-delay="0"
+        rotation-per-second="16deg" shadow-intensity="0.65" shadow-softness="0.9"
+        environment-image="neutral" exposure="1.08"
+        camera-orbit="-32deg 66deg auto" interaction-prompt="none"></model-viewer>
+      <div class="cap">
+        Featured: <strong>Synthetic L-bracket</strong>
+        <span class="hint">drag &middot; scroll to zoom</span>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- ===== legend ===== -->
+  <section class="reveal reveal-d2">
+    <div class="section-head">
+      <span class="idx">01</span>
+      <h2>How to read this corpus</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <div class="lt"><span class="swatch folded" aria-hidden="true"></span>Folded</div>
+        <p>The solid as modelled in CAD &mdash; rendered as the light-blue 3D mesh.</p>
+      </div>
+      <div class="legend-item">
+        <div class="lt"><span class="swatch unfolded" aria-hidden="true"></span>Unfolded</div>
+        <p>The flat blank the engine computes by walking the bend graph &mdash; the terracotta mesh.</p>
+      </div>
+      <div class="legend-item">
+        <div class="lt"><span class="swatch bend" aria-hidden="true"></span>Bends</div>
+        <p>Each cylindrical patch joining two flanges, with angle, inner radius and fold direction.</p>
+      </div>
+      <div class="legend-item">
+        <div class="lt"><span class="swatch evid" aria-hidden="true"></span>Evidence</div>
+        <p>
+          <span class="pill pill-synthetic">synthetic</span> parts are generated
+          from OCP primitives; <span class="pill pill-real">real</span> parts are
+          production / NIST CAD. See <a href="data/corpus.json">corpus.json</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== grouped parts ===== -->
+  <section style="margin-top:42px;">
+    <div class="section-head">
+      <span class="idx">02</span>
+      <h2>Browse the corpus</h2>
+      <span class="rule"></span>
+      <span class="meta">10 parts</span>
+    </div>
+
+    
+    <section class="group" id="plaat">
+      <div class="group-head">
+        <span class="group-title label-plaat">
+          <span class="gdot" aria-hidden="true"></span>Plaat — plate &amp; sheet metal
+        </span>
+        <span class="rule"></span>
+        <span class="count">7 parts</span>
+      </div>
+      <div class="card-grid">
+        
+        <a class="part-card" href="parts/synthetic-bracket.html">
+          <div class="thumb">
+            
+              <img src="drawings/synthetic-bracket-iso.svg" alt="Isometric projection of Synthetic L-bracket" loading="lazy">
+            
+            
+              <span class="corner-tag">1 bend</span>
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">Synthetic L-bracket</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">synthetic_bracket.step</div>
+            <div class="card-badges">
+              <span class="label label-plaat">plaat</span>
+              <span class="pill pill-synthetic">synthetic</span>
+              
+              <span class="pill pill-success">unfold success</span>
+              
+            </div>
+          </div>
+        </a>
+        
+        <a class="part-card" href="parts/synthetic-plate.html">
+          <div class="thumb">
+            
+              <img src="drawings/synthetic-plate-iso.svg" alt="Isometric projection of Synthetic flat plate" loading="lazy">
+            
+            
+              <span class="corner-tag">flat panel</span>
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">Synthetic flat plate</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">synthetic_plate.step</div>
+            <div class="card-badges">
+              <span class="label label-plaat">plaat</span>
+              <span class="pill pill-synthetic">synthetic</span>
+              
+              <span class="pill pill-success">unfold success</span>
+              
+            </div>
+          </div>
+        </a>
+        
+        <a class="part-card" href="parts/sheet-10001073530-rev00.html">
+          <div class="thumb">
+            
+              <img src="drawings/sheet-10001073530-rev00-iso.svg" alt="Isometric projection of 10001073530_Rev_00" loading="lazy">
+            
+            
+              <span class="corner-tag">2 bends</span>
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">10001073530_Rev_00</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">sheet_10001073530_rev00.stp</div>
+            <div class="card-badges">
+              <span class="label label-plaat">plaat</span>
+              <span class="pill pill-real">real</span>
+              
+              <span class="pill pill-success">unfold success</span>
+              
+            </div>
+          </div>
+        </a>
+        
+        <a class="part-card" href="parts/sheet-md-17-04194-2-1.html">
+          <div class="thumb">
+            
+              <img src="drawings/sheet-md-17-04194-2-1-iso.svg" alt="Isometric projection of MD-16-07575_1" loading="lazy">
+            
+            
+              <span class="corner-tag">flat panel</span>
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">MD-16-07575_1</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">sheet_md_17_04194_2.stp</div>
+            <div class="card-badges">
+              <span class="label label-plaat">plaat</span>
+              <span class="pill pill-real">real</span>
+              
+              <span class="pill pill-success">unfold success</span>
+              
+            </div>
+          </div>
+        </a>
+        
+        <a class="part-card" href="parts/sheet-md-17-04194-2-2.html">
+          <div class="thumb">
+            
+              <img src="drawings/sheet-md-17-04194-2-2-iso.svg" alt="Isometric projection of MD-16-07575_1" loading="lazy">
+            
+            
+              <span class="corner-tag">flat panel</span>
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">MD-16-07575_1</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">sheet_md_17_04194_2.stp</div>
+            <div class="card-badges">
+              <span class="label label-plaat">plaat</span>
+              <span class="pill pill-real">real</span>
+              
+              <span class="pill pill-success">unfold success</span>
+              
+            </div>
+          </div>
+        </a>
+        
+        <a class="part-card" href="parts/sheet-md-17-04194-2-3.html">
+          <div class="thumb">
+            
+              <img src="drawings/sheet-md-17-04194-2-3-iso.svg" alt="Isometric projection of MD-16-07575_1" loading="lazy">
+            
+            
+              <span class="corner-tag">flat panel</span>
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">MD-16-07575_1</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">sheet_md_17_04194_2.stp</div>
+            <div class="card-badges">
+              <span class="label label-plaat">plaat</span>
+              <span class="pill pill-real">real</span>
+              
+              <span class="pill pill-success">unfold success</span>
+              
+            </div>
+          </div>
+        </a>
+        
+        <a class="part-card" href="parts/sheet-md-17-04194-2-4.html">
+          <div class="thumb">
+            
+              <img src="drawings/sheet-md-17-04194-2-4-iso.svg" alt="Isometric projection of MD-17-04193_2" loading="lazy">
+            
+            
+              <span class="corner-tag">2 bends</span>
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">MD-17-04193_2</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">sheet_md_17_04194_2.stp</div>
+            <div class="card-badges">
+              <span class="label label-plaat">plaat</span>
+              <span class="pill pill-real">real</span>
+              
+              <span class="pill pill-success">unfold success</span>
+              
+            </div>
+          </div>
+        </a>
+        
+      </div>
+    </section>
+    
+    <section class="group" id="profiel">
+      <div class="group-head">
+        <span class="group-title label-profiel">
+          <span class="gdot" aria-hidden="true"></span>Profiel — structural profile
+        </span>
+        <span class="rule"></span>
+        <span class="count">2 parts</span>
+      </div>
+      <div class="card-grid">
+        
+        <a class="part-card" href="parts/synthetic-profile-rhs.html">
+          <div class="thumb">
+            
+              <img src="drawings/synthetic-profile-rhs-iso.svg" alt="Isometric projection of Synthetic RHS profile" loading="lazy">
+            
+            
+              <span class="corner-tag">flat panel</span>
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">Synthetic RHS profile</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">synthetic_profile_rhs.step</div>
+            <div class="card-badges">
+              <span class="label label-profiel">profiel</span>
+              <span class="pill pill-synthetic">synthetic</span>
+              
+              <span class="pill pill-success">unfold success</span>
+              
+            </div>
+          </div>
+        </a>
+        
+        <a class="part-card" href="parts/synthetic-profile-tube.html">
+          <div class="thumb">
+            
+              <img src="drawings/synthetic-profile-tube-iso.svg" alt="Isometric projection of Synthetic CHS profile" loading="lazy">
+            
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">Synthetic CHS profile</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">synthetic_profile_tube.step</div>
+            <div class="card-badges">
+              <span class="label label-profiel">profiel</span>
+              <span class="pill pill-synthetic">synthetic</span>
+              
+              <span class="pill pill-failure">unfold failure</span>
+              
+            </div>
+          </div>
+        </a>
+        
+      </div>
+    </section>
+    
+    <section class="group" id="anders">
+      <div class="group-head">
+        <span class="group-title label-anders">
+          <span class="gdot" aria-hidden="true"></span>Anders — other / machined
+        </span>
+        <span class="rule"></span>
+        <span class="count">1 part</span>
+      </div>
+      <div class="card-grid">
+        
+        <a class="part-card" href="parts/nist-ctc-01-asme1-ap242-e1.html">
+          <div class="thumb">
+            
+              <img src="drawings/nist-ctc-01-asme1-ap242-e1-iso.svg" alt="Isometric projection of NIST Complex Test Case 1" loading="lazy">
+            
+            
+          </div>
+          <div class="card-body">
+            <div class="card-title">
+              <span class="nm">NIST Complex Test Case 1</span>
+              <span class="card-go" aria-hidden="true">&rarr;</span>
+            </div>
+            <div class="card-sub">nist_ctc_01_asme1_ap242-e1.stp</div>
+            <div class="card-badges">
+              <span class="label label-anders">anders</span>
+              <span class="pill pill-real">real</span>
+              
+              <span class="pill pill-failure">unfold failure</span>
+              
+            </div>
+          </div>
+        </a>
+        
+      </div>
+    </section>
+    
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span class="fbrand"><span class="glyph" aria-hidden="true"></span>stepalesengine</span>
+    <span class="fspace"></span>
+    <span>
+      Static build of the corpus viewer &mdash; generated by
+      <code>manufacturing_pipeline.web.static_site</code>. The dynamic Flask UI
+      lives in <code>manufacturing_pipeline.web.server</code>.
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -37,3 +37,6 @@ coverage.xml
 # Deploy build context (customer geometry - never commit)
 corpus_steps/
 corpus_report/
+
+# Local Netlify folder
+.netlify

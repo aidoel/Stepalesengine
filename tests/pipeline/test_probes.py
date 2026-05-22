@@ -174,9 +174,7 @@ def test_default_registry_assigns_canonical_stages():
     reg = default_registry()
     by_stage = {STAGE_PRE: [], STAGE_CLASSIFY: [], STAGE_POST: []}
     for stage in by_stage:
-        by_stage[stage] = reg.run_all(
-            _ctx(), stage=stage, skip={n: None for n in reg.names()}
-        )
+        by_stage[stage] = reg.run_all(_ctx(), stage=stage, skip={n: None for n in reg.names()})
     assert list(by_stage[STAGE_PRE]) == ["holes"]
     assert list(by_stage[STAGE_CLASSIFY]) == ["profile", "unfold"]
     assert list(by_stage[STAGE_POST]) == ["pmi", "cam"]

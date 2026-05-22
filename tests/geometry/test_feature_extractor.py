@@ -282,9 +282,9 @@ def test_pocket_complexity_pocketed_box_above_threshold():
             shape = cut.Shape()
 
     feats = FeatureExtractor(enable_cross_section=False).extract(shape)
-    assert feats.pocket_complexity > 0.3, (
-        f"pocketed box pocket_complexity={feats.pocket_complexity:.3f} not > 0.3"
-    )
+    assert (
+        feats.pocket_complexity > 0.3
+    ), f"pocketed box pocket_complexity={feats.pocket_complexity:.3f} not > 0.3"
     assert 0.0 <= feats.pocket_complexity <= 1.0
 
 

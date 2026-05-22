@@ -128,9 +128,7 @@ def run(args: argparse.Namespace) -> int:
     files_seen = stats["files"]
     n_files = len(files_seen) if isinstance(files_seen, set) else 0
     last_run = stats["last_run_at"]
-    last_str = (
-        last_run.strftime("%H:%M:%S") if isinstance(last_run, _dt.datetime) else "never"
-    )
+    last_str = last_run.strftime("%H:%M:%S") if isinstance(last_run, _dt.datetime) else "never"
     print(
         f"watched {n_files} files, processed {stats['events']} events, last run at {last_str}",
         flush=True,

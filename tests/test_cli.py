@@ -108,15 +108,17 @@ def test_analyze_cli_generates_pdf_and_assembly_pdf(tmp_path, capsys):
     step_path = _make_step(tmp_path)
     out_dir = tmp_path / "out"
 
-    rc = main([
-        "analyze",
-        str(step_path),
-        "--out-dir",
-        str(out_dir),
-        "--pdf",
-        "--assembly-pdf",
-        "--no-cache",
-    ])
+    rc = main(
+        [
+            "analyze",
+            str(step_path),
+            "--out-dir",
+            str(out_dir),
+            "--pdf",
+            "--assembly-pdf",
+            "--no-cache",
+        ]
+    )
     assert rc == 0
 
     # Verify single PDF and assembly PDF exist

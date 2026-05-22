@@ -423,12 +423,12 @@ def test_flat_pattern_l_bracket_area_and_bend_line():
     hole_area = sum(_polygon_area(h) for h in pattern["holes"])
     total_area = outer_area - hole_area
 
-    assert total_area >= (A1 + A2) - 1e-6, (
-        f"unfolded area {total_area:.2f} must be >= flat areas {A1 + A2:.2f}"
-    )
-    assert total_area == pytest.approx(expected, rel=1e-2), (
-        f"unfolded area {total_area:.2f} != A1+A2+BA*L = {expected:.2f}"
-    )
+    assert (
+        total_area >= (A1 + A2) - 1e-6
+    ), f"unfolded area {total_area:.2f} must be >= flat areas {A1 + A2:.2f}"
+    assert total_area == pytest.approx(
+        expected, rel=1e-2
+    ), f"unfolded area {total_area:.2f} != A1+A2+BA*L = {expected:.2f}"
 
 
 def test_flat_pattern_u_channel():
@@ -446,9 +446,9 @@ def test_flat_pattern_u_channel():
     xmin, _ymin, xmax, _ymax = pattern["bbox"]
     bbox_length = xmax - xmin
     # When unfolded, the U should have length > base flange length.
-    assert bbox_length > base_length, (
-        f"unfolded U bbox length {bbox_length:.2f} should exceed base {base_length:.2f}"
-    )
+    assert (
+        bbox_length > base_length
+    ), f"unfolded U bbox length {bbox_length:.2f} should exceed base {base_length:.2f}"
 
 
 def test_flat_pattern_plate_with_circular_hole():
@@ -495,13 +495,13 @@ def test_lbracket_base_face_tie_break():
     probe = UnfoldProbe()
     res = probe.run(solid)
     assert res.status == UnfoldStatus.SUCCESS
-    assert res.n_bends == 1, (
-        f"L-bracket with symmetric legs must yield n_bends=1, got {res.n_bends}"
-    )
+    assert (
+        res.n_bends == 1
+    ), f"L-bracket with symmetric legs must yield n_bends=1, got {res.n_bends}"
     # Sanity: the unfolded flat area exceeds the area of a single flange.
-    assert res.flat_area > 40.0 * 40.0, (
-        f"flat_area {res.flat_area:.2f} should exceed single-flange area 1600"
-    )
+    assert (
+        res.flat_area > 40.0 * 40.0
+    ), f"flat_area {res.flat_area:.2f} should exceed single-flange area 1600"
 
 
 def test_base_face_prefers_bend_participation():
@@ -535,9 +535,9 @@ def test_base_face_prefers_bend_participation():
         length=10.0,
     )
     chosen = _select_base_face(planars, [bend])
-    assert chosen == 1, (
-        f"base selector should pick the bend-participating face (idx=1), got {chosen}"
-    )
+    assert (
+        chosen == 1
+    ), f"base selector should pick the bend-participating face (idx=1), got {chosen}"
 
     # End-to-end: build a U-channel and confirm the probe's chosen base
     # participates in a bend by checking that n_bends >= 1 and the flat
@@ -807,9 +807,9 @@ def test_z_section_fully_unfolds_spanning_all_three_segments():
 
     pattern = UnfoldProbe().compute_flat_pattern(solid)
     assert pattern, "Z-purlin should produce a non-empty flat pattern"
-    assert len(pattern["bend_lines"]) == 2, (
-        f"Z-purlin has exactly two bend lines, got {len(pattern['bend_lines'])}"
-    )
+    assert (
+        len(pattern["bend_lines"]) == 2
+    ), f"Z-purlin has exactly two bend lines, got {len(pattern['bend_lines'])}"
 
     # The developed extent must span flange + web + flange. The blank's
     # in-section dimension runs perpendicular to the prism (+Y) axis; the
@@ -867,9 +867,9 @@ def test_z_bend_flags_joggle():
     """Z-shape (serial joggle): two opposite-sign bends in a row -> joggle."""
     solid = _build_z_bend()
     res = UnfoldProbe().run(solid)
-    assert res.status == UnfoldStatus.SUCCESS, (
-        f"Z-bend should unfold cleanly, got {res.status} ({res.reason})"
-    )
+    assert (
+        res.status == UnfoldStatus.SUCCESS
+    ), f"Z-bend should unfold cleanly, got {res.status} ({res.reason})"
     assert res.flags.get("has_joggle") is True
     assert res.flags.get("n_joggles", 0) >= 1
     # Both bends must have been traversed.
@@ -1004,9 +1004,7 @@ def _build_rect_tube(
     from OCP.TopAbs import TopAbs_EDGE
 
     outer = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), W, H, length).Solid()
-    inner = BRepPrimAPI_MakeBox(
-        gp_Pnt(t, t, -1.0), W - 2 * t, H - 2 * t, length + 2.0
-    ).Solid()
+    inner = BRepPrimAPI_MakeBox(gp_Pnt(t, t, -1.0), W - 2 * t, H - 2 * t, length + 2.0).Solid()
     tube = _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
 
     fil = BRepFilletAPI_MakeFillet(tube)
@@ -1038,9 +1036,9 @@ def test_star_bracket_does_not_fail():
 
     solid = _build_star_bracket()
     res = UnfoldProbe().run(solid)
-    assert res.status != UnfoldStatus.FAILURE, (
-        f"star-shaped flange part should not fail, got {res.reason}"
-    )
+    assert (
+        res.status != UnfoldStatus.FAILURE
+    ), f"star-shaped flange part should not fail, got {res.reason}"
     # A base flange with three or more bend neighbours: branching flag set.
     assert res.flags.get("branching") is True
     assert res.n_bends >= 3
@@ -1083,9 +1081,7 @@ def test_solid_round_bar_still_fails():
     """A solid round bar has a single cylindrical wall and no inner bore, so it
     is not a rolled sheet. The rolled-tube rescue must not flatten solid stock."""
 
-    bar = BRepPrimAPI_MakeCylinder(
-        gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), 12.0, 80.0
-    ).Solid()
+    bar = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), 12.0, 80.0).Solid()
     res = UnfoldProbe().run(bar)
     assert res.status == UnfoldStatus.FAILURE
     assert res.flags.get("rolled_tube") is None
@@ -1125,9 +1121,7 @@ def _build_sharp_rect_tube(
     """
 
     outer = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), W, H, length).Solid()
-    inner = BRepPrimAPI_MakeBox(
-        gp_Pnt(t, t, 0), W - 2 * t, H - 2 * t, length
-    ).Solid()
+    inner = BRepPrimAPI_MakeBox(gp_Pnt(t, t, 0), W - 2 * t, H - 2 * t, length).Solid()
     return _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
 
 

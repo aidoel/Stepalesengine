@@ -53,9 +53,9 @@ def test_unfold_baseline(filename: str, expected: list[tuple[str, int, float]]) 
         pytest.skip(f"fixture missing: {filename}")
 
     solids = load_solids(str(path))
-    assert len(solids) == len(expected), (
-        f"solid count mismatch for {filename}: got {len(solids)}, expected {len(expected)}"
-    )
+    assert len(solids) == len(
+        expected
+    ), f"solid count mismatch for {filename}: got {len(solids)}, expected {len(expected)}"
 
     observed: list[tuple[str, int, float]] = []
     for solid in solids:
@@ -63,9 +63,9 @@ def test_unfold_baseline(filename: str, expected: list[tuple[str, int, float]]) 
         observed.append((res.status.name, res.n_bends, round(res.thickness_mean, 1)))
 
     # No real sheet-metal part may fail to unfold (the corner-fillet bug).
-    assert all(s != UnfoldStatus.FAILURE.name for s, _, _ in observed), (
-        f"a sheet-metal part failed to unfold in {filename}: {observed}"
-    )
+    assert all(
+        s != UnfoldStatus.FAILURE.name for s, _, _ in observed
+    ), f"a sheet-metal part failed to unfold in {filename}: {observed}"
     assert Counter(observed) == Counter(expected), (
         f"unfold baseline mismatch for {filename}: got {sorted(observed)}, "
         f"expected {sorted(expected)}"
@@ -86,6 +86,6 @@ def test_classifies_as_plaat(filename: str, tmp_path: Path) -> None:
         AnalyzeOptions(out_dir=tmp_path, write_dxf=False, write_xml=False, use_cache=False),
     )
     labels = [p.classification.label for p in result.manifest.parts]
-    assert all(lab == "plaat" for lab in labels), (
-        f"sheet-metal parts in {filename} should all classify as 'plaat', got {labels}"
-    )
+    assert all(
+        lab == "plaat" for lab in labels
+    ), f"sheet-metal parts in {filename} should all classify as 'plaat', got {labels}"

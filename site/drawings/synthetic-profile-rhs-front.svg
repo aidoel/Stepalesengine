@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-36.000 -36.000 152.000 972.000" width="640" height="480" preserveAspectRatio="xMidYMid meet" style="background:#ffffff">
+<g transform="translate(0,864.000) scale(1,-1)">
+<polyline points="80.000,0.000 80.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="80.000,900.000 0.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="0.000,0.000 0.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="80.000,0.000 0.000,0.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="5.000,0.000 5.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="5.000,900.000 75.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="75.000,0.000 75.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="5.000,0.000 75.000,0.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="75.000,0.000 75.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="75.000,900.000 5.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="5.000,0.000 5.000,900.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="75.000,0.000 5.000,0.000" fill="none" stroke="#999999" stroke-width="3.4020" stroke-dasharray="13.6080,6.8040"/>
+<polyline points="0.000,0.000 0.000,900.000" fill="none" stroke="#1a1a1a" stroke-width="3.4020" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="0.000,900.000 80.000,900.000" fill="none" stroke="#1a1a1a" stroke-width="3.4020" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="80.000,0.000 80.000,900.000" fill="none" stroke="#1a1a1a" stroke-width="3.4020" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="0.000,0.000 80.000,0.000" fill="none" stroke="#1a1a1a" stroke-width="3.4020" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<text x="-32.960" y="22.320" font-family="system-ui,sans-serif" font-size="38.880" fill="#555">FRONT</text>
+</svg>

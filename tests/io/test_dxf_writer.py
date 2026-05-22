@@ -327,9 +327,9 @@ def test_layer_colors(tmp_path: Path):
     }
     for name, color in expected.items():
         layer = doc.layers.get(name)
-        assert layer.dxf.color == color, (
-            f"layer {name} expected color {color}, got {layer.dxf.color}"
-        )
+        assert (
+            layer.dxf.color == color
+        ), f"layer {name} expected color {color}, got {layer.dxf.color}"
 
 
 # ---------------------------------------------------------------------------
@@ -413,9 +413,9 @@ def test_assembly_binpack_single_sheet(tmp_path: Path):
     # No two bboxes overlap.
     for i in range(len(bboxes)):
         for j in range(i + 1, len(bboxes)):
-            assert not _bboxes_overlap(bboxes[i], bboxes[j]), (
-                f"bboxes {i} and {j} overlap: {bboxes[i]} vs {bboxes[j]}"
-            )
+            assert not _bboxes_overlap(
+                bboxes[i], bboxes[j]
+            ), f"bboxes {i} and {j} overlap: {bboxes[i]} vs {bboxes[j]}"
 
 
 def test_assembly_binpack_multi_sheet(tmp_path: Path):

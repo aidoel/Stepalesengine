@@ -98,9 +98,7 @@ def _hull_concavity(features: ManufacturingFeatures) -> float:
     return max(0.0, min(1.0, 1.0 - ratio))
 
 
-def _tight_position_holes(
-    pmi: PMIRecord | None, hole_refs: list[str]
-) -> dict[str, float]:
+def _tight_position_holes(pmi: PMIRecord | None, hole_refs: list[str]) -> dict[str, float]:
     """Map ``hole_ref`` -> tightest position-tolerance magnitude that
     applies to it (or to "part" globally) and is below
     :data:`TIGHT_POSITION_TOL_MM`.

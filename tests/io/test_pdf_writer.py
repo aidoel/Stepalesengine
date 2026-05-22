@@ -141,9 +141,9 @@ def test_pdf_contains_metadata(tmp_path: Path):
 
     # Each tagged metadata string the writer puts on the title block.
     for needle in ["ABC-123", "S235", "BRACKET-1", "2026-05-15", "DS"]:
-        assert _byte_grep(data, needle), (
-            f"expected metadata string {needle!r} not found in PDF bytes"
-        )
+        assert _byte_grep(
+            data, needle
+        ), f"expected metadata string {needle!r} not found in PDF bytes"
 
     # Quantity '4' is short and ambiguous, so look for an exact title-block label.
     assert _byte_grep(data, "Qty"), "missing Qty label in title block"

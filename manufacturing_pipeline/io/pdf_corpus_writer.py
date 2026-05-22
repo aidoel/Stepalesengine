@@ -320,7 +320,9 @@ def _draw_table(
 
 def _read_dxf_polylines(
     dxf_path: Path,
-) -> tuple[list[tuple[str, list[tuple[float, float]], bool]], list[tuple[str, list[tuple[float, float]]]]]:
+) -> tuple[
+    list[tuple[str, list[tuple[float, float]], bool]], list[tuple[str, list[tuple[float, float]]]]
+]:
     """Read a DXF flat-pattern into closed polylines + open line segments.
 
     Returns a tuple ``(closed_polys, open_polys)`` where each closed entry is
@@ -689,9 +691,7 @@ def _render_part_page_full(
         candidate = Path(dxf_path_str)
         if candidate.is_file():
             try:
-                dxf_drawn = _draw_dxf_preview(
-                    c, candidate, mid_x_left, mid_y, mid_w_left, mid_h
-                )
+                dxf_drawn = _draw_dxf_preview(c, candidate, mid_x_left, mid_y, mid_w_left, mid_h)
             except Exception:  # noqa: BLE001 - never crash the whole report
                 _logger.exception("dxf preview failed for %s", candidate)
                 dxf_drawn = False
@@ -836,8 +836,13 @@ def _render_part_card(
         color=_hex_to_color("#555555"),
     )
     _label_pill(
-        c, x_mm + w_mm - 32.0, title_y + 2.0, cls.label, cls.label,
-        height=5.0, font_size=7.5,
+        c,
+        x_mm + w_mm - 32.0,
+        title_y + 2.0,
+        cls.label,
+        cls.label,
+        height=5.0,
+        font_size=7.5,
     )
 
     # DXF preview occupies the left half; right half holds key numbers.
@@ -857,9 +862,7 @@ def _render_part_card(
             except Exception:  # noqa: BLE001
                 dxf_drawn = False
     if not dxf_drawn:
-        _draw_dxf_placeholder(
-            c, preview_x, preview_y, preview_w, preview_h, "no preview"
-        )
+        _draw_dxf_placeholder(c, preview_x, preview_y, preview_w, preview_h, "no preview")
     else:
         _draw_rect(c, preview_x, preview_y, preview_w, preview_h, line_pt=0.2)
 
@@ -951,8 +954,14 @@ def _draw_distribution_bars(
     """Horizontal bars for label distribution. Returns the bottom y_mm."""
     total = sum(distribution.values())
     if total <= 0:
-        _set_text(c, _mm(x_mm), _mm(y_top_mm - 4.0), "no parts classified",
-                  size=9.0, color=_hex_to_color("#666666"))
+        _set_text(
+            c,
+            _mm(x_mm),
+            _mm(y_top_mm - 4.0),
+            "no parts classified",
+            size=9.0,
+            color=_hex_to_color("#666666"),
+        )
         return y_top_mm - 6.0
 
     bar_h = 6.0
@@ -968,25 +977,33 @@ def _draw_distribution_bars(
         pct = count / total
         # Label cell.
         _set_text(
-            c, _mm(x_mm), _mm(y - bar_h + 1.6), label,
-            font="Helvetica-Bold", size=8.5, color=fg,
+            c,
+            _mm(x_mm),
+            _mm(y - bar_h + 1.6),
+            label,
+            font="Helvetica-Bold",
+            size=8.5,
+            color=fg,
         )
         # Background rail.
         c.setFillColor(_hex_to_color("#eef0f3"))
         c.setStrokeColor(_hex_to_color("#dcdfe3"))
         c.setLineWidth(0.2)
-        c.rect(_mm(x_mm + label_col), _mm(y - bar_h), _mm(bar_w), _mm(bar_h),
-               stroke=1, fill=1)
+        c.rect(_mm(x_mm + label_col), _mm(y - bar_h), _mm(bar_w), _mm(bar_h), stroke=1, fill=1)
         # Filled bar.
         c.setFillColor(bg)
         c.setStrokeColor(bg)
-        c.rect(_mm(x_mm + label_col), _mm(y - bar_h), _mm(bar_w * pct), _mm(bar_h),
-               stroke=1, fill=1)
+        c.rect(
+            _mm(x_mm + label_col), _mm(y - bar_h), _mm(bar_w * pct), _mm(bar_h), stroke=1, fill=1
+        )
         # Count + percent.
         _set_text(
-            c, _mm(x_mm + label_col + bar_w + 2.0), _mm(y - bar_h + 1.6),
+            c,
+            _mm(x_mm + label_col + bar_w + 2.0),
+            _mm(y - bar_h + 1.6),
             f"{count}  {pct * 100:.1f}%",
-            size=8.0, color=_hex_to_color("#333333"),
+            size=8.0,
+            color=_hex_to_color("#333333"),
         )
         y -= bar_h + gap
     return y
@@ -1029,9 +1046,7 @@ def _render_cover_page(
     wall = extra_summary.get("wall_s")
     mean = extra_summary.get("mean_per_file_s")
     n_files = extra_summary.get("n_files", len(manifests))
-    sub_text = (
-        f"Generated {date_str}  -  files: {n_files}  -  parts: {total_parts}"
-    )
+    sub_text = f"Generated {date_str}  -  files: {n_files}  -  parts: {total_parts}"
     if wall is not None:
         sub_text += f"  -  wall: {wall:.1f}s"
     if mean is not None:
@@ -1209,11 +1224,7 @@ def write_corpus_pdf(
             col = idx_in_page % cols
             row = idx_in_page // cols
             x_mm = BORDER_MM + col * cell_w
-            y_mm = (
-                BORDER_MM
-                + inner_h
-                - (row + 1) * cell_h
-            )
+            y_mm = BORDER_MM + inner_h - (row + 1) * cell_h
             _render_part_card(
                 c,
                 entry,

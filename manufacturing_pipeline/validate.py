@@ -206,7 +206,8 @@ def _render_thumbnail_svg(source_step: Path, manifest_path: Path) -> str:
     corpus run never fails over a missing thumbnail.
     """
     import multiprocessing as mp
-    from concurrent.futures import ProcessPoolExecutor, TimeoutError as FutTimeout
+    from concurrent.futures import ProcessPoolExecutor
+    from concurrent.futures import TimeoutError as FutTimeout
 
     ctx = mp.get_context("spawn")
     pool = ProcessPoolExecutor(max_workers=1, mp_context=ctx)
@@ -237,7 +238,9 @@ def _build_anomalies(file_record: CorpusFile) -> list[str]:
     if file_record.duration_s > DURATION_WARN_S:
         reasons.append(f"long duration {file_record.duration_s:.1f}s")
     if file_record.bbox_max_mm > BBOX_WARN_MM:
-        reasons.append(f"bbox dim {file_record.bbox_max_mm:.0f}mm > {BBOX_WARN_MM:.0f}mm (unit error?)")
+        reasons.append(
+            f"bbox dim {file_record.bbox_max_mm:.0f}mm > {BBOX_WARN_MM:.0f}mm (unit error?)"
+        )
     if (
         file_record.is_ap242
         and file_record.pmi_n_annotations > 0
@@ -357,8 +360,13 @@ def validate_corpus(
             extra = (
                 _extract_from_manifest(manifest_path)
                 if manifest_path and manifest_path.exists()
-                else {"n_holes": 0, "n_bends": 0, "pmi_has_semantic": False,
-                      "pmi_n_annotations": 0, "bbox_max_mm": 0.0}
+                else {
+                    "n_holes": 0,
+                    "n_bends": 0,
+                    "pmi_has_semantic": False,
+                    "pmi_n_annotations": 0,
+                    "bbox_max_mm": 0.0,
+                }
             )
 
             record = CorpusFile(
@@ -385,13 +393,9 @@ def validate_corpus(
                 if thumb:
                     record.thumbnail_svg = thumb
                     try:
-                        (manifest_path.parent / "thumb.svg").write_text(
-                            thumb, encoding="utf-8"
-                        )
+                        (manifest_path.parent / "thumb.svg").write_text(thumb, encoding="utf-8")
                     except OSError as exc:
-                        logger.debug(
-                            "could not write thumb.svg for %s: %s", step_path, exc
-                        )
+                        logger.debug("could not write thumb.svg for %s: %s", step_path, exc)
 
             if record.ok:
                 ok_count += 1
@@ -560,9 +564,10 @@ def _render_file_rows(
 ) -> str:
     rows = []
     for f in files:
-        labels_html = " ".join(
-            _label_pill(label, count) for label, count in sorted(f.labels.items())
-        ) or '<span class="muted">-</span>'
+        labels_html = (
+            " ".join(_label_pill(label, count) for label, count in sorted(f.labels.items()))
+            or '<span class="muted">-</span>'
+        )
         pmi_dot = (
             '<span class="pmi-dot" title="semantic PMI"></span>'
             if f.pmi_has_semantic
@@ -581,14 +586,10 @@ def _render_file_rows(
             href = "/file/" + html.escape(f.safe_name, quote=True) + "/"
             path_html = f'<a href="{href}">{path_html}</a>'
         warn_html = (
-            f'<br><span class="warn-cell">{html.escape(warn_text)}</span>'
-            if warn_text
-            else ""
+            f'<br><span class="warn-cell">{html.escape(warn_text)}</span>' if warn_text else ""
         )
         duration_td = (
-            f'<td data-sort="{f.duration_s:.3f}">{f.duration_s:.2f}s</td>'
-            if show_duration
-            else ""
+            f'<td data-sort="{f.duration_s:.3f}">{f.duration_s:.2f}s</td>' if show_duration else ""
         )
         # The thumbnail SVG produced by render_part_views is already a complete,
         # self-contained <svg> element; embed it inline so the report needs no
@@ -596,9 +597,7 @@ def _render_file_rows(
         thumb_td = ""
         if show_thumbnails:
             thumb_inner = (
-                f.thumbnail_svg
-                if f.thumbnail_svg
-                else '<div class="thumb-empty">no preview</div>'
+                f.thumbnail_svg if f.thumbnail_svg else '<div class="thumb-empty">no preview</div>'
             )
             thumb_td = f'<td class="thumb-cell">{thumb_inner}</td>'
         rows.append(
@@ -704,13 +703,10 @@ def render_html_string(
     # timing, so those KPIs and the Duration column are dropped rather than
     # shown as a misleading 0.
     has_timing = report.total_duration_s > 0.0
-    avg_duration = (
-        report.total_duration_s / report.total_files if report.total_files else 0.0
-    )
+    avg_duration = report.total_duration_s / report.total_files if report.total_files else 0.0
 
     link_note = (
-        '<p class="muted link-note">Click any row to drill into the per-file '
-        "trace browser.</p>"
+        '<p class="muted link-note">Click any row to drill into the per-file ' "trace browser.</p>"
         if link_mode
         else ""
     )
@@ -806,9 +802,7 @@ def render_html_report(
     """
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(
-        render_html_string(report, link_mode=link_mode), encoding="utf-8"
-    )
+    out_path.write_text(render_html_string(report, link_mode=link_mode), encoding="utf-8")
     return out_path
 
 
@@ -851,7 +845,11 @@ def render_markdown_report(report: CorpusReport, out_path: Path) -> Path:
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for f in report.files:
         labels = ", ".join(f"{k}={v}" for k, v in sorted(f.labels.items())) or "-"
-        pmi = "semantic" if f.pmi_has_semantic else (str(f.pmi_n_annotations) if f.pmi_n_annotations else "-")
+        pmi = (
+            "semantic"
+            if f.pmi_has_semantic
+            else (str(f.pmi_n_annotations) if f.pmi_n_annotations else "-")
+        )
         status = "ok" if f.ok and not f.warnings else ("warn" if f.ok else "fail")
         lines.append(
             f"| `{f.relative_path}` | {_format_size_mb(f.size_bytes)} | {f.parts} | "

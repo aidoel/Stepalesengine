@@ -197,13 +197,53 @@ def _make_profile_solid(family: str, h: float, b: float, t: float, length: float
 # ---------------------------------------------------------------------------
 
 
-def _write_step_single(solid, path: Path) -> Path:
-    """Write a single solid to a STEP file via STEPControl_Writer."""
-    from OCP.IFSelect import IFSelect_ReturnStatus
-    from OCP.STEPControl import STEPControl_StepModelType, STEPControl_Writer
+def _write_step_named(solid, path: Path, name: str) -> Path:
+    """Write a single named solid via STEPCAFControl_Writer + an XCAF document.
 
+    The name rides on a ``TDataStd_Name`` attribute, so the resulting STEP
+    ``PRODUCT`` entity is authored with ``name`` instead of OCCT's default
+    translator signature ("Open CASCADE STEP translator 7.9 N").
+    """
+    from OCP.IFSelect import IFSelect_ReturnStatus
+    from OCP.STEPCAFControl import STEPCAFControl_Writer
+    from OCP.TCollection import TCollection_ExtendedString
+    from OCP.TDataStd import TDataStd_Name
+    from OCP.TDocStd import TDocStd_Document
+    from OCP.XCAFApp import XCAFApp_Application
+    from OCP.XCAFDoc import XCAFDoc_DocumentTool
+
+    app = XCAFApp_Application.GetApplication_s()
+    doc = TDocStd_Document(TCollection_ExtendedString("XCAF"))
+    app.NewDocument(TCollection_ExtendedString("MDTV-XCAF"), doc)
+    shape_tool = XCAFDoc_DocumentTool.ShapeTool_s(doc.Main())
+
+    label = shape_tool.AddShape(solid, False)
+    TDataStd_Name.Set_s(label, TCollection_ExtendedString(str(name)))
+
+    writer = STEPCAFControl_Writer()
+    if not writer.Transfer(doc):
+        raise RuntimeError("STEPCAFControl_Writer.Transfer(doc) returned false")
+    wrc = writer.Write(str(path))
+    if wrc != IFSelect_ReturnStatus.IFSelect_RetDone:
+        raise RuntimeError(f"STEPCAFControl_Writer.Write failed: {wrc}")
+    return path
+
+
+def _write_step_single(solid, path: Path, name: str | None = None) -> Path:
+    """Write a single solid to a STEP file.
+
+    When ``name`` is given the solid is written through ``STEPCAFControl_Writer``
+    so the STEP ``PRODUCT`` carries that name; otherwise the bare
+    ``STEPControl_Writer`` is used and OCCT stamps its own default product name.
+    """
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
+
+    if name:
+        return _write_step_named(solid, p, name)
+
+    from OCP.IFSelect import IFSelect_ReturnStatus
+    from OCP.STEPControl import STEPControl_StepModelType, STEPControl_Writer
 
     writer = STEPControl_Writer()
     rc = writer.Transfer(solid, STEPControl_StepModelType.STEPControl_AsIs)
@@ -227,15 +267,17 @@ def write_flat_plate_step(
     w: float = 60.0,
     t: float = 2.0,
     with_holes: Iterable[tuple[float, float, float]] | None = None,
+    name: str | None = None,
 ) -> Path:
     """Write a STEP file containing a single flat rectangular plate.
 
     Optionally adds through-holes at given ``(cx, cy, diameter)`` positions on
-    the top face. Returns the resolved path.
+    the top face. When ``name`` is given the STEP ``PRODUCT`` is authored with
+    it. Returns the resolved path.
     """
     holes = list(with_holes) if with_holes else None
     solid = _make_flat_plate_solid(l=l, w=w, t=t, holes=holes)
-    return _write_step_single(solid, Path(path))
+    return _write_step_single(solid, Path(path), name=name)
 
 
 def write_lbracket_step(
@@ -246,17 +288,19 @@ def write_lbracket_step(
     t: float = 2.0,
     bend_radius: float = 3.0,
     width: float = 30.0,
+    name: str | None = None,
 ) -> Path:
     """Write a STEP file containing a single sheet-metal L-bracket.
 
     The bracket consists of two flat flanges of thickness ``t`` joined by a
     single 90 degree bend with the given inner radius. ``width`` is the
-    extrusion length perpendicular to the bend axis.
+    extrusion length perpendicular to the bend axis. When ``name`` is given the
+    STEP ``PRODUCT`` is authored with it.
     """
     solid = _make_lbracket_solid(
         leg_a=leg_a, leg_b=leg_b, t=t, bend_radius=bend_radius, width=width
     )
-    return _write_step_single(solid, Path(path))
+    return _write_step_single(solid, Path(path), name=name)
 
 
 def write_profile_step(
@@ -267,14 +311,16 @@ def write_profile_step(
     b: float = 60.0,
     t: float = 4.0,
     length: float = 1000.0,
+    name: str | None = None,
 ) -> Path:
     """Write a STEP file containing a single hollow profile (RHS/SHS/CHS).
 
     For ``CHS`` use ``h=b=outer_diameter``; the profile is created via
-    closed-wire to face to prism.
+    closed-wire to face to prism. When ``name`` is given the STEP ``PRODUCT``
+    is authored with it.
     """
     solid = _make_profile_solid(family=family, h=h, b=b, t=t, length=length)
-    return _write_step_single(solid, Path(path))
+    return _write_step_single(solid, Path(path), name=name)
 
 
 def write_assembly_step(

@@ -13,10 +13,7 @@ def register(subparsers) -> argparse.ArgumentParser:
     """Register the ``serve-corpus`` parser. Returns the parser."""
     serve = subparsers.add_parser(
         "serve-corpus",
-        help=(
-            "serve the corpus HTML report with drill-down into the per-file "
-            "trace browser"
-        ),
+        help=("serve the corpus HTML report with drill-down into the per-file trace browser"),
     )
     serve.add_argument(
         "report_dir",

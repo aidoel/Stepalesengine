@@ -27,9 +27,7 @@ def _seed_two_steps(directory: Path) -> list[Path]:
     """Write two distinct synthetic STEPs into ``directory``."""
     directory.mkdir(parents=True, exist_ok=True)
     a = write_flat_plate_step(directory / "plate.step", l=100, w=50, t=2.0)
-    b = write_profile_step(
-        directory / "rhs.step", family="RHS", h=80, b=40, t=3.0, length=300
-    )
+    b = write_profile_step(directory / "rhs.step", family="RHS", h=80, b=40, t=3.0, length=300)
     return [a, b]
 
 
@@ -118,9 +116,7 @@ def test_validate_corpus_write_outputs_emits_inline_thumbnails(tmp_path: Path) -
     _seed_two_steps(corpus)
     out_dir = tmp_path / "out"
 
-    report = validate_corpus(
-        corpus, workers=1, out_dir=out_dir, write_outputs=True
-    )
+    report = validate_corpus(corpus, workers=1, out_dir=out_dir, write_outputs=True)
 
     # Every file record carries inline SVG markup, and a thumb.svg lands on
     # disk next to that file's manifest.

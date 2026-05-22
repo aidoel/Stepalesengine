@@ -7,6 +7,8 @@ dependencies = [
     "ezdxf>=1.3",
     "pyyaml>=6.0",
     "numpy>=1.24",
+    "scipy>=1.10",
+    "shapely>=2.0",
     "reportlab>=4.0",
     "watchdog>=3.0",
 ]
@@ -14,11 +16,18 @@ dependencies = [
 [project.optional-dependencies]
 occt = ["cadquery-ocp>=7.7"]
 dev = ["pytest>=7.0", "pytest-cov>=4.1", "hypothesis>=6.0", "ruff>=0.6", "pre-commit>=3.7", "mypy>=1.10"]
-web = ["flask>=3.0", "gunicorn>=21.0"]
+web = [
+    "flask>=3.0",
+    "gunicorn>=21.0",
+    "trimesh>=4.0",
+    "mapbox-earcut>=1.0",
+    "manifold3d>=2.0",
+]
 
 [project.scripts]
 stepalesengine = "manufacturing_pipeline.cli:main"
 stepalesengine-web = "manufacturing_pipeline.web.server:main"
+stepalesengine-static-site = "manufacturing_pipeline.web.static_site:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -28,7 +37,13 @@ build-backend = "setuptools.build_meta"
 include = ["manufacturing_pipeline*"]
 
 [tool.setuptools.package-data]
-"manufacturing_pipeline.web" = ["templates/*.css", "templates/*.jinja", "templates/*.html.jinja"]
+"manufacturing_pipeline.web" = [
+    "templates/*.css",
+    "templates/*.jinja",
+    "templates/*.html.jinja",
+    "static_templates/*.css",
+    "static_templates/*.jinja",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

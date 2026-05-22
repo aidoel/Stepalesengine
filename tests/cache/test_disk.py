@@ -191,9 +191,9 @@ def test_end_to_end_second_call_is_faster(tmp_path: Path):
     warm = time.perf_counter() - t1
 
     # The spec asks for >= 2x but is lenient down to 1.5x.
-    assert warm < cold / 1.5, (
-        f"expected warm run to be at least 1.5x faster than cold; cold={cold:.3f}s warm={warm:.3f}s"
-    )
+    assert (
+        warm < cold / 1.5
+    ), f"expected warm run to be at least 1.5x faster than cold; cold={cold:.3f}s warm={warm:.3f}s"
 
 
 # ---------------------------------------------------------------------------
