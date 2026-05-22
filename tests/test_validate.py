@@ -108,6 +108,38 @@ def test_render_markdown_report_contains_table_and_counts(tmp_path: Path) -> Non
 
 
 # ---------------------------------------------------------------------------
+# Geometry thumbnails
+# ---------------------------------------------------------------------------
+
+
+def test_validate_corpus_write_outputs_emits_inline_thumbnails(tmp_path: Path) -> None:
+    """--write-outputs writes per-file thumb.svg and embeds it in the report."""
+    corpus = tmp_path / "corpus"
+    _seed_two_steps(corpus)
+    out_dir = tmp_path / "out"
+
+    report = validate_corpus(
+        corpus, workers=1, out_dir=out_dir, write_outputs=True
+    )
+
+    # Every file record carries inline SVG markup, and a thumb.svg lands on
+    # disk next to that file's manifest.
+    assert all(f.thumbnail_svg.lstrip().startswith("<svg") for f in report.files)
+    for f in report.files:
+        thumb = out_dir / f.safe_name / "thumb.svg"
+        assert thumb.is_file()
+        assert thumb.read_text(encoding="utf-8") == f.thumbnail_svg
+
+    # The rendered HTML stays self-contained: the SVG is embedded inline and a
+    # Preview column header appears.
+    html_path = render_html_report(report, tmp_path / "report.html")
+    text = html_path.read_text(encoding="utf-8")
+    assert "<th>Preview</th>" in text
+    assert 'class="thumb-cell"' in text
+    assert text.count("<svg") >= 2
+
+
+# ---------------------------------------------------------------------------
 # CLI smoke test
 # ---------------------------------------------------------------------------
 

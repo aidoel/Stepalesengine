@@ -143,6 +143,23 @@ def test_corpus_index_returns_200_with_both_rows_linked(tmp_path: Path) -> None:
     assert f'href="/file/{safe_b}/"' in body
 
 
+def test_corpus_index_embeds_disk_thumbnails(tmp_path: Path) -> None:
+    """The served index reads each <safe_name>/thumb.svg and inlines it."""
+    corpus = tmp_path / "corpus"
+    _seed_two_steps(corpus)
+    out_dir = tmp_path / "report"
+    validate_corpus(corpus, workers=1, out_dir=out_dir, write_outputs=True)
+
+    # validate-corpus --write-outputs should have left thumb.svg on disk.
+    assert (out_dir / _safe_dir_name("plate") / "thumb.svg").is_file()
+
+    client = Client(create_corpus_app(out_dir))
+    body = client.get("/").get_data(as_text=True)
+    assert "<th>Preview</th>" in body
+    assert 'class="thumb-cell"' in body
+    assert body.count("<svg") >= 2
+
+
 def test_corpus_file_route_delegates_to_per_file_viewer(tmp_path: Path) -> None:
     """GET /file/<safe>/ proxies to the per-file viewer index page."""
     corpus = tmp_path / "corpus"

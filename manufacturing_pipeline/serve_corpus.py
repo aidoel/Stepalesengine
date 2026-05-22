@@ -140,6 +140,17 @@ def _record_from_manifest(
     except OSError:
         size = 0
 
+    # A thumb.svg sitting next to the manifest was written by
+    # validate-corpus --write-outputs; embed it inline so the served report
+    # shows the per-row geometry preview without an extra route.
+    thumbnail_svg = ""
+    thumb_path = manifest_path.parent / "thumb.svg"
+    try:
+        if thumb_path.is_file():
+            thumbnail_svg = thumb_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        _logger.debug("could not read thumbnail %s: %s", thumb_path, exc)
+
     record = CorpusFile(
         relative_path=rel,
         size_bytes=size,
@@ -155,6 +166,7 @@ def _record_from_manifest(
         bbox_max_mm=bbox_max_mm,
         is_ap242=False,
         safe_name=safe_name,
+        thumbnail_svg=thumbnail_svg,
     )
     record.warnings = _build_anomalies(record)
     return record

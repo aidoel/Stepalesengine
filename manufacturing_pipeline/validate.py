@@ -72,6 +72,10 @@ class CorpusFile:
     # link rows into the per-file web viewer). Empty when no per-file manifest
     # was written.
     safe_name: str = ""
+    # Inline SVG markup for a small iso-projection thumbnail of the file's
+    # primary part. Embedded directly into the HTML report so it stays
+    # self-contained. Empty when no thumbnail could be rendered.
+    thumbnail_svg: str = ""
 
 
 @dataclass
@@ -158,6 +162,67 @@ def _extract_from_manifest(manifest_path: Path) -> dict:
                 if local > out["bbox_max_mm"]:
                     out["bbox_max_mm"] = local
     return out
+
+
+# Thumbnail size for the per-row geometry preview in the HTML report.
+_THUMB_WIDTH = 160
+_THUMB_HEIGHT = 120
+# Wall-clock budget for one thumbnail's HLR projection before we give up.
+_THUMB_TIMEOUT_S = 60.0
+
+
+def _thumbnail_worker(source_step: Path, manifest_path: Path) -> str:
+    """Worker body: render the iso-projection SVG of a file's primary part.
+
+    Top-level (picklable) so it can run inside a ``spawn`` subprocess. The
+    "primary part" is the first part in the manifest. Returns the SVG string,
+    or ``""`` when there is no part / projection produces nothing.
+    """
+    from manufacturing_pipeline.web.step_to_svg import render_part_views
+
+    manifest = read_xml(Path(manifest_path))
+    if not manifest.parts:
+        return ""
+    product_id = manifest.parts[0].part.product_id
+    if not product_id:
+        return ""
+    svgs = render_part_views(
+        Path(source_step),
+        product_id,
+        views=("iso",),
+        width=_THUMB_WIDTH,
+        height=_THUMB_HEIGHT,
+    )
+    return svgs.get("iso", "")
+
+
+def _render_thumbnail_svg(source_step: Path, manifest_path: Path) -> str:
+    """Render a small iso-projection SVG thumbnail of a file's primary part.
+
+    Best-effort and crash-proof: the OCCT HLR projector can hard-segfault the
+    interpreter on some solids, which no ``try/except`` can catch. The render
+    therefore runs in a one-shot ``spawn`` subprocess — a crashed (or
+    timed-out, or exception-raising) worker just yields an empty string, so a
+    corpus run never fails over a missing thumbnail.
+    """
+    import multiprocessing as mp
+    from concurrent.futures import ProcessPoolExecutor, TimeoutError as FutTimeout
+
+    ctx = mp.get_context("spawn")
+    pool = ProcessPoolExecutor(max_workers=1, mp_context=ctx)
+    try:
+        future = pool.submit(_thumbnail_worker, Path(source_step), Path(manifest_path))
+        return future.result(timeout=_THUMB_TIMEOUT_S) or ""
+    except FutTimeout:
+        logger.debug("thumbnail render timed out for %s", source_step)
+        return ""
+    except Exception as exc:  # noqa: BLE001 - thumbnail must never fail the run
+        # BrokenProcessPool (segfault in the worker) lands here too.
+        logger.debug("thumbnail render skipped for %s: %s", source_step, exc)
+        return ""
+    finally:
+        # Don't block on a stuck/timed-out worker; kill it and move on.
+        pool.shutdown(wait=False, cancel_futures=True)
 
 
 def _build_anomalies(file_record: CorpusFile) -> list[str]:
@@ -313,6 +378,21 @@ def validate_corpus(
                 safe_name=(_safe_dir_name(step_path.stem) if persistent else ""),
             )
 
+            # When --write-outputs is set, render a small iso thumbnail of the
+            # primary part next to the manifest and embed it in the report.
+            if persistent and manifest_path and manifest_path.exists():
+                thumb = _render_thumbnail_svg(step_path, manifest_path)
+                if thumb:
+                    record.thumbnail_svg = thumb
+                    try:
+                        (manifest_path.parent / "thumb.svg").write_text(
+                            thumb, encoding="utf-8"
+                        )
+                    except OSError as exc:
+                        logger.debug(
+                            "could not write thumb.svg for %s: %s", step_path, exc
+                        )
+
             if record.ok:
                 ok_count += 1
                 parts_total += record.parts
@@ -413,6 +493,14 @@ tr.row-bad { background: #fff7f7; }
 .pmi-dot.off { background: #ddd; }
 .path-cell { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
              font-size: 12px; word-break: break-all; }
+.thumb-cell { width: 168px; }
+.thumb-cell svg { display: block; width: 160px; height: 120px;
+                  border: 1px solid #e3e3e3; border-radius: 4px;
+                  background: #fff; }
+.thumb-cell .thumb-empty { display: flex; align-items: center;
+                  justify-content: center; width: 160px; height: 120px;
+                  border: 1px dashed #ddd; border-radius: 4px; color: #aaa;
+                  font-size: 11px; }
 .warn-cell { font-size: 11px; color: #821818; }
 .link-note { color: #1a5dd9; font-size: 13px; margin: 4px 0 0 0; }
 """
@@ -464,7 +552,11 @@ def _render_anomalies_html(report: CorpusReport) -> str:
 
 
 def _render_file_rows(
-    files: list[CorpusFile], *, link_mode: bool = False, show_duration: bool = True
+    files: list[CorpusFile],
+    *,
+    link_mode: bool = False,
+    show_duration: bool = True,
+    show_thumbnails: bool = False,
 ) -> str:
     rows = []
     for f in files:
@@ -498,8 +590,20 @@ def _render_file_rows(
             if show_duration
             else ""
         )
+        # The thumbnail SVG produced by render_part_views is already a complete,
+        # self-contained <svg> element; embed it inline so the report needs no
+        # external assets.
+        thumb_td = ""
+        if show_thumbnails:
+            thumb_inner = (
+                f.thumbnail_svg
+                if f.thumbnail_svg
+                else '<div class="thumb-empty">no preview</div>'
+            )
+            thumb_td = f'<td class="thumb-cell">{thumb_inner}</td>'
         rows.append(
             f'<tr class="{ok_class}" data-ok="{"1" if f.ok else "0"}">'
+            f"{thumb_td}"
             f'<td class="path-cell">{path_html}'
             f"{warn_html}"
             f"</td>"
@@ -591,6 +695,10 @@ def render_html_string(
     if link_mode is None:
         link_mode = any(bool(f.safe_name) for f in report.files)
 
+    # The geometry-preview column appears only when at least one file carries a
+    # rendered thumbnail, so a corpus run without --write-outputs stays compact.
+    show_thumbnails = any(bool(f.thumbnail_svg) for f in report.files)
+
     # Wall-time / mean-time carry information only for a live validate-corpus
     # run. When the report is rebuilt from stored manifests there is no
     # timing, so those KPIs and the Duration column are dropped rather than
@@ -615,6 +723,7 @@ def render_html_string(
         else ""
     )
     duration_th = "        <th>Duration</th>\n" if has_timing else ""
+    preview_th = "        <th>Preview</th>\n" if show_thumbnails else ""
     style = _shared_css() + _CORPUS_EXTRA_CSS
 
     return f"""<!doctype html>
@@ -664,7 +773,7 @@ def render_html_string(
   <table id="corpus-table">
     <thead>
       <tr>
-        <th>Relative path</th>
+{preview_th}        <th>Relative path</th>
         <th>Size</th>
         <th>Parts</th>
         <th>Labels</th>
@@ -674,7 +783,7 @@ def render_html_string(
 {duration_th}      </tr>
     </thead>
     <tbody>
-{_render_file_rows(report.files, link_mode=link_mode, show_duration=has_timing)}
+{_render_file_rows(report.files, link_mode=link_mode, show_duration=has_timing, show_thumbnails=show_thumbnails)}
     </tbody>
   </table>
 </div>
