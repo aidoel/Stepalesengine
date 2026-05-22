@@ -1099,3 +1099,69 @@ def test_thick_walled_pipe_still_fails():
     res = UnfoldProbe().run(pipe)
     assert res.status == UnfoldStatus.FAILURE
     assert res.flags.get("rolled_tube") is None
+
+
+# ---------------------------------------------------------------------------
+# Regression: sharp-cornered (un-filleted) tube exercises the synthetic-bend
+# path. _build_rect_tube above fillets its corners, so it only ever drove the
+# cylindrical-bend detector; nothing in the suite exercised a sharp corner.
+# _find_synthetic_bends took FindKey()'s generic TopoDS_Shape straight into
+# BRepAdaptor_Curve, which only accepts a TopoDS_Edge -> the ctor raised
+# TypeError for every edge, the loop swallowed it, and a sharp-cornered tube
+# reported 0 bends and unfolded as a flat plate.
+# ---------------------------------------------------------------------------
+
+
+def _build_sharp_rect_tube(
+    W: float = 60.0,
+    H: float = 100.0,
+    t: float = 4.0,
+    length: float = 120.0,
+):
+    """A four-walled rectangular tube with sharp (un-filleted) 90 deg corners.
+
+    Outer box minus inner box, no corner fillets: the four corner bends have no
+    cylindrical patch, so they can only be found as *synthetic* bends.
+    """
+
+    outer = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), W, H, length).Solid()
+    inner = BRepPrimAPI_MakeBox(
+        gp_Pnt(t, t, 0), W - 2 * t, H - 2 * t, length
+    ).Solid()
+    return _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
+
+
+def test_bend_detector_finds_sharp_tube_corner_bends():
+    """The synthetic-bend detector must find the four sharp corner bends.
+
+    Direct regression for the missing TopoDS.Edge_s cast in
+    _find_synthetic_bends: before the fix this returned an empty list because
+    BRepAdaptor_Curve rejected every (un-cast) FindKey shape.
+    """
+
+    solid = _build_sharp_rect_tube()
+    bends = BendDetector().detect(solid)
+    synthetic = [b for b in bends if b.is_synthetic]
+    assert synthetic, "sharp tube corners must be found as synthetic bends"
+    assert all(
+        abs(math.degrees(b.angle_rad) - 90.0) < 1.0 for b in synthetic
+    ), "each sharp corner is a 90 deg bend"
+
+
+def test_sharp_rect_tube_unfolds_as_seamed_section():
+    """A sharp-cornered rectangular tube is a closed cyclic bend graph.
+
+    It must unfold PARTIAL with a ``seamed_section`` flag and four bends -
+    exactly like the filleted ``_build_rect_tube`` - not slip through the
+    no-bends flat-plate path as SUCCESS / n_bends=0.
+    """
+
+    solid = _build_sharp_rect_tube()
+    res = UnfoldProbe().run(solid)
+    assert res.status == UnfoldStatus.PARTIAL, (
+        f"sharp-cornered tube should unfold as a seamed section, "
+        f"got {res.status} ({res.reason})"
+    )
+    assert res.flags.get("seamed_section") is True
+    assert res.n_bends == 4
+    assert res.flat_area > 0.0

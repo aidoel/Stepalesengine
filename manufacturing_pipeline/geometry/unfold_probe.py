@@ -1183,6 +1183,7 @@ class BendDetector:
         from OCP.GeomAbs import GeomAbs_Line
         from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
         from OCP.TopExp import TopExp
+        from OCP.TopoDS import TopoDS
         from OCP.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
 
         # Edge -> faces map
@@ -1197,7 +1198,15 @@ class BendDetector:
         seen_pairs = set(existing_pairs)
 
         for k in range(1, m.Size() + 1):
-            edge = m.FindKey(k)
+            # FindKey returns a generic TopoDS_Shape; BRepAdaptor_Curve only
+            # accepts a TopoDS_Edge, so cast first. Without the cast the ctor
+            # raises TypeError for every edge and the loop below finds no
+            # synthetic bends at all (a sharp-cornered RHS / channel / I-beam
+            # then reports 0 bends and unfolds as a flat plate).
+            try:
+                edge = TopoDS.Edge_s(m.FindKey(k))
+            except Exception:
+                continue
             try:
                 curve = BRepAdaptor_Curve(edge)
             except Exception:
