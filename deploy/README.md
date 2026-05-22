@@ -33,3 +33,28 @@ different report directory. Adjust `--workers` in the `CMD` to taste.
 Deploy as a Coolify application (Dockerfile build, context = repo root with
 `corpus_steps/` added), domain `step.stadsbeheer.tech`, container port 5000.
 Coolify provides the reverse proxy and automatic HTTPS.
+
+## Deploying an update
+
+To ship a change to the live viewer at `step.stadsbeheer.tech`:
+
+1. **Merge the change into `main`.** Merge PR #3 (`corpus-viewer-improvements`)
+   so `deploy/Dockerfile` and `manufacturing_pipeline/serve_corpus.py` are on
+   `main`.
+2. **Prepare the build context.** On the build host, check out `main` and make
+   sure the `corpus_steps/` directory (the STEP files to showcase) is present
+   at the repo root. It is gitignored — customer geometry, never committed — so
+   it will not arrive with the checkout and must be copied in. Without it the
+   `COPY corpus_steps /app/corpus/steps` step in the Dockerfile fails.
+3. **Rebuild the image** from the repo root:
+
+   ```
+   docker build -f deploy/Dockerfile -t step-corpus .
+   ```
+
+   `validate-corpus` runs during the build; the per-file manifests it writes
+   carry container-correct source paths.
+4. **Deploy via Coolify.** Trigger a redeploy of the `step.stadsbeheer.tech`
+   application in Coolify. Coolify rebuilds the image from the configured
+   context and rolls the container; the reverse proxy and HTTPS are handled
+   automatically.
