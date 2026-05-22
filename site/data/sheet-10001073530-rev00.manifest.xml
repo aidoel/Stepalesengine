@@ -1,0 +1,190 @@
+<?xml version='1.0' encoding='utf-8'?>
+<assembly xmlns="https://stepalesengine.dev/manifest/1" source="/home/user/Stepalesengine/corpus/sheet_10001073530_rev00.stp" source-mtime="1779379153.729685" source-size="246865" generated-at="2026-05-21T16:18:51+00:00" model-version="rules-1.0.0">
+  <parts>
+    <part product-id="10001073530_Rev_00" name="10001073530_Rev_00" description="('STEP AP214')" source="header" quantity="1">
+      <classification label="plaat" confidence="0.9766898010097426">
+        <scores>
+          <score class="plaat" value="2.3857928454075967" />
+          <score class="profiel" value="-0.3952642818025321" />
+          <score class="anders" value="0.4304280471245403" />
+        </scores>
+        <probabilities>
+          <probability class="plaat" value="0.9766898010097426" />
+          <probability class="profiel" value="0.0037511214390271693" />
+          <probability class="anders" value="0.019559077551230195" />
+        </probabilities>
+        <margin value="1.9553647982830564" ambiguous="false" />
+        <contributions>
+          <contribution feature="top1_face_pct" class="plaat" value="0.19052856360506423" delta="0.13336999452354495" />
+          <contribution feature="top1_face_pct,unfoldable" class="plaat" value="(0.19052856360506423, True)" delta="0.1524228508840514" />
+          <contribution feature="unfoldable,seamed_tube" class="plaat" value="(True, False)" delta="1.2" />
+          <contribution feature="has_bends,seamed_tube" class="plaat" value="(True, False)" delta="1.2" />
+          <contribution feature="aspect_ratio" class="plaat" value="18.900749529700747" delta="-0.3" />
+          <contribution feature="name_profile_hit" class="plaat" value="0.0" delta="-0.0" />
+          <contribution feature="cross_section_constant" class="profiel" value="false" delta="0.0" />
+          <contribution feature="aspect_ratio" class="profiel" value="18.900749529700747" delta="0.8" />
+          <contribution feature="name_profile_hit" class="profiel" value="0.0" delta="0.0" />
+          <contribution feature="profile_match_designation" class="profiel" value="0.0" delta="0.0" />
+          <contribution feature="seamed_tube" class="profiel" value="false" delta="0.0" />
+          <contribution feature="top1_face_pct" class="profiel" value="0.19052856360506423" delta="-0.09526428180253212" />
+          <contribution feature="unfoldable,seamed_tube" class="profiel" value="(True, False)" delta="-0.8" />
+          <contribution feature="has_bends,seamed_tube" class="profiel" value="(True, False)" delta="-0.3" />
+          <contribution feature="name_din_hit" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="vendor_code_present" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="bspline_pct" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="hole_density" class="anders" value="0.000755408790329966" delta="0.0009064905483959592" />
+          <contribution feature="hull_concavity" class="anders" value="0.8309411332391416" delta="0.8309411332391416" />
+          <contribution feature="top1_face_pct,unfoldable" class="anders" value="(0.19052856360506423, True)" delta="0.0" />
+          <contribution feature="pocket_complexity" class="anders" value="0.7847003023835735" delta="1.0985804233370027" />
+          <contribution feature="unfoldable" class="anders" value="true" delta="-0.3" />
+          <contribution feature="has_bends" class="anders" value="true" delta="-1.2" />
+        </contributions>
+        <tiebreakers />
+        <probe-results>
+          <probe name="unfoldable" value="true" />
+        </probe-results>
+        <model-version value="rules-1.0.0" />
+      </classification>
+      <features>
+        <volume value="1918062.9214816806" units="mm3" />
+        <surface-area value="794271.9328668618" units="mm2" />
+        <bbox length="1903.0391667165482" width="100.6859100336789" thickness="60.17469918352194" units="mm" />
+        <aspect-ratio value="18.900749529700747" />
+        <thickness-ratio value="0.03162031566977453" />
+        <face-area-top>
+          <face rank="1" pct="0.19052856360506423" />
+          <face rank="2" pct="0.19052856360506418" />
+          <face rank="3" pct="0.11919493078512645" />
+        </face-area-top>
+        <surface-composition>
+          <surface type="planar" pct="0.8849458021279062" />
+          <surface type="cylindrical" pct="0.11496301601135119" />
+          <surface type="conical" pct="9.118186074239508e-05" />
+          <surface type="toroidal" pct="0.0" />
+          <surface type="spherical" pct="0.0" />
+          <surface type="bspline" pct="0.0" />
+          <surface type="other" pct="0.0" />
+        </surface-composition>
+        <edge-counts>
+          <edge kind="line" count="420" />
+          <edge kind="circle" count="464" />
+          <edge kind="ellipse" count="0" />
+          <edge kind="bspline" count="0" />
+        </edge-counts>
+        <edge-radius mean="30.25" std="1.0" />
+        <hole-count value="30" />
+        <hole-diameters>
+          <diameter value="2.0" units="mm" />
+          <diameter value="4.9999999999999005" units="mm" />
+          <diameter value="4.9999999999999005" units="mm" />
+          <diameter value="4.9999999999999005" units="mm" />
+          <diameter value="4.9999999999999005" units="mm" />
+          <diameter value="4.9999999999999005" units="mm" />
+          <diameter value="4.9999999999999005" units="mm" />
+          <diameter value="4.9999999999999005" units="mm" />
+          <diameter value="4.9999999999999005" units="mm" />
+          <diameter value="4.9999999999999805" units="mm" />
+          <diameter value="4.9999999999999805" units="mm" />
+          <diameter value="6.50000000000004" units="mm" />
+          <diameter value="6.50000000000004" units="mm" />
+          <diameter value="8.200000000000001" units="mm" />
+          <diameter value="8.200000000000001" units="mm" />
+          <diameter value="8.200000000000001" units="mm" />
+          <diameter value="8.49999999999988" units="mm" />
+          <diameter value="8.49999999999988" units="mm" />
+          <diameter value="8.499999999999961" units="mm" />
+          <diameter value="8.49999999999998" units="mm" />
+          <diameter value="8.50000000000004" units="mm" />
+          <diameter value="8.50000000000004" units="mm" />
+          <diameter value="8.50000000000018" units="mm" />
+          <diameter value="8.50000000000018" units="mm" />
+          <diameter value="8.50000000000018" units="mm" />
+          <diameter value="8.500000000000341" units="mm" />
+          <diameter value="10.19999999999964" units="mm" />
+          <diameter value="10.19999999999966" units="mm" />
+          <diameter value="10.20000000000006" units="mm" />
+          <diameter value="11.0" units="mm" />
+        </hole-diameters>
+        <sa-v-ratio value="51.45101928211463" />
+        <bounding-cylinder-fit-pct value="0.09327161932597516" />
+        <convex-hull-volume-ratio value="0.16905886676085838" />
+        <cross-section-constant value="false" />
+        <cross-section-signature>
+          <entry key="n_inner" value="0" />
+          <entry key="n_seg" value="12" />
+          <entry key="n_seg_outer" value="12" />
+          <entry key="n_seg_pre_collapse" value="72" />
+          <entry key="n_seg_post_collapse" value="12" />
+          <entry key="sym_x" value="False" />
+          <entry key="sym_y" value="False" />
+          <entry key="point_sym" value="False" />
+          <entry key="orth_ratio" value="0.5601270533339493" />
+          <entry key="outer_circular" value="False" />
+          <entry key="inner_circular" value="False" />
+          <entry key="inner_bbox" value="None" />
+          <entry key="wall_thickness" value="None" />
+          <entry key="bbox_h" value="100.0" />
+          <entry key="bbox_b" value="60.0" />
+          <entry key="n_inner_wires" value="0" />
+          <entry key="hollow_ratio" value="0.16963495408493615" />
+        </cross-section-signature>
+        <hollow inner-shells="0" is-hollow="true" />
+        <source value="brep" />
+      </features>
+      <unfold status="success" n-bends="2" flat-area="354048.2633830784" thickness-mean="4.999999999999999" thickness-cv="1.79482074640351e-15">
+        <flag name="thickness_variation" value="false" />
+        <flag name="synthetic_bends" value="0" />
+        <flag name="has_hem" value="false" />
+        <flag name="n_planars_visited" value="3" />
+      </unfold>
+      <holes count="30">
+        <hole diameter="2.0" units="mm" />
+        <hole diameter="4.9999999999999005" units="mm" />
+        <hole diameter="4.9999999999999005" units="mm" />
+        <hole diameter="4.9999999999999005" units="mm" />
+        <hole diameter="4.9999999999999005" units="mm" />
+        <hole diameter="4.9999999999999005" units="mm" />
+        <hole diameter="4.9999999999999005" units="mm" />
+        <hole diameter="4.9999999999999005" units="mm" />
+        <hole diameter="4.9999999999999005" units="mm" />
+        <hole diameter="4.9999999999999805" units="mm" />
+        <hole diameter="4.9999999999999805" units="mm" />
+        <hole diameter="6.50000000000004" units="mm" />
+        <hole diameter="6.50000000000004" units="mm" />
+        <hole diameter="8.200000000000001" units="mm" />
+        <hole diameter="8.200000000000001" units="mm" />
+        <hole diameter="8.200000000000001" units="mm" />
+        <hole diameter="8.49999999999988" units="mm" />
+        <hole diameter="8.49999999999988" units="mm" />
+        <hole diameter="8.499999999999961" units="mm" />
+        <hole diameter="8.49999999999998" units="mm" />
+        <hole diameter="8.50000000000004" units="mm" />
+        <hole diameter="8.50000000000004" units="mm" />
+        <hole diameter="8.50000000000018" units="mm" />
+        <hole diameter="8.50000000000018" units="mm" />
+        <hole diameter="8.50000000000018" units="mm" />
+        <hole diameter="8.500000000000341" units="mm" />
+        <hole diameter="10.19999999999964" units="mm" />
+        <hole diameter="10.19999999999966" units="mm" />
+        <hole diameter="10.20000000000006" units="mm" />
+        <hole diameter="11.0" units="mm" />
+      </holes>
+      <pmi n-annotations="0" has-semantic="false" />
+      <machining-strategy primary-process="sheet_metal" setup-count="1" estimated-time-min="4.34">
+        <operation op="laser_cut" feature-ref="outer_contour" priority="100" reason="flat blank cut with hole pattern">
+          <param name="path_length_m" value="4.687" />
+          <param name="hole_count" value="30" />
+          <param name="thickness_mm" value="5.0" />
+        </operation>
+        <operation op="press_brake_bend" feature-ref="bend_0" priority="120" reason="press-brake bend from unfold">
+          <param name="index" value="0" />
+        </operation>
+        <operation op="press_brake_bend" feature-ref="bend_1" priority="120" reason="press-brake bend from unfold">
+          <param name="index" value="1" />
+        </operation>
+        <operation op="deburr" feature-ref="part" priority="200" reason="post-cut edge finish" />
+      </machining-strategy>
+      <flat-dxf path="parts/10001073530_rev_00.dxf" />
+    </part>
+  </parts>
+</assembly>

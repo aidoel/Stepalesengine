@@ -879,9 +879,7 @@ def _build_rect_tube(
     from OCP.TopAbs import TopAbs_EDGE
 
     outer = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), W, H, length).Solid()
-    inner = BRepPrimAPI_MakeBox(
-        gp_Pnt(t, t, -1.0), W - 2 * t, H - 2 * t, length + 2.0
-    ).Solid()
+    inner = BRepPrimAPI_MakeBox(gp_Pnt(t, t, -1.0), W - 2 * t, H - 2 * t, length + 2.0).Solid()
     tube = _first_solid(BRepAlgoAPI_Cut(outer, inner).Shape())
 
     fil = BRepFilletAPI_MakeFillet(tube)
@@ -958,9 +956,7 @@ def test_solid_round_bar_still_fails():
     """A solid round bar has a single cylindrical wall and no inner bore, so it
     is not a rolled sheet. The rolled-tube rescue must not flatten solid stock."""
 
-    bar = BRepPrimAPI_MakeCylinder(
-        gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), 12.0, 80.0
-    ).Solid()
+    bar = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), 12.0, 80.0).Solid()
     res = UnfoldProbe().run(bar)
     assert res.status == UnfoldStatus.FAILURE
     assert res.flags.get("rolled_tube") is None

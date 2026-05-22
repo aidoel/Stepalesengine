@@ -172,7 +172,9 @@ def _build_anomalies(file_record: CorpusFile) -> list[str]:
     if file_record.duration_s > DURATION_WARN_S:
         reasons.append(f"long duration {file_record.duration_s:.1f}s")
     if file_record.bbox_max_mm > BBOX_WARN_MM:
-        reasons.append(f"bbox dim {file_record.bbox_max_mm:.0f}mm > {BBOX_WARN_MM:.0f}mm (unit error?)")
+        reasons.append(
+            f"bbox dim {file_record.bbox_max_mm:.0f}mm > {BBOX_WARN_MM:.0f}mm (unit error?)"
+        )
     if (
         file_record.is_ap242
         and file_record.pmi_n_annotations > 0
@@ -292,8 +294,13 @@ def validate_corpus(
             extra = (
                 _extract_from_manifest(manifest_path)
                 if manifest_path and manifest_path.exists()
-                else {"n_holes": 0, "n_bends": 0, "pmi_has_semantic": False,
-                      "pmi_n_annotations": 0, "bbox_max_mm": 0.0}
+                else {
+                    "n_holes": 0,
+                    "n_bends": 0,
+                    "pmi_has_semantic": False,
+                    "pmi_n_annotations": 0,
+                    "bbox_max_mm": 0.0,
+                }
             )
 
             record = CorpusFile(
@@ -461,9 +468,10 @@ def _render_anomalies_html(report: CorpusReport) -> str:
 def _render_file_rows(files: list[CorpusFile], *, link_mode: bool = False) -> str:
     rows = []
     for f in files:
-        labels_html = " ".join(
-            _label_pill(label, count) for label, count in sorted(f.labels.items())
-        ) or '<span class="muted">-</span>'
+        labels_html = (
+            " ".join(_label_pill(label, count) for label, count in sorted(f.labels.items()))
+            or '<span class="muted">-</span>'
+        )
         pmi_dot = (
             '<span class="pmi-dot" title="semantic PMI"></span>'
             if f.pmi_has_semantic
@@ -482,9 +490,7 @@ def _render_file_rows(files: list[CorpusFile], *, link_mode: bool = False) -> st
             href = "/file/" + html.escape(f.safe_name, quote=True) + "/"
             path_html = f'<a href="{href}">{path_html}</a>'
         warn_html = (
-            f'<br><span class="warn-cell">{html.escape(warn_text)}</span>'
-            if warn_text
-            else ""
+            f'<br><span class="warn-cell">{html.escape(warn_text)}</span>' if warn_text else ""
         )
         rows.append(
             f'<tr class="{ok_class}" data-ok="{"1" if f.ok else "0"}">'
@@ -581,13 +587,10 @@ def render_html_report(
     if link_mode is None:
         link_mode = any(bool(f.safe_name) for f in report.files)
 
-    avg_duration = (
-        report.total_duration_s / report.total_files if report.total_files else 0.0
-    )
+    avg_duration = report.total_duration_s / report.total_files if report.total_files else 0.0
 
     link_note = (
-        '<p class="muted link-note">Click any row to drill into the per-file '
-        "trace browser.</p>"
+        '<p class="muted link-note">Click any row to drill into the per-file trace browser.</p>'
         if link_mode
         else ""
     )
@@ -699,7 +702,11 @@ def render_markdown_report(report: CorpusReport, out_path: Path) -> Path:
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for f in report.files:
         labels = ", ".join(f"{k}={v}" for k, v in sorted(f.labels.items())) or "-"
-        pmi = "semantic" if f.pmi_has_semantic else (str(f.pmi_n_annotations) if f.pmi_n_annotations else "-")
+        pmi = (
+            "semantic"
+            if f.pmi_has_semantic
+            else (str(f.pmi_n_annotations) if f.pmi_n_annotations else "-")
+        )
         status = "ok" if f.ok and not f.warnings else ("warn" if f.ok else "fail")
         lines.append(
             f"| `{f.relative_path}` | {_format_size_mb(f.size_bytes)} | {f.parts} | "

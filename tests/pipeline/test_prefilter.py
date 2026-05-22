@@ -67,8 +67,8 @@ def _thin_plate_features() -> ManufacturingFeatures:
 def _thick_block_features() -> ManufacturingFeatures:
     """Synthetic features for a 30x30x30 mm cube (chunky bar / fastener body)."""
     feats = ManufacturingFeatures(
-        volume=30.0 ** 3,
-        surface_area=6 * 30.0 ** 2,
+        volume=30.0**3,
+        surface_area=6 * 30.0**2,
         bbox_dims_sorted=(30.0, 30.0, 30.0),
         aspect_ratio=1.0,
         thickness_ratio=1.0,
@@ -175,9 +175,7 @@ def test_duplicate_cache_skips_unfold_probe_on_repeated_solids(tmp_path: Path):
     with patch.object(UnfoldProbe, "run", _spy):
         result = analyze(
             step,
-            AnalyzeOptions(
-                out_dir=None, write_dxf=False, write_xml=False, use_cache=False
-            ),
+            AnalyzeOptions(out_dir=None, write_dxf=False, write_xml=False, use_cache=False),
         )
 
     # Every plate should match a leaf in the manifest.
@@ -324,9 +322,7 @@ def _build_thirty_box_assembly(path: Path) -> Path:
         parts.append((f"bolt_{i:02d}", solid))
     for i in range(10):
         # M16x16 washer mock: 16x16x2.
-        solid = translate_solid(
-            build_plate_solid(l=16.0, w=16.0, t=2.0), dx=i * 25.0, dy=100.0
-        )
+        solid = translate_solid(build_plate_solid(l=16.0, w=16.0, t=2.0), dx=i * 25.0, dy=100.0)
         parts.append((f"washer_{i:02d}", solid))
     return write_assembly_step(path, parts=parts)
 

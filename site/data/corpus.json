@@ -1,0 +1,808 @@
+{
+  "title": "stepalesengine \u2014 3D corpus & unfold viewer",
+  "stats": {
+    "n_parts": 10,
+    "n_files": 7,
+    "by_label": {
+      "plaat": 7,
+      "profiel": 2,
+      "anders": 1
+    },
+    "n_unfoldable": 8,
+    "total_bends": 5
+  },
+  "parts": [
+    {
+      "slug": "synthetic-bracket",
+      "product_id": "Synthetic L-bracket",
+      "name": "Synthetic L-bracket",
+      "description": "",
+      "source_file": "synthetic_bracket.step",
+      "origin": "synthetic",
+      "label": "plaat",
+      "confidence": 0.9974,
+      "scores": [
+        [
+          "plaat",
+          2.7044
+        ],
+        [
+          "anders",
+          -0.3774
+        ],
+        [
+          "profiel",
+          -1.0697
+        ]
+      ],
+      "margin": 3.0818,
+      "quantity": 1,
+      "unfold_status": "success",
+      "n_bends": 1,
+      "flat_area": 9261.4,
+      "thickness": 3.0,
+      "thickness_cv": 0.0,
+      "unfold_reason": "",
+      "unfold_flags": {
+        "thickness_variation": false,
+        "synthetic_bends": 0,
+        "has_hem": false,
+        "n_planars_visited": 2
+      },
+      "bends": [
+        {
+          "index": 1,
+          "angle": 90.0,
+          "radius": 4.0,
+          "direction": "down",
+          "length": 60.0
+        }
+      ],
+      "features": {
+        "volume": 30851.0,
+        "surface_area": 20699.1,
+        "bbox": [
+          113.0,
+          60.0,
+          59.5
+        ],
+        "aspect_ratio": 1.88,
+        "thickness_ratio": 0.527,
+        "source": "brep",
+        "material": "",
+        "hollow": true
+      },
+      "holes": {
+        "count": 0,
+        "diameters": []
+      },
+      "profile_match": null,
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/synthetic-bracket-folded.glb",
+        "unfolded_glb": "models/synthetic-bracket-unfolded.glb",
+        "iso_svg": "drawings/synthetic-bracket-iso.svg",
+        "top_svg": "drawings/synthetic-bracket-top.svg",
+        "front_svg": "drawings/synthetic-bracket-front.svg",
+        "flat_svg": "drawings/synthetic-bracket-flat.svg",
+        "dxf": "dxf/synthetic-bracket.dxf",
+        "step": "steps/synthetic_bracket.step"
+      }
+    },
+    {
+      "slug": "synthetic-plate",
+      "product_id": "Synthetic flat plate",
+      "name": "Synthetic flat plate",
+      "description": "",
+      "source_file": "synthetic_plate.step",
+      "origin": "synthetic",
+      "label": "plaat",
+      "confidence": 0.9829,
+      "scores": [
+        [
+          "plaat",
+          1.8709
+        ],
+        [
+          "anders",
+          -0.2785
+        ],
+        [
+          "profiel",
+          -0.9136
+        ]
+      ],
+      "margin": 2.1494,
+      "quantity": 1,
+      "unfold_status": "success",
+      "n_bends": 0,
+      "flat_area": 30184.2,
+      "thickness": 3.0,
+      "thickness_cv": 0.0,
+      "unfold_reason": "",
+      "unfold_flags": {
+        "thickness_variation": false
+      },
+      "bends": [],
+      "features": {
+        "volume": 90552.7,
+        "surface_area": 63056.3,
+        "bbox": [
+          220.0,
+          140.0,
+          3.0
+        ],
+        "aspect_ratio": 1.57,
+        "thickness_ratio": 0.014,
+        "source": "brep",
+        "material": "",
+        "hollow": false
+      },
+      "holes": {
+        "count": 4,
+        "diameters": [
+          14.0,
+          14.0,
+          14.0,
+          14.0
+        ]
+      },
+      "profile_match": null,
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/synthetic-plate-folded.glb",
+        "unfolded_glb": "models/synthetic-plate-unfolded.glb",
+        "iso_svg": "drawings/synthetic-plate-iso.svg",
+        "top_svg": "drawings/synthetic-plate-top.svg",
+        "front_svg": "drawings/synthetic-plate-front.svg",
+        "flat_svg": "drawings/synthetic-plate-flat.svg",
+        "dxf": "dxf/synthetic-plate.dxf",
+        "step": "steps/synthetic_plate.step"
+      }
+    },
+    {
+      "slug": "synthetic-profile-rhs",
+      "product_id": "Synthetic RHS profile",
+      "name": "Synthetic RHS profile",
+      "description": "",
+      "source_file": "synthetic_profile_rhs.step",
+      "origin": "synthetic",
+      "label": "profiel",
+      "confidence": 0.7676,
+      "scores": [
+        [
+          "profiel",
+          2.0215
+        ],
+        [
+          "plaat",
+          1.2105
+        ],
+        [
+          "anders",
+          0.8955
+        ]
+      ],
+      "margin": 0.811,
+      "quantity": 1,
+      "unfold_status": "success",
+      "n_bends": 0,
+      "flat_area": 108000.0,
+      "thickness": 5.0,
+      "thickness_cv": 0.0,
+      "unfold_reason": "",
+      "unfold_flags": {
+        "thickness_variation": false
+      },
+      "bends": [],
+      "features": {
+        "volume": 1710000.0,
+        "surface_area": 687800.0,
+        "bbox": [
+          900.0,
+          120.0,
+          80.0
+        ],
+        "aspect_ratio": 7.5,
+        "thickness_ratio": 0.089,
+        "source": "brep",
+        "material": "",
+        "hollow": true
+      },
+      "holes": {
+        "count": 0,
+        "diameters": []
+      },
+      "profile_match": {
+        "family": "RHS",
+        "standard": "EN 10210-2",
+        "designation": "RHS 120x80x5",
+        "residual_mm": 0.0,
+        "confidence": 1.0
+      },
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/synthetic-profile-rhs-folded.glb",
+        "unfolded_glb": "models/synthetic-profile-rhs-unfolded.glb",
+        "iso_svg": "drawings/synthetic-profile-rhs-iso.svg",
+        "top_svg": "drawings/synthetic-profile-rhs-top.svg",
+        "front_svg": "drawings/synthetic-profile-rhs-front.svg",
+        "flat_svg": null,
+        "dxf": null,
+        "step": "steps/synthetic_profile_rhs.step"
+      }
+    },
+    {
+      "slug": "synthetic-profile-tube",
+      "product_id": "Synthetic CHS profile",
+      "name": "Synthetic CHS profile",
+      "description": "",
+      "source_file": "synthetic_profile_tube.step",
+      "origin": "synthetic",
+      "label": "profiel",
+      "confidence": 0.9407,
+      "scores": [
+        [
+          "profiel",
+          2.2183
+        ],
+        [
+          "anders",
+          0.778
+        ],
+        [
+          "plaat",
+          -0.2677
+        ]
+      ],
+      "margin": 1.4404,
+      "quantity": 1,
+      "unfold_status": "failure",
+      "n_bends": 0,
+      "flat_area": 0.0,
+      "thickness": 0.0,
+      "thickness_cv": 0.0,
+      "unfold_reason": "prefilter:not_likely_unfoldable",
+      "unfold_flags": {},
+      "bends": [],
+      "features": {
+        "volume": 1594672.4,
+        "surface_area": 535101.2,
+        "bbox": [
+          900.0,
+          100.0,
+          100.0
+        ],
+        "aspect_ratio": 9.0,
+        "thickness_ratio": 0.111,
+        "source": "brep",
+        "material": "",
+        "hollow": true
+      },
+      "holes": {
+        "count": 1,
+        "diameters": [
+          88.0
+        ]
+      },
+      "profile_match": {
+        "family": "CHS",
+        "standard": "EN 10210-2",
+        "designation": null,
+        "residual_mm": 1.628,
+        "confidence": 0.039
+      },
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/synthetic-profile-tube-folded.glb",
+        "unfolded_glb": null,
+        "iso_svg": "drawings/synthetic-profile-tube-iso.svg",
+        "top_svg": "drawings/synthetic-profile-tube-top.svg",
+        "front_svg": "drawings/synthetic-profile-tube-front.svg",
+        "flat_svg": null,
+        "dxf": null,
+        "step": "steps/synthetic_profile_tube.step"
+      }
+    },
+    {
+      "slug": "nist-ctc-01-asme1-ap242-e1",
+      "product_id": "NIST Test Case 1",
+      "name": "NIST Complex Test Case 1",
+      "description": "",
+      "source_file": "nist_ctc_01_asme1_ap242-e1.stp",
+      "origin": "real",
+      "label": "anders",
+      "confidence": 0.9584,
+      "scores": [
+        [
+          "anders",
+          1.9918
+        ],
+        [
+          "plaat",
+          0.1404
+        ],
+        [
+          "profiel",
+          0.003
+        ]
+      ],
+      "margin": 1.8513,
+      "quantity": 1,
+      "unfold_status": "failure",
+      "n_bends": 0,
+      "flat_area": 0.0,
+      "thickness": 50.0,
+      "thickness_cv": 0.0,
+      "unfold_reason": "too_thick",
+      "unfold_flags": {
+        "thickness_mean": "49.99999999999999"
+      },
+      "bends": [],
+      "features": {
+        "volume": 14644823.3,
+        "surface_area": 807080.8,
+        "bbox": [
+          802.4,
+          454.8,
+          150.5
+        ],
+        "aspect_ratio": 1.76,
+        "thickness_ratio": 0.188,
+        "source": "brep",
+        "material": "",
+        "hollow": true
+      },
+      "holes": {
+        "count": 10,
+        "diameters": [
+          20.0,
+          20.0,
+          25.0,
+          25.0,
+          25.0,
+          25.0,
+          35.0,
+          35.0,
+          35.0,
+          35.0
+        ]
+      },
+      "profile_match": null,
+      "pmi": {
+        "n_annotations": 64,
+        "has_semantic": true,
+        "n_tolerances": 6,
+        "n_dimensions": 5
+      },
+      "assets": {
+        "folded_glb": "models/nist-ctc-01-asme1-ap242-e1-folded.glb",
+        "unfolded_glb": null,
+        "iso_svg": "drawings/nist-ctc-01-asme1-ap242-e1-iso.svg",
+        "top_svg": "drawings/nist-ctc-01-asme1-ap242-e1-top.svg",
+        "front_svg": "drawings/nist-ctc-01-asme1-ap242-e1-front.svg",
+        "flat_svg": null,
+        "dxf": null,
+        "step": "steps/nist_ctc_01_asme1_ap242-e1.stp"
+      }
+    },
+    {
+      "slug": "sheet-10001073530-rev00",
+      "product_id": "10001073530_Rev_00",
+      "name": "10001073530_Rev_00",
+      "description": "('STEP AP214')",
+      "source_file": "sheet_10001073530_rev00.stp",
+      "origin": "real",
+      "label": "plaat",
+      "confidence": 0.9767,
+      "scores": [
+        [
+          "plaat",
+          2.3858
+        ],
+        [
+          "anders",
+          0.4304
+        ],
+        [
+          "profiel",
+          -0.3953
+        ]
+      ],
+      "margin": 1.9554,
+      "quantity": 1,
+      "unfold_status": "success",
+      "n_bends": 2,
+      "flat_area": 354048.3,
+      "thickness": 5.0,
+      "thickness_cv": 0.0,
+      "unfold_reason": "",
+      "unfold_flags": {
+        "thickness_variation": false,
+        "synthetic_bends": "0",
+        "has_hem": false,
+        "n_planars_visited": "3"
+      },
+      "bends": [
+        {
+          "index": 1,
+          "angle": 90.0,
+          "radius": 5.0,
+          "direction": "down",
+          "length": 220.0
+        },
+        {
+          "index": 2,
+          "angle": 90.0,
+          "radius": 5.0,
+          "direction": "down",
+          "length": 989.0
+        }
+      ],
+      "features": {
+        "volume": 1918062.9,
+        "surface_area": 794271.9,
+        "bbox": [
+          1903.0,
+          100.7,
+          60.2
+        ],
+        "aspect_ratio": 18.9,
+        "thickness_ratio": 0.032,
+        "source": "brep",
+        "material": "",
+        "hollow": true
+      },
+      "holes": {
+        "count": 30,
+        "diameters": [
+          2.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          6.5,
+          6.5,
+          8.2,
+          8.2,
+          8.2,
+          8.5,
+          8.5,
+          8.5,
+          8.5,
+          8.5,
+          8.5,
+          8.5,
+          8.5,
+          8.5,
+          8.5,
+          10.2,
+          10.2,
+          10.2,
+          11.0
+        ]
+      },
+      "profile_match": null,
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/sheet-10001073530-rev00-folded.glb",
+        "unfolded_glb": "models/sheet-10001073530-rev00-unfolded.glb",
+        "iso_svg": "drawings/sheet-10001073530-rev00-iso.svg",
+        "top_svg": "drawings/sheet-10001073530-rev00-top.svg",
+        "front_svg": "drawings/sheet-10001073530-rev00-front.svg",
+        "flat_svg": "drawings/sheet-10001073530-rev00-flat.svg",
+        "dxf": "dxf/sheet-10001073530-rev00.dxf",
+        "step": "steps/sheet_10001073530_rev00.stp"
+      }
+    },
+    {
+      "slug": "sheet-md-17-04194-2-1",
+      "product_id": "MD-16-07575_1",
+      "name": "MD-16-07575_1",
+      "description": " ",
+      "source_file": "sheet_md_17_04194_2.stp",
+      "origin": "real",
+      "label": "plaat",
+      "confidence": 0.964,
+      "scores": [
+        [
+          "plaat",
+          1.7891
+        ],
+        [
+          "anders",
+          0.072
+        ],
+        [
+          "profiel",
+          -0.8539
+        ]
+      ],
+      "margin": 1.7171,
+      "quantity": 3,
+      "unfold_status": "success",
+      "n_bends": 0,
+      "flat_area": 813.7,
+      "thickness": 1.5,
+      "thickness_cv": 0.0,
+      "unfold_reason": "",
+      "unfold_flags": {
+        "thickness_variation": false
+      },
+      "bends": [],
+      "features": {
+        "volume": 1220.6,
+        "surface_area": 1877.2,
+        "bbox": [
+          43.8,
+          21.5,
+          1.5
+        ],
+        "aspect_ratio": 2.04,
+        "thickness_ratio": 0.034,
+        "source": "brep",
+        "material": "",
+        "hollow": false
+      },
+      "holes": {
+        "count": 2,
+        "diameters": [
+          7.0,
+          7.0
+        ]
+      },
+      "profile_match": null,
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/sheet-md-17-04194-2-1-folded.glb",
+        "unfolded_glb": "models/sheet-md-17-04194-2-1-unfolded.glb",
+        "iso_svg": "drawings/sheet-md-17-04194-2-1-iso.svg",
+        "top_svg": "drawings/sheet-md-17-04194-2-1-top.svg",
+        "front_svg": "drawings/sheet-md-17-04194-2-1-front.svg",
+        "flat_svg": "drawings/sheet-md-17-04194-2-1-flat.svg",
+        "dxf": "dxf/sheet-md-17-04194-2-1.dxf",
+        "step": "steps/sheet_md_17_04194_2.stp"
+      }
+    },
+    {
+      "slug": "sheet-md-17-04194-2-2",
+      "product_id": "MD-16-07575_1",
+      "name": "MD-16-07575_1",
+      "description": " ",
+      "source_file": "sheet_md_17_04194_2.stp",
+      "origin": "real",
+      "label": "plaat",
+      "confidence": 0.964,
+      "scores": [
+        [
+          "plaat",
+          1.7892
+        ],
+        [
+          "anders",
+          0.072
+        ],
+        [
+          "profiel",
+          -0.854
+        ]
+      ],
+      "margin": 1.7172,
+      "quantity": 3,
+      "unfold_status": "success",
+      "n_bends": 0,
+      "flat_area": 813.7,
+      "thickness": 1.5,
+      "thickness_cv": 0.0,
+      "unfold_reason": "",
+      "unfold_flags": {
+        "thickness_variation": false
+      },
+      "bends": [],
+      "features": {
+        "volume": 1220.6,
+        "surface_area": 1877.2,
+        "bbox": [
+          43.8,
+          21.5,
+          1.6
+        ],
+        "aspect_ratio": 2.03,
+        "thickness_ratio": 0.036,
+        "source": "brep",
+        "material": "",
+        "hollow": false
+      },
+      "holes": {
+        "count": 2,
+        "diameters": [
+          7.0,
+          7.0
+        ]
+      },
+      "profile_match": null,
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/sheet-md-17-04194-2-2-folded.glb",
+        "unfolded_glb": "models/sheet-md-17-04194-2-2-unfolded.glb",
+        "iso_svg": "drawings/sheet-md-17-04194-2-2-iso.svg",
+        "top_svg": "drawings/sheet-md-17-04194-2-2-top.svg",
+        "front_svg": "drawings/sheet-md-17-04194-2-2-front.svg",
+        "flat_svg": "drawings/sheet-md-17-04194-2-2-flat.svg",
+        "dxf": "dxf/sheet-md-17-04194-2-2.dxf",
+        "step": "steps/sheet_md_17_04194_2.stp"
+      }
+    },
+    {
+      "slug": "sheet-md-17-04194-2-3",
+      "product_id": "MD-16-07575_1",
+      "name": "MD-16-07575_1",
+      "description": " ",
+      "source_file": "sheet_md_17_04194_2.stp",
+      "origin": "real",
+      "label": "plaat",
+      "confidence": 0.964,
+      "scores": [
+        [
+          "plaat",
+          1.7892
+        ],
+        [
+          "anders",
+          0.072
+        ],
+        [
+          "profiel",
+          -0.854
+        ]
+      ],
+      "margin": 1.7172,
+      "quantity": 3,
+      "unfold_status": "success",
+      "n_bends": 0,
+      "flat_area": 813.7,
+      "thickness": 1.5,
+      "thickness_cv": 0.0,
+      "unfold_reason": "",
+      "unfold_flags": {
+        "thickness_variation": false
+      },
+      "bends": [],
+      "features": {
+        "volume": 1220.6,
+        "surface_area": 1877.2,
+        "bbox": [
+          43.8,
+          21.5,
+          1.6
+        ],
+        "aspect_ratio": 2.03,
+        "thickness_ratio": 0.036,
+        "source": "brep",
+        "material": "",
+        "hollow": false
+      },
+      "holes": {
+        "count": 2,
+        "diameters": [
+          7.0,
+          7.0
+        ]
+      },
+      "profile_match": null,
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/sheet-md-17-04194-2-3-folded.glb",
+        "unfolded_glb": "models/sheet-md-17-04194-2-3-unfolded.glb",
+        "iso_svg": "drawings/sheet-md-17-04194-2-3-iso.svg",
+        "top_svg": "drawings/sheet-md-17-04194-2-3-top.svg",
+        "front_svg": "drawings/sheet-md-17-04194-2-3-front.svg",
+        "flat_svg": "drawings/sheet-md-17-04194-2-3-flat.svg",
+        "dxf": "dxf/sheet-md-17-04194-2-3.dxf",
+        "step": "steps/sheet_md_17_04194_2.stp"
+      }
+    },
+    {
+      "slug": "sheet-md-17-04194-2-4",
+      "product_id": "MD-17-04193_2",
+      "name": "MD-17-04193_2",
+      "description": " ",
+      "source_file": "sheet_md_17_04194_2.stp",
+      "origin": "real",
+      "label": "plaat",
+      "confidence": 0.9364,
+      "scores": [
+        [
+          "plaat",
+          2.4884
+        ],
+        [
+          "profiel",
+          1.0705
+        ],
+        [
+          "anders",
+          0.1478
+        ]
+      ],
+      "margin": 1.4179,
+      "quantity": 1,
+      "unfold_status": "success",
+      "n_bends": 2,
+      "flat_area": 120772.7,
+      "thickness": 1.0,
+      "thickness_cv": 0.0,
+      "unfold_reason": "",
+      "unfold_flags": {
+        "thickness_variation": false,
+        "synthetic_bends": "0",
+        "has_hem": false,
+        "n_planars_visited": "3"
+      },
+      "bends": [
+        {
+          "index": 1,
+          "angle": 85.0,
+          "radius": 1.0,
+          "direction": "down",
+          "length": 1626.0
+        },
+        {
+          "index": 2,
+          "angle": 85.0,
+          "radius": 1.0,
+          "direction": "down",
+          "length": 1626.0
+        }
+      ],
+      "features": {
+        "volume": 121091.8,
+        "surface_area": 245864.0,
+        "bbox": [
+          1626.0,
+          46.1,
+          17.4
+        ],
+        "aspect_ratio": 35.31,
+        "thickness_ratio": 0.011,
+        "source": "brep",
+        "material": "",
+        "hollow": true
+      },
+      "holes": {
+        "count": 5,
+        "diameters": [
+          8.5,
+          8.5,
+          8.5,
+          9.0,
+          9.0
+        ]
+      },
+      "profile_match": {
+        "family": "unknown",
+        "standard": "",
+        "designation": null,
+        "residual_mm": Infinity,
+        "confidence": 0.0
+      },
+      "pmi": null,
+      "assets": {
+        "folded_glb": "models/sheet-md-17-04194-2-4-folded.glb",
+        "unfolded_glb": "models/sheet-md-17-04194-2-4-unfolded.glb",
+        "iso_svg": "drawings/sheet-md-17-04194-2-4-iso.svg",
+        "top_svg": "drawings/sheet-md-17-04194-2-4-top.svg",
+        "front_svg": "drawings/sheet-md-17-04194-2-4-front.svg",
+        "flat_svg": "drawings/sheet-md-17-04194-2-4-flat.svg",
+        "dxf": "dxf/sheet-md-17-04194-2-4.dxf",
+        "step": "steps/sheet_md_17_04194_2.stp"
+      }
+    }
+  ]
+}

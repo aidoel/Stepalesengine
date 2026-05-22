@@ -445,9 +445,7 @@ def _analyse_part(
     else:
         # CLASSIFY stage - profile + unfold, gated by the cheap prefilter.
         skip = _prefilter_skips(features) if prefilter_on else {}
-        probe_results = _REGISTRY.run_all(
-            ctx, stage=STAGE_CLASSIFY, skip=skip, prior=probe_results
-        )
+        probe_results = _REGISTRY.run_all(ctx, stage=STAGE_CLASSIFY, skip=skip, prior=probe_results)
         profile_match = probe_result(probe_results, "profile", ProfileMatch)
         unfold = probe_result(probe_results, "unfold", UnfoldResult)
         classification = None  # filled in below
@@ -460,9 +458,7 @@ def _analyse_part(
     if classification is None:
         try:
             clf_features = _classifier_features(features, profile_match, unfold)
-            classification = ScoreClassifier(
-                scorers=scorers, model_version=MODEL_VERSION
-            ).classify(
+            classification = ScoreClassifier(scorers=scorers, model_version=MODEL_VERSION).classify(
                 clf_features,
                 tiebreakers=[
                     ("unfold", unfold_tiebreaker),
@@ -499,9 +495,7 @@ def _analyse_part(
         # No STEP text to read - keep the legacy pmi=None rather than the
         # empty record extract_pmi(Path("")) would return.
         post_skip["pmi"] = None
-    probe_results = _REGISTRY.run_all(
-        ctx, stage=STAGE_POST, skip=post_skip, prior=probe_results
-    )
+    probe_results = _REGISTRY.run_all(ctx, stage=STAGE_POST, skip=post_skip, prior=probe_results)
     pmi_record = probe_result(probe_results, "pmi", PMIRecord)
     strategy = probe_result(probe_results, "cam", MachiningStrategy)
 
@@ -563,7 +557,9 @@ def _write_part_outputs(
                     drawn_by="stepalesengine",
                 )
         except Exception as exc:
-            logger.warning("Unfold flat pattern computation failed for %s: %s", part.product_id, exc)
+            logger.warning(
+                "Unfold flat pattern computation failed for %s: %s", part.product_id, exc
+            )
             warnings.append(f"Unfold flat pattern computation failed for {part.product_id}: {exc}")
 
     if pattern is not None and parts_dir is not None:

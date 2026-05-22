@@ -26,7 +26,7 @@ class ManufacturingFeatures:
     cross_section_signature: dict = field(default_factory=dict)
     is_hollow: bool = False
     inner_shell_count: int = 0
-    pocket_complexity: float = 0.0   # 0..1 score: high = lots of small planar facets (pocketed)
+    pocket_complexity: float = 0.0  # 0..1 score: high = lots of small planar facets (pocketed)
     source: str = "brep"  # "brep" | "mesh"
     material_guess: str = ""
 

@@ -3,7 +3,9 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
+        exclude: '^(site|corpus)/'
       - id: end-of-file-fixer
+        exclude: '^(site|corpus)/'
       - id: check-yaml
       - id: check-toml
       - id: check-merge-conflict

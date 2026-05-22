@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ p.name }} &mdash; {{ title }}</title>
+<meta name="description" content="3D model, unfold analysis, bend table and technical drawings for {{ p.name }}.">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<link rel="stylesheet" href="{{ root }}assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <span class="brand">
+      <span class="glyph" aria-hidden="true"></span>
+      <a href="{{ root }}index.html">stepalesengine</a>
+    </span>
+    <span class="tag">STEP &rarr; classified BOM &rarr; sheet-metal unfold</span>
+    <span class="spacer"></span>
+    <span class="crumb">
+      <a href="{{ root }}index.html">corpus</a>
+      <span class="sep">/</span>{{ p.slug }}
+    </span>
+  </div>
+</header>
+
+<main class="container">
+
+  <a class="back" href="{{ root }}index.html">
+    <span class="ar" aria-hidden="true">&larr;</span> Back to corpus
+  </a>
+
+  <!-- ===== part headline ===== -->
+  <div class="part-headline reveal">
+    <h1>{{ p.name }}</h1>
+    <span class="label label-{{ p.label }}">{{ p.label }}</span>
+    {% if p.unfold_status %}
+    <span class="pill pill-{{ p.unfold_status }} lg">unfold {{ p.unfold_status }}</span>
+    {% endif %}
+  </div>
+  <div class="part-meta reveal">
+    <span class="mi"><span class="pill pill-{{ p.origin }}">{{ p.origin }}</span></span>
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">source</span> <code>{{ p.source_file }}</code></span>
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">product id</span> <code>{{ p.product_id }}</code></span>
+    {% if p.quantity %}
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">qty</span> {{ p.quantity }}&times;</span>
+    {% endif %}
+    {% if p.description %}
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi">{{ p.description }}</span>
+    {% endif %}
+  </div>
+
+  <!-- ===== HERO: folded -> unfolded 3D comparison ===== -->
+  <div class="card compare-card reveal reveal-d1">
+    <div class="cc-head">
+      <h2><span class="tick" aria-hidden="true"></span>Folded &rarr; Unfolded</h2>
+      {% if p.assets.folded_glb and p.assets.unfolded_glb %}
+        <p class="sub">The CAD solid on the left, the flat blank the unfold probe computed on the right. Drag either viewer to rotate; scroll to zoom.</p>
+      {% elif p.assets.folded_glb %}
+        <p class="sub">This part has no flat pattern &mdash; only the folded CAD solid is shown.</p>
+      {% else %}
+        <p class="sub">No interactive mesh is available for this part.</p>
+      {% endif %}
+    </div>
+
+    {% if p.assets.folded_glb and p.assets.unfolded_glb %}
+    <div class="compare">
+      <div class="stage folded">
+        <span class="stage-tag"><span class="sw" aria-hidden="true"></span>Folded</span>
+        <model-viewer
+          src="{{ root }}{{ p.assets.folded_glb }}"
+          alt="Folded 3D CAD solid of {{ p.name }}"
+          camera-controls auto-rotate auto-rotate-delay="800"
+          rotation-per-second="16deg" shadow-intensity="0.7" shadow-softness="0.9"
+          environment-image="neutral" exposure="1.06"
+          camera-orbit="-34deg 62deg auto" interaction-prompt="none"></model-viewer>
+        <div class="stage-foot"><b>As modelled in CAD</b> &mdash; the source solid</div>
+      </div>
+      <div class="fold-link" aria-hidden="true">
+        <span class="fl-label">unfold</span>
+        <span class="ring">&rarr;</span>
+        <span class="fl-label">probe</span>
+      </div>
+      <div class="stage unfolded">
+        <span class="stage-tag"><span class="sw" aria-hidden="true"></span>Unfolded</span>
+        <model-viewer
+          src="{{ root }}{{ p.assets.unfolded_glb }}"
+          alt="Unfolded flat blank of {{ p.name }}"
+          camera-controls auto-rotate auto-rotate-delay="800"
+          rotation-per-second="16deg" shadow-intensity="0.7" shadow-softness="0.9"
+          environment-image="neutral" exposure="1.06"
+          camera-orbit="0deg 76deg auto" interaction-prompt="none"></model-viewer>
+        <div class="stage-foot"><b>Flat blank</b> &mdash; ready for the laser</div>
+      </div>
+    </div>
+    {% elif p.assets.folded_glb %}
+    <div class="solo-wrap">
+      <span class="stage-tag"><span class="sw" style="background:#6ea0e8;" aria-hidden="true"></span>Folded</span>
+      <model-viewer class="viewer-solo"
+        src="{{ root }}{{ p.assets.folded_glb }}"
+        alt="3D CAD model of {{ p.name }}"
+        camera-controls auto-rotate auto-rotate-delay="800"
+        rotation-per-second="15deg" shadow-intensity="0.7" shadow-softness="0.9"
+        environment-image="neutral" exposure="1.06"
+        camera-orbit="-34deg 62deg auto" interaction-prompt="none"></model-viewer>
+    </div>
+    {% else %}
+    <div style="padding:24px 26px;">
+      <div class="callout bad">
+        <span class="ci" aria-hidden="true">&#9888;</span>
+        <span>No 3D mesh could be generated for this part &mdash; the solid failed to tessellate.</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ===== unfold analysis ===== -->
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Unfold analysis</h2>
+    {% if p.unfold_status %}
+      <div class="metric-strip">
+        <div class="m">
+          <div class="mv">{{ p.n_bends }}</div>
+          <div class="ml">Bends</div>
+        </div>
+        <div class="m">
+          <div class="mv">{{ '%.0f'|format(p.flat_area) }} <span class="u">mm&sup2;</span></div>
+          <div class="ml">Flat area</div>
+        </div>
+        <div class="m">
+          <div class="mv">{{ '%.2f'|format(p.thickness) }} <span class="u">mm</span></div>
+          <div class="ml">Thickness</div>
+        </div>
+        <div class="m">
+          <div class="mv">{{ '%.3f'|format(p.thickness_cv) }}</div>
+          <div class="ml">Thickness CV</div>
+        </div>
+      </div>
+
+      {% if p.unfold_reason %}
+      <p class="note" style="margin-top:14px;">
+        <span class="mk" style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;color:var(--c-faint);">reason</span>
+        &nbsp;{{ p.unfold_reason }}
+      </p>
+      {% endif %}
+
+      {% if p.bends %}
+        <h3>Bend table</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th class="num">Angle</th>
+                <th class="num">Inner radius</th>
+                <th>Direction</th>
+                <th class="num">Length</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in p.bends %}
+              <tr>
+                <td><span class="ix">{{ b.index }}</span></td>
+                <td class="num">{{ '%.1f'|format(b.angle) }}&deg;</td>
+                <td class="num">{{ '%.2f'|format(b.radius) }} mm</td>
+                <td><span class="dir-tag {{ 'down' if b.direction == 'down' else 'up' }}">{{ b.direction }}</span></td>
+                <td class="num">{{ '%.1f'|format(b.length) }} mm</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif p.unfold_status in ('success', 'partial') %}
+        <div class="callout" style="margin-top:8px;">
+          <span class="ci" aria-hidden="true">&#9633;</span>
+          <span>Developable as a single flat panel &mdash; no bends were detected, so the blank equals the flat face.</span>
+        </div>
+      {% endif %}
+
+      {% if p.unfold_flags %}
+        <h3>Flags</h3>
+        <div class="flags">
+          {% for k, v in p.unfold_flags.items() %}
+            {% if v %}
+            <span class="pill">{{ k }}{% if v is not true %}: {{ v }}{% endif %}</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="callout warn">
+        <span class="ci" aria-hidden="true">&#9888;</span>
+        <span>No unfold result &mdash; this leaf has no matching solid.</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ===== technical drawings ===== -->
+  {% if p.assets.iso_svg or p.assets.top_svg or p.assets.front_svg or p.assets.flat_svg %}
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Technical drawings</h2>
+    <div class="drawings">
+      {% for view in ['iso', 'top', 'front'] %}
+        {% set svg = p.assets[view ~ '_svg'] %}
+        {% if svg %}
+        <figure>
+          <div class="dw">
+            <span class="vbadge">{{ view }}</span>
+            <img src="{{ root }}{{ svg }}" alt="{{ view }} projection of {{ p.name }}" loading="lazy">
+          </div>
+          <figcaption>{{ view }} projection &mdash; hidden-line</figcaption>
+        </figure>
+        {% endif %}
+      {% endfor %}
+      {% if p.assets.flat_svg %}
+      <figure>
+        <div class="dw">
+          <span class="vbadge">flat</span>
+          <img src="{{ root }}{{ p.assets.flat_svg }}" alt="Flat pattern drawing of {{ p.name }}" loading="lazy">
+        </div>
+        <figcaption>
+          Flat pattern &mdash; from DXF
+          <span class="legend-dots">
+            <span class="ld"><i style="background:#d6453f;" aria-hidden="true"></i>cut</span>
+            <span class="ld"><i style="background:#22a154;" aria-hidden="true"></i>holes</span>
+            <span class="ld"><i style="background:#2563eb;" aria-hidden="true"></i>bends</span>
+          </span>
+        </figcaption>
+      </figure>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ===== classification + geometry (two-up) ===== -->
+  <div class="grid-2">
+
+    <!-- classification -->
+    <div class="card reveal">
+      <h2><span class="tick" aria-hidden="true"></span>Classification</h2>
+      {% if p.scores %}
+      <div class="scores">
+        {% for cls, score in p.scores %}
+        <div class="score-row{{ ' top' if loop.first else '' }}">
+          <span class="nm">{{ cls }}</span>
+          <span class="track" aria-hidden="true"><span style="width: {{ (score * 100)|round(1) }}%;"></span></span>
+          <span class="vl">{{ '%.3f'|format(score) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="note">No score breakdown available for this part.</p>
+      {% endif %}
+      <div class="verdict">
+        <div class="vfield">
+          <span class="vk">Label</span>
+          <span class="vv" style="text-transform:capitalize;">{{ p.label }}</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Confidence</span>
+          <span class="vv">{{ '%.1f'|format(p.confidence * 100) }}%</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Margin</span>
+          <span class="vv">{{ '%.3f'|format(p.margin) }}</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Quantity</span>
+          <span class="vv">{{ p.quantity }}&times;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- geometry -->
+    <div class="card reveal">
+      <h2><span class="tick" aria-hidden="true"></span>Geometry</h2>
+      <div class="kv">
+        <span class="k">Bounding box</span>
+        <span class="v">{{ '%.1f'|format(p.features.bbox[0]) }} &times; {{ '%.1f'|format(p.features.bbox[1]) }} &times; {{ '%.1f'|format(p.features.bbox[2]) }} mm</span>
+        <span class="k">Volume</span>
+        <span class="v">{{ '%.1f'|format(p.features.volume) }} mm&sup3;</span>
+        <span class="k">Surface area</span>
+        <span class="v">{{ '%.1f'|format(p.features.surface_area) }} mm&sup2;</span>
+        <span class="k">Aspect ratio</span>
+        <span class="v">{{ '%.2f'|format(p.features.aspect_ratio) }}</span>
+        <span class="k">Thickness ratio</span>
+        <span class="v">{{ '%.3f'|format(p.features.thickness_ratio) }}</span>
+        <span class="k">Geometry source</span>
+        <span class="v"><code>{{ p.features.source }}</code></span>
+        {% if p.features.material %}
+        <span class="k">Material guess</span>
+        <span class="v">{{ p.features.material }}</span>
+        {% endif %}
+        <span class="k">Hollow</span>
+        <span class="v">{{ 'yes' if p.features.hollow else 'no' }}</span>
+      </div>
+
+      {% if p.holes.count %}
+        <h3>Holes &mdash; {{ p.holes.count }} detected</h3>
+        <div class="flags">
+          {% for d in p.holes.diameters %}
+          <span class="pill">&empty; {{ '%.2f'|format(d) }} mm</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if p.profile_match %}
+        <h3>Profile match</h3>
+        <div class="kv">
+          <span class="k">Family</span>
+          <span class="v">{{ p.profile_match.family }}</span>
+          <span class="k">Standard</span>
+          <span class="v">{{ p.profile_match.standard }}</span>
+          {% if p.profile_match.designation %}
+          <span class="k">Designation</span>
+          <span class="v"><code>{{ p.profile_match.designation }}</code></span>
+          {% endif %}
+          <span class="k">Residual</span>
+          <span class="v">{{ '%.2f'|format(p.profile_match.residual_mm) }} mm</span>
+          <span class="k">Confidence</span>
+          <span class="v">{{ '%.0f'|format(p.profile_match.confidence * 100) }}%</span>
+        </div>
+      {% endif %}
+
+      {% if p.pmi %}
+        <h3>PMI &mdash; product manufacturing information</h3>
+        <div class="kv">
+          <span class="k">Annotations</span>
+          <span class="v">{{ p.pmi.n_annotations }}</span>
+          <span class="k">Semantic</span>
+          <span class="v">{{ 'yes' if p.pmi.has_semantic else 'no' }}</span>
+          <span class="k">Tolerances</span>
+          <span class="v">{{ p.pmi.n_tolerances }}</span>
+          <span class="k">Dimensions</span>
+          <span class="v">{{ p.pmi.n_dimensions }}</span>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- ===== downloads ===== -->
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Downloads</h2>
+    <div class="downloads">
+      <a class="dl" href="{{ root }}{{ p.assets.step }}" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        </span>
+        <span class="dt"><span class="dn">STEP source</span><span class="df">.stp</span></span>
+      </a>
+      {% if p.assets.folded_glb %}
+      <a class="dl" href="{{ root }}{{ p.assets.folded_glb }}" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7.3L12 12l8.7-4.7M12 12v9.5"/></svg>
+        </span>
+        <span class="dt"><span class="dn">Folded mesh</span><span class="df">.glb</span></span>
+      </a>
+      {% endif %}
+      {% if p.assets.unfolded_glb %}
+      <a class="dl" href="{{ root }}{{ p.assets.unfolded_glb }}" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="1"/><path d="M12 7v10"/></svg>
+        </span>
+        <span class="dt"><span class="dn">Unfolded mesh</span><span class="df">.glb</span></span>
+      </a>
+      {% endif %}
+      {% if p.assets.dxf %}
+      <a class="dl" href="{{ root }}{{ p.assets.dxf }}" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
+        </span>
+        <span class="dt"><span class="dn">Flat pattern</span><span class="df">.dxf</span></span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span class="fbrand"><span class="glyph" aria-hidden="true"></span>stepalesengine</span>
+    <span class="fspace"></span>
+    <span>
+      Generated by <code>manufacturing_pipeline.web.static_site</code> &middot;
+      <a href="{{ root }}index.html">back to corpus</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

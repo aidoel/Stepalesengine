@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synthetic CHS profile &mdash; stepalesengine — 3D corpus &amp; unfold viewer</title>
+<meta name="description" content="3D model, unfold analysis, bend table and technical drawings for Synthetic CHS profile.">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <span class="brand">
+      <span class="glyph" aria-hidden="true"></span>
+      <a href="../index.html">stepalesengine</a>
+    </span>
+    <span class="tag">STEP &rarr; classified BOM &rarr; sheet-metal unfold</span>
+    <span class="spacer"></span>
+    <span class="crumb">
+      <a href="../index.html">corpus</a>
+      <span class="sep">/</span>synthetic-profile-tube
+    </span>
+  </div>
+</header>
+
+<main class="container">
+
+  <a class="back" href="../index.html">
+    <span class="ar" aria-hidden="true">&larr;</span> Back to corpus
+  </a>
+
+  <!-- ===== part headline ===== -->
+  <div class="part-headline reveal">
+    <h1>Synthetic CHS profile</h1>
+    <span class="label label-profiel">profiel</span>
+    
+    <span class="pill pill-failure lg">unfold failure</span>
+    
+  </div>
+  <div class="part-meta reveal">
+    <span class="mi"><span class="pill pill-synthetic">synthetic</span></span>
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">source</span> <code>synthetic_profile_tube.step</code></span>
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">product id</span> <code>Synthetic CHS profile</code></span>
+    
+    <span class="dvdr" aria-hidden="true"></span>
+    <span class="mi"><span class="mk">qty</span> 1&times;</span>
+    
+    
+  </div>
+
+  <!-- ===== HERO: folded -> unfolded 3D comparison ===== -->
+  <div class="card compare-card reveal reveal-d1">
+    <div class="cc-head">
+      <h2><span class="tick" aria-hidden="true"></span>Folded &rarr; Unfolded</h2>
+      
+        <p class="sub">This part has no flat pattern &mdash; only the folded CAD solid is shown.</p>
+      
+    </div>
+
+    
+    <div class="solo-wrap">
+      <span class="stage-tag"><span class="sw" style="background:#6ea0e8;" aria-hidden="true"></span>Folded</span>
+      <model-viewer class="viewer-solo"
+        src="../models/synthetic-profile-tube-folded.glb"
+        alt="3D CAD model of Synthetic CHS profile"
+        camera-controls auto-rotate auto-rotate-delay="800"
+        rotation-per-second="15deg" shadow-intensity="0.7" shadow-softness="0.9"
+        environment-image="neutral" exposure="1.06"
+        camera-orbit="-34deg 62deg auto" interaction-prompt="none"></model-viewer>
+    </div>
+    
+  </div>
+
+  <!-- ===== unfold analysis ===== -->
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Unfold analysis</h2>
+    
+      <div class="metric-strip">
+        <div class="m">
+          <div class="mv">0</div>
+          <div class="ml">Bends</div>
+        </div>
+        <div class="m">
+          <div class="mv">0 <span class="u">mm&sup2;</span></div>
+          <div class="ml">Flat area</div>
+        </div>
+        <div class="m">
+          <div class="mv">0.00 <span class="u">mm</span></div>
+          <div class="ml">Thickness</div>
+        </div>
+        <div class="m">
+          <div class="mv">0.000</div>
+          <div class="ml">Thickness CV</div>
+        </div>
+      </div>
+
+      
+      <p class="note" style="margin-top:14px;">
+        <span class="mk" style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;color:var(--c-faint);">reason</span>
+        &nbsp;prefilter:not_likely_unfoldable
+      </p>
+      
+
+      
+
+      
+    
+  </div>
+
+  <!-- ===== technical drawings ===== -->
+  
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Technical drawings</h2>
+    <div class="drawings">
+      
+        
+        
+        <figure>
+          <div class="dw">
+            <span class="vbadge">iso</span>
+            <img src="../drawings/synthetic-profile-tube-iso.svg" alt="iso projection of Synthetic CHS profile" loading="lazy">
+          </div>
+          <figcaption>iso projection &mdash; hidden-line</figcaption>
+        </figure>
+        
+      
+        
+        
+        <figure>
+          <div class="dw">
+            <span class="vbadge">top</span>
+            <img src="../drawings/synthetic-profile-tube-top.svg" alt="top projection of Synthetic CHS profile" loading="lazy">
+          </div>
+          <figcaption>top projection &mdash; hidden-line</figcaption>
+        </figure>
+        
+      
+        
+        
+        <figure>
+          <div class="dw">
+            <span class="vbadge">front</span>
+            <img src="../drawings/synthetic-profile-tube-front.svg" alt="front projection of Synthetic CHS profile" loading="lazy">
+          </div>
+          <figcaption>front projection &mdash; hidden-line</figcaption>
+        </figure>
+        
+      
+      
+    </div>
+  </div>
+  
+
+  <!-- ===== classification + geometry (two-up) ===== -->
+  <div class="grid-2">
+
+    <!-- classification -->
+    <div class="card reveal">
+      <h2><span class="tick" aria-hidden="true"></span>Classification</h2>
+      
+      <div class="scores">
+        
+        <div class="score-row top">
+          <span class="nm">profiel</span>
+          <span class="track" aria-hidden="true"><span style="width: 221.8%;"></span></span>
+          <span class="vl">2.218</span>
+        </div>
+        
+        <div class="score-row">
+          <span class="nm">anders</span>
+          <span class="track" aria-hidden="true"><span style="width: 77.8%;"></span></span>
+          <span class="vl">0.778</span>
+        </div>
+        
+        <div class="score-row">
+          <span class="nm">plaat</span>
+          <span class="track" aria-hidden="true"><span style="width: -26.8%;"></span></span>
+          <span class="vl">-0.268</span>
+        </div>
+        
+      </div>
+      
+      <div class="verdict">
+        <div class="vfield">
+          <span class="vk">Label</span>
+          <span class="vv" style="text-transform:capitalize;">profiel</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Confidence</span>
+          <span class="vv">94.1%</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Margin</span>
+          <span class="vv">1.440</span>
+        </div>
+        <div class="vfield">
+          <span class="vk">Quantity</span>
+          <span class="vv">1&times;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- geometry -->
+    <div class="card reveal">
+      <h2><span class="tick" aria-hidden="true"></span>Geometry</h2>
+      <div class="kv">
+        <span class="k">Bounding box</span>
+        <span class="v">900.0 &times; 100.0 &times; 100.0 mm</span>
+        <span class="k">Volume</span>
+        <span class="v">1594672.4 mm&sup3;</span>
+        <span class="k">Surface area</span>
+        <span class="v">535101.2 mm&sup2;</span>
+        <span class="k">Aspect ratio</span>
+        <span class="v">9.00</span>
+        <span class="k">Thickness ratio</span>
+        <span class="v">0.111</span>
+        <span class="k">Geometry source</span>
+        <span class="v"><code>brep</code></span>
+        
+        <span class="k">Hollow</span>
+        <span class="v">yes</span>
+      </div>
+
+      
+        <h3>Holes &mdash; 1 detected</h3>
+        <div class="flags">
+          
+          <span class="pill">&empty; 88.00 mm</span>
+          
+        </div>
+      
+
+      
+        <h3>Profile match</h3>
+        <div class="kv">
+          <span class="k">Family</span>
+          <span class="v">CHS</span>
+          <span class="k">Standard</span>
+          <span class="v">EN 10210-2</span>
+          
+          <span class="k">Residual</span>
+          <span class="v">1.63 mm</span>
+          <span class="k">Confidence</span>
+          <span class="v">4%</span>
+        </div>
+      
+
+      
+    </div>
+
+  </div>
+
+  <!-- ===== downloads ===== -->
+  <div class="card reveal">
+    <h2><span class="tick" aria-hidden="true"></span>Downloads</h2>
+    <div class="downloads">
+      <a class="dl" href="../steps/synthetic_profile_tube.step" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        </span>
+        <span class="dt"><span class="dn">STEP source</span><span class="df">.stp</span></span>
+      </a>
+      
+      <a class="dl" href="../models/synthetic-profile-tube-folded.glb" download>
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7.3L12 12l8.7-4.7M12 12v9.5"/></svg>
+        </span>
+        <span class="dt"><span class="dn">Folded mesh</span><span class="df">.glb</span></span>
+      </a>
+      
+      
+      
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span class="fbrand"><span class="glyph" aria-hidden="true"></span>stepalesengine</span>
+    <span class="fspace"></span>
+    <span>
+      Generated by <code>manufacturing_pipeline.web.static_site</code> &middot;
+      <a href="../index.html">back to corpus</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

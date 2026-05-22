@@ -243,15 +243,8 @@ def build_element(
         if _is_scalar_type(type(value)) or isinstance(value, (str, int, float, bool, Path, Enum)):
             # Omit only empty strings on fields that have a default - required
             # fields must always be emitted so parse_element can reconstruct.
-            field_has_default = (
-                f.default is not MISSING or f.default_factory is not MISSING
-            )
-            if (
-                isinstance(value, str)
-                and omit_empty_strings
-                and value == ""
-                and field_has_default
-            ):
+            field_has_default = f.default is not MISSING or f.default_factory is not MISSING
+            if isinstance(value, str) and omit_empty_strings and value == "" and field_has_default:
                 continue
             el.set(target_name, _format_value(value))
         elif isinstance(value, list):
@@ -349,18 +342,14 @@ def parse_element(
                     inner_args = get_args(ftype)
                     inner = inner_args[0] if inner_args else str
                     inner = _unwrap_optional(inner)
-                    kwargs[f.name] = [
-                        _parse_scalar(p, inner) for p in raw.split(",") if p
-                    ]
+                    kwargs[f.name] = [_parse_scalar(p, inner) for p in raw.split(",") if p]
                 continue
             inner_args = get_args(ftype)
             inner = inner_args[0] if inner_args else str
             inner = _unwrap_optional(inner)
             if is_dataclass(inner) and isinstance(inner, type):
                 child_tag = target_name[:-1] if target_name.endswith("s") else target_name
-                kwargs[f.name] = [
-                    parse_element(c, inner) for c in _findall_child(child, child_tag)
-                ]
+                kwargs[f.name] = [parse_element(c, inner) for c in _findall_child(child, child_tag)]
             else:
                 # Primitives nested as <items><item value=".."/></items>
                 # Not currently emitted by build_element, but handle gracefully.
@@ -419,9 +408,12 @@ def _strip_ns(tag: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def kv_writer(tag: str = "kv", *, key_attr: str = "key", value_attr: str = "value") -> Callable[[ET.Element, dict], None]:
+def kv_writer(
+    tag: str = "kv", *, key_attr: str = "key", value_attr: str = "value"
+) -> Callable[[ET.Element, dict], None]:
     """Return a two-arg transformer that emits ``<tag key=".." value=".."/>``
     children directly under the dataclass element (no wrapper)."""
+
     def _emit(parent: ET.Element, mapping: dict) -> None:
         if not mapping:
             return
@@ -429,6 +421,7 @@ def kv_writer(tag: str = "kv", *, key_attr: str = "key", value_attr: str = "valu
             child = ET.SubElement(parent, tag)
             child.set(key_attr, str(k))
             child.set(value_attr, _format_value(v))
+
     _emit._xml_element_builder = True  # type: ignore[attr-defined]
     return _emit
 
@@ -445,6 +438,7 @@ def kv_reader(
 
     ``value_type``: optional scalar type to coerce values into (``float``,
     ``int``, ``bool``, ``str``). Defaults to ``str``."""
+
     def _read(elem: ET.Element) -> dict:
         result: dict[str, Any] = {}
         for child in _findall_child(elem, tag):
@@ -454,21 +448,26 @@ def kv_reader(
             else:
                 result[child.get(key_attr, "")] = _parse_scalar(raw, value_type)
         return result
+
     return _read
 
 
 def csv_writer() -> Callable[[Any], str | None]:
     """Comma-join a list of strings; return ``None`` for empty lists."""
+
     def _emit(value):
         if not value:
             return None
         return ",".join(value)
+
     return _emit
 
 
 def csv_reader(attr: str) -> Callable[[ET.Element], list[str]]:
     """Read a comma-separated attribute back into a list of strings."""
+
     def _read(elem: ET.Element) -> list[str]:
         raw = elem.get(attr, "") or ""
         return [p for p in raw.split(",") if p]
+
     return _read

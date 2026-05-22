@@ -311,6 +311,7 @@ def _operation_param_writer():
     """Emit Operation.params as ``<param name=".." value=".."/>`` children using
     ``str(val)`` (NOT ``_format_value``) — matches the legacy schema where
     booleans render as ``"True"``/``"False"`` and floats as ``str(float)``."""
+
     def _emit(parent: ET.Element, mapping: dict) -> None:
         if not mapping:
             return
@@ -318,6 +319,7 @@ def _operation_param_writer():
             child = ET.SubElement(parent, "param")
             child.set("name", str(k))
             child.set("value", str(v))
+
     _emit._xml_element_builder = True  # type: ignore[attr-defined]
     return _emit
 

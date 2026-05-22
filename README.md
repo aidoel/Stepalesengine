@@ -204,6 +204,30 @@ parts: 12 (plaat=8 profiel=2 anders=1 uncertain=1)
 
 The `(conf=...)` is the calibrated softmax probability that the winning label is correct; values below `CONFIDENCE_THRESHOLD = 0.65` would be tagged `uncertain` instead.
 
+## Web viewer & static deploy
+
+Two ways to browse an analysed corpus in 3D:
+
+**Live Flask UI** — `stepalesengine-web path/to/manifest.xml` serves a local app
+that renders folded / unfolded GLB meshes and SVG drawings on demand (needs the
+`[occt]` and `[web]` extras).
+
+**Static site** — `manufacturing_pipeline/web/static_site.py` pre-renders an
+entire STEP corpus into a self-contained static site: an interactive 3D viewer
+per part (folded CAD solid vs. unfolded flat blank), the bend table, technical
+drawings and downloads. Because the geometry stack (OpenCascade) cannot run on
+a static host, the site is built ahead of time:
+
+```
+python tools/make_demo_corpus.py                                # build corpus/
+python -m manufacturing_pipeline.web.static_site corpus/ --out site/
+```
+
+The resulting `site/` directory is fully self-contained. `netlify.toml`
+publishes it as-is on Netlify — no build step runs there. The bundled `corpus/`
+covers every classification element (flat plate, bent sheet metal, hollow
+profiles, machined part); provenance is documented in `corpus/PROVENANCE.md`.
+
 ## Testing
 
 ```

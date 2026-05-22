@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="-115.9438 -33.0871 160.5309 66.1743" preserveAspectRatio="xMidYMid meet">
+<g transform="translate(0,0) scale(1,-1)" fill="none" stroke-width="0.5619" stroke-linejoin="round" stroke-linecap="round">
+<polygon class="layer-OUTER" points="-49.8566,-30 -112.8566,-30 -112.8566,30 -49.8566,30 -49.8566,30 -41.5,30 -41.5,30 41.5,30 41.5,-30 -41.5,-30 -41.5,-30 -49.8566,-30" stroke="#d62728" />
+<polyline class="layer-BEND_DOWN" points="-45.6783,-30 -45.6783,30" stroke="#ff7f0e" stroke-dasharray="4 2" />
+</g>
+</svg>

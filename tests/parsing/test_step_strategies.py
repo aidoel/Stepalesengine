@@ -13,6 +13,7 @@ from manufacturing_pipeline.parsing.step_strategies import (
     JUNK_NAMES,
     is_meaningful,
     looks_like_feature_name,
+    looks_like_translator_signature,
     strategy_brep_names,
     strategy_comments,
     strategy_header,
@@ -67,6 +68,19 @@ def test_is_meaningful_rejects_junk_and_auto_names(name):
 
 def test_is_meaningful_non_string_returns_false():
     assert is_meaningful(None) is False  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Open CASCADE STEP translator 7.9 2",
+        "Open CASCADE STEP processor 7.9",
+        "Open CASCADE Shape Model",
+        "OpenCascade Model",
+    ],
+)
+def test_is_meaningful_rejects_opencascade_translator_signature(name):
+    assert is_meaningful(name) is False
 
 
 def test_junk_names_contains_expected_baseline():
@@ -361,6 +375,42 @@ def test_strategy_brep_keeps_real_part_names():
     entities = {1: ("MANIFOLD_SOLID_BREP", "'MD-17-04193_2',#9")}
     parts = strategy_brep_names(entities)
     assert [p.name for p in parts] == ["MD-17-04193_2"]
+
+
+# ---------------------------------------------------------------------------
+# OpenCascade translator-signature detection
+# ---------------------------------------------------------------------------
+
+
+def test_looks_like_translator_signature_recognises_occt_labels():
+    for name in (
+        "Open CASCADE STEP translator 7.9 2",
+        "Open CASCADE STEP processor 7.9",
+        "Open CASCADE Shape Model",
+        "open cascade model",
+    ):
+        assert looks_like_translator_signature(name), name
+
+
+def test_looks_like_translator_signature_rejects_real_part_numbers():
+    for name in ("MD-17-04193_2", "10001073530_Rev_00", "Plaat-12mm", "UNP 160"):
+        assert not looks_like_translator_signature(name), name
+
+
+def test_strategy_product_skips_opencascade_translator_signature():
+    """A PRODUCT carrying OCCT's default translator label is not a real part."""
+    entities = {
+        1: ("PRODUCT", "'X','Open CASCADE STEP translator 7.9 2','',(#1)"),
+        2: ("PRODUCT", "'Y','Voorflens','',(#1)"),
+    }
+    assert [p.name for p in strategy_product(entities)] == ["Voorflens"]
+
+
+def test_strategy_header_drops_opencascade_file_name_for_basename():
+    """An OCCT-stamped FILE_NAME must lose to the on-disk basename."""
+    header = {"file_name": ["'Open CASCADE Shape Model'"]}
+    parts = strategy_header(header, "/tmp/exports/synthetic_bracket.step")
+    assert parts[0].name == "synthetic_bracket"
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,235 @@
+<?xml version='1.0' encoding='utf-8'?>
+<assembly xmlns="https://stepalesengine.dev/manifest/1" source="/home/user/Stepalesengine/corpus/nist_ctc_01_asme1_ap242-e1.stp" source-mtime="1779379153.6456852" source-size="396445" generated-at="2026-05-21T16:18:49+00:00" model-version="rules-1.0.0">
+  <parts>
+    <part product-id="NIST Test Case 1" name="NIST Complex Test Case 1" description="" source="product_definition" quantity="1">
+      <classification label="anders" confidence="0.9584147092450794">
+        <scores>
+          <score class="plaat" value="0.14044531018540973" />
+          <score class="profiel" value="0.003019663149791102" />
+          <score class="anders" value="1.9917797709928697" />
+        </scores>
+        <probabilities>
+          <probability class="plaat" value="0.023632234609008977" />
+          <probability class="profiel" value="0.017953056145911646" />
+          <probability class="anders" value="0.9584147092450794" />
+        </probabilities>
+        <margin value="1.85133446080746" ambiguous="false" />
+        <contributions>
+          <contribution feature="top1_face_pct" class="plaat" value="0.2762491392518661" delta="0.19337439747630628" />
+          <contribution feature="top1_face_pct,unfoldable" class="plaat" value="(0.2762491392518661, False)" delta="0.0" />
+          <contribution feature="unfoldable,seamed_tube" class="plaat" value="(False, False)" delta="0.0" />
+          <contribution feature="has_bends,seamed_tube" class="plaat" value="(False, False)" delta="0.0" />
+          <contribution feature="aspect_ratio" class="plaat" value="1.764302909696552" delta="-0.05292908729089655" />
+          <contribution feature="name_profile_hit" class="plaat" value="0.0" delta="-0.0" />
+          <contribution feature="cross_section_constant" class="profiel" value="false" delta="0.0" />
+          <contribution feature="aspect_ratio" class="profiel" value="1.764302909696552" delta="0.14114423277572416" />
+          <contribution feature="name_profile_hit" class="profiel" value="0.0" delta="0.0" />
+          <contribution feature="profile_match_designation" class="profiel" value="0.0" delta="0.0" />
+          <contribution feature="seamed_tube" class="profiel" value="false" delta="0.0" />
+          <contribution feature="top1_face_pct" class="profiel" value="0.2762491392518661" delta="-0.13812456962593306" />
+          <contribution feature="unfoldable,seamed_tube" class="profiel" value="(False, False)" delta="-0.0" />
+          <contribution feature="has_bends,seamed_tube" class="profiel" value="(False, False)" delta="-0.0" />
+          <contribution feature="name_din_hit" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="vendor_code_present" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="bspline_pct" class="anders" value="0.0" delta="0.0" />
+          <contribution feature="hole_density" class="anders" value="0.00024780665648556913" delta="0.00029736798778268295" />
+          <contribution feature="hull_concavity" class="anders" value="0.6576270722353335" delta="0.6576270722353335" />
+          <contribution feature="top1_face_pct,unfoldable" class="anders" value="(0.2762491392518661, False)" delta="0.4143737088777992" />
+          <contribution feature="pocket_complexity" class="anders" value="0.6567725870656818" delta="0.9194816218919544" />
+          <contribution feature="unfoldable" class="anders" value="false" delta="-0.0" />
+          <contribution feature="has_bends" class="anders" value="false" delta="-0.0" />
+        </contributions>
+        <tiebreakers />
+        <probe-results>
+          <probe name="unfoldable" value="false" />
+        </probe-results>
+        <model-version value="rules-1.0.0" />
+      </classification>
+      <features>
+        <volume value="14644823.305612631" units="mm3" />
+        <surface-area value="807080.8219457449" units="mm2" />
+        <bbox length="802.3611171371523" width="454.77514814910836" thickness="150.46670904542242" units="mm" />
+        <aspect-ratio value="1.764302909696552" />
+        <thickness-ratio value="0.18752991119795534" />
+        <face-area-top>
+          <face rank="1" pct="0.2762491392518661" />
+          <face rank="2" pct="0.21738515790241625" />
+          <face rank="3" pct="0.02793142861823067" />
+        </face-area-top>
+        <surface-composition>
+          <surface type="planar" pct="0.8048574468168441" />
+          <surface type="cylindrical" pct="0.19423432025022913" />
+          <surface type="conical" pct="0.0009082329329268926" />
+          <surface type="toroidal" pct="0.0" />
+          <surface type="spherical" pct="0.0" />
+          <surface type="bspline" pct="0.0" />
+          <surface type="other" pct="0.0" />
+        </surface-composition>
+        <edge-counts>
+          <edge kind="line" count="428" />
+          <edge kind="circle" count="184" />
+          <edge kind="ellipse" count="0" />
+          <edge kind="bspline" count="28" />
+        </edge-counts>
+        <edge-radius mean="50.0000000000002" std="0.0" />
+        <hole-count value="10" />
+        <hole-diameters>
+          <diameter value="19.99999999999998" units="mm" />
+          <diameter value="20.0" units="mm" />
+          <diameter value="24.9999999999998" units="mm" />
+          <diameter value="25.0" units="mm" />
+          <diameter value="25.0" units="mm" />
+          <diameter value="25.0" units="mm" />
+          <diameter value="35.0" units="mm" />
+          <diameter value="35.0000000000002" units="mm" />
+          <diameter value="35.0000000000002" units="mm" />
+          <diameter value="35.0000000000002" units="mm" />
+        </hole-diameters>
+        <sa-v-ratio value="13.483240161693942" />
+        <bounding-cylinder-fit-pct value="0.10127823654709255" />
+        <convex-hull-volume-ratio value="0.34237292776466655" />
+        <cross-section-constant value="false" />
+        <cross-section-signature>
+          <entry key="n_inner" value="0" />
+          <entry key="n_seg" value="12" />
+          <entry key="n_seg_outer" value="12" />
+          <entry key="n_seg_pre_collapse" value="42" />
+          <entry key="n_seg_post_collapse" value="12" />
+          <entry key="sym_x" value="False" />
+          <entry key="sym_y" value="False" />
+          <entry key="point_sym" value="False" />
+          <entry key="orth_ratio" value="0.8929192720343341" />
+          <entry key="outer_circular" value="False" />
+          <entry key="inner_circular" value="False" />
+          <entry key="inner_bbox" value="None" />
+          <entry key="wall_thickness" value="None" />
+          <entry key="bbox_h" value="250.0" />
+          <entry key="bbox_b" value="100.0" />
+          <entry key="n_inner_wires" value="0" />
+          <entry key="hollow_ratio" value="0.7302812236999164" />
+        </cross-section-signature>
+        <hollow inner-shells="0" is-hollow="true" />
+        <source value="brep" />
+      </features>
+      <unfold status="failure" n-bends="0" flat-area="0.0" thickness-mean="49.99999999999999" thickness-cv="0.0">
+        <flag name="thickness_mean" value="49.99999999999999" />
+        <reason text="too_thick" />
+      </unfold>
+      <holes count="10">
+        <hole diameter="19.99999999999998" units="mm" />
+        <hole diameter="20.0" units="mm" />
+        <hole diameter="24.9999999999998" units="mm" />
+        <hole diameter="25.0" units="mm" />
+        <hole diameter="25.0" units="mm" />
+        <hole diameter="25.0" units="mm" />
+        <hole diameter="35.0" units="mm" />
+        <hole diameter="35.0000000000002" units="mm" />
+        <hole diameter="35.0000000000002" units="mm" />
+        <hole diameter="35.0000000000002" units="mm" />
+      </holes>
+      <pmi n-annotations="64" has-semantic="true">
+        <tolerances>
+          <tolerance type="perpendicularity" magnitude="1.5" unit="mm" datums="A" applied-to="#298" />
+          <tolerance type="flatness" magnitude="0.2" unit="mm" applied-to="#297" />
+          <tolerance type="position" magnitude="0.75" unit="mm" datums="A,B,C" applied-to="#235" />
+          <tolerance type="position" magnitude="0.75" unit="mm" datums="A,B,C" applied-to="#236" />
+          <tolerance type="surface_profile" magnitude="1.25" unit="mm" datums="A,B,C" applied-to="#230" />
+          <tolerance type="surface_profile" magnitude="0.5" unit="mm" datums="A" applied-to="#23" />
+        </tolerances>
+        <dimensions>
+          <dimension nominal="35.0" upper="0.0" lower="-0.2" unit="mm" applied-to="#120" />
+          <dimension nominal="35.0" upper="0.2" lower="0.0" unit="mm" applied-to="#121" />
+          <dimension nominal="20.0" upper="0.05" lower="-0.1" unit="mm" applied-to="#122" />
+          <dimension nominal="20.0" upper="0.1" lower="-0.05" unit="mm" applied-to="#123" />
+          <dimension nominal="25.0" upper="0.15" lower="-0.15" unit="mm" applied-to="#128" />
+        </dimensions>
+        <datums>
+          <datum identifier="Simple Datum.1" />
+          <datum identifier="Simple Datum.2" />
+          <datum identifier="Simple Datum.3" />
+          <datum identifier="A" />
+          <datum identifier="B" />
+          <datum identifier="C" />
+        </datums>
+      </pmi>
+      <machining-strategy primary-process="machining" setup-count="2" estimated-time-min="22.0">
+        <operation op="mill_contour" feature-ref="outer_contour" priority="100" reason="rough outer contour">
+          <param name="length_mm" value="802.361" />
+          <param name="width_mm" value="454.775" />
+        </operation>
+        <operation op="drill" feature-ref="hole_0" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="25.0" />
+          <param name="depth_mm" value="100.0" />
+          <param name="through" value="False" />
+        </operation>
+        <operation op="drill" feature-ref="hole_1" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="20.0" />
+          <param name="depth_mm" value="90.0" />
+          <param name="through" value="False" />
+        </operation>
+        <operation op="drill" feature-ref="hole_2" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="20.0" />
+          <param name="depth_mm" value="90.0" />
+          <param name="through" value="False" />
+        </operation>
+        <operation op="drill" feature-ref="hole_3" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="35.0" />
+          <param name="depth_mm" value="200.0" />
+          <param name="through" value="True" />
+        </operation>
+        <operation op="drill" feature-ref="hole_4" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="35.0" />
+          <param name="depth_mm" value="200.0" />
+          <param name="through" value="True" />
+        </operation>
+        <operation op="drill" feature-ref="hole_5" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="35.0" />
+          <param name="depth_mm" value="200.0" />
+          <param name="through" value="True" />
+        </operation>
+        <operation op="drill" feature-ref="hole_6" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="35.0" />
+          <param name="depth_mm" value="200.0" />
+          <param name="through" value="True" />
+        </operation>
+        <operation op="drill" feature-ref="hole_7" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="25.0" />
+          <param name="depth_mm" value="100.0" />
+          <param name="through" value="False" />
+        </operation>
+        <operation op="drill" feature-ref="hole_8" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="25.0" />
+          <param name="depth_mm" value="100.0" />
+          <param name="through" value="False" />
+        </operation>
+        <operation op="drill" feature-ref="hole_9" priority="110" reason="cylindrical hole">
+          <param name="diameter_mm" value="25.0" />
+          <param name="depth_mm" value="100.0" />
+          <param name="through" value="False" />
+        </operation>
+        <operation op="mill_pocket" feature-ref="pocket_0" priority="130" reason="hull concavity &gt; 0.4 suggests a pocketed feature">
+          <param name="hull_concavity" value="0.658" />
+        </operation>
+        <operation op="inspect" feature-ref="datum_Simple Datum.1" priority="220" reason="verify datum Simple Datum.1">
+          <param name="datum" value="Simple Datum.1" />
+        </operation>
+        <operation op="inspect" feature-ref="datum_Simple Datum.2" priority="220" reason="verify datum Simple Datum.2">
+          <param name="datum" value="Simple Datum.2" />
+        </operation>
+        <operation op="inspect" feature-ref="datum_Simple Datum.3" priority="220" reason="verify datum Simple Datum.3">
+          <param name="datum" value="Simple Datum.3" />
+        </operation>
+        <operation op="inspect" feature-ref="datum_A" priority="220" reason="verify datum A">
+          <param name="datum" value="A" />
+        </operation>
+        <operation op="inspect" feature-ref="datum_B" priority="220" reason="verify datum B">
+          <param name="datum" value="B" />
+        </operation>
+        <operation op="inspect" feature-ref="datum_C" priority="220" reason="verify datum C">
+          <param name="datum" value="C" />
+        </operation>
+        <notes>setup against datums Simple Datum.1,Simple Datum.2,Simple Datum.3,A,B,C</notes>
+      </machining-strategy>
+    </part>
+  </parts>
+</assembly>

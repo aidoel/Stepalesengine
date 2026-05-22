@@ -65,9 +65,7 @@ def run(args: argparse.Namespace) -> int:
 
     path = Path(args.path).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
-    scorers_path = (
-        Path(args.scorers).expanduser().resolve() if args.scorers else None
-    )
+    scorers_path = Path(args.scorers).expanduser().resolve() if args.scorers else None
 
     options = AnalyzeOptions(
         out_dir=out_dir,

@@ -114,9 +114,7 @@ def _coerce_feature_ref(raw: Any) -> str | tuple[str, ...]:
         if len(raw) == 0:
             raise ValueError("feature list cannot be empty")
         return tuple(raw)
-    raise ValueError(
-        f"feature must be a string or a list of strings, got: {raw!r}"
-    )
+    raise ValueError(f"feature must be a string or a list of strings, got: {raw!r}")
 
 
 def load_scorers_from_yaml(path: str | Path) -> ScorerSpec:
@@ -153,21 +151,15 @@ def load_scorers_from_yaml(path: str | Path) -> ScorerSpec:
         parsed: list[ScorerRule] = []
         for idx, rule in enumerate(rules):
             if not isinstance(rule, dict):
-                raise ValueError(
-                    f"{p}: class '{cls_name}' rule #{idx} must be a mapping"
-                )
+                raise ValueError(f"{p}: class '{cls_name}' rule #{idx} must be a mapping")
             try:
                 feature_ref = _coerce_feature_ref(rule["feature"])
                 transform_name = rule["transform"]
                 weight = float(rule["weight"])
             except KeyError as exc:
-                raise ValueError(
-                    f"{p}: class '{cls_name}' rule #{idx} missing key {exc}"
-                ) from exc
+                raise ValueError(f"{p}: class '{cls_name}' rule #{idx} missing key {exc}") from exc
             if not isinstance(transform_name, str):
-                raise ValueError(
-                    f"{p}: class '{cls_name}' rule #{idx} transform must be a string"
-                )
+                raise ValueError(f"{p}: class '{cls_name}' rule #{idx} transform must be a string")
             if transform_name not in _TRANSFORMS:
                 raise ValueError(
                     f"{p}: class '{cls_name}' rule #{idx} references unknown "
