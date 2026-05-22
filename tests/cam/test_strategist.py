@@ -328,9 +328,7 @@ def test_recommend_never_raises_on_garbage_input():
 
 
 def test_global_position_tolerance_applies_to_every_hole():
-    holes = HolePattern(
-        hole_count=3, diameters=[6.0, 6.0, 6.0], holes=_hole_dicts([6.0, 6.0, 6.0])
-    )
+    holes = HolePattern(hole_count=3, diameters=[6.0, 6.0, 6.0], holes=_hole_dicts([6.0, 6.0, 6.0]))
     # No applied_to -> the strategist treats this as a part-global rule.
     pmi = PMIRecord(
         tolerances=[
@@ -387,10 +385,38 @@ def test_end_to_end_through_analyze_attaches_strategy(tmp_path: Path):
 def test_setup_count_bumps_when_holes_span_multiple_axes():
     # Two holes on Z-axis, two on Y-axis: needs at least two fixturings.
     holes_payload = [
-        {"diameter": 6.0, "depth": 5.0, "axis_dir": (0.0, 0.0, 1.0), "position": (0, 0, 0), "through": False, "n_cylinders": 1},
-        {"diameter": 6.0, "depth": 5.0, "axis_dir": (0.0, 0.0, 1.0), "position": (1, 0, 0), "through": False, "n_cylinders": 1},
-        {"diameter": 5.0, "depth": 3.0, "axis_dir": (0.0, 1.0, 0.0), "position": (0, 0, 0), "through": False, "n_cylinders": 1},
-        {"diameter": 5.0, "depth": 3.0, "axis_dir": (0.0, 1.0, 0.0), "position": (0, 0, 1), "through": False, "n_cylinders": 1},
+        {
+            "diameter": 6.0,
+            "depth": 5.0,
+            "axis_dir": (0.0, 0.0, 1.0),
+            "position": (0, 0, 0),
+            "through": False,
+            "n_cylinders": 1,
+        },
+        {
+            "diameter": 6.0,
+            "depth": 5.0,
+            "axis_dir": (0.0, 0.0, 1.0),
+            "position": (1, 0, 0),
+            "through": False,
+            "n_cylinders": 1,
+        },
+        {
+            "diameter": 5.0,
+            "depth": 3.0,
+            "axis_dir": (0.0, 1.0, 0.0),
+            "position": (0, 0, 0),
+            "through": False,
+            "n_cylinders": 1,
+        },
+        {
+            "diameter": 5.0,
+            "depth": 3.0,
+            "axis_dir": (0.0, 1.0, 0.0),
+            "position": (0, 0, 1),
+            "through": False,
+            "n_cylinders": 1,
+        },
     ]
     holes = HolePattern(hole_count=4, diameters=[6, 6, 5, 5], holes=holes_payload)
     strat = recommend(

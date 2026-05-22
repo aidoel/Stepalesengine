@@ -225,14 +225,10 @@ def test_name_overrides_let_field_use_alternative_attr_name():
         magnitude_mm: float = 0.0
 
     obj = _Custom(cls="plaat", magnitude_mm=0.5)
-    el = build_element(
-        None, "c", obj, name_overrides={"cls": "class", "magnitude_mm": "magnitude"}
-    )
+    el = build_element(None, "c", obj, name_overrides={"cls": "class", "magnitude_mm": "magnitude"})
     assert el.get("class") == "plaat"
     assert el.get("magnitude") == repr(0.5)
-    back = parse_element(
-        el, _Custom, name_overrides={"cls": "class", "magnitude_mm": "magnitude"}
-    )
+    back = parse_element(el, _Custom, name_overrides={"cls": "class", "magnitude_mm": "magnitude"})
     assert back == obj
 
 

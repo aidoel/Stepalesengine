@@ -392,6 +392,5 @@ def test_cli_analyze_with_custom_scorers_changes_label(tmp_path: Path):
         f"--scorers had no effect: default={default_label} custom={custom_label}"
     )
     assert custom_label != "plaat", (
-        f"after slashing plate weights the part still classified as plaat: "
-        f"{custom_label}"
+        f"after slashing plate weights the part still classified as plaat: {custom_label}"
     )

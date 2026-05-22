@@ -307,9 +307,7 @@ def _product_id_name(prod_args: list[str]) -> tuple[str, str, str]:
 # ---------------------------------------------------------------------------
 
 
-def _nauo_pd_pair(
-    entities: dict[int, tuple[str, str]], raw_args: str
-) -> tuple[int, int] | None:
+def _nauo_pd_pair(entities: dict[int, tuple[str, str]], raw_args: str) -> tuple[int, int] | None:
     """Extract the ordered ``(first_pd, second_pd)`` ref pair from a NAUO.
 
     Returns the two PRODUCT_DEFINITION refs in their lexical order, or ``None``

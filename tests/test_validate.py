@@ -27,9 +27,7 @@ def _seed_two_steps(directory: Path) -> list[Path]:
     """Write two distinct synthetic STEPs into ``directory``."""
     directory.mkdir(parents=True, exist_ok=True)
     a = write_flat_plate_step(directory / "plate.step", l=100, w=50, t=2.0)
-    b = write_profile_step(
-        directory / "rhs.step", family="RHS", h=80, b=40, t=3.0, length=300
-    )
+    b = write_profile_step(directory / "rhs.step", family="RHS", h=80, b=40, t=3.0, length=300)
     return [a, b]
 
 

@@ -64,9 +64,7 @@ def run(args: argparse.Namespace) -> int:
 
     out_root = Path(args.out_dir).expanduser().resolve()
     out_root.mkdir(parents=True, exist_ok=True)
-    scorers_path = (
-        Path(args.scorers).expanduser().resolve() if args.scorers else None
-    )
+    scorers_path = Path(args.scorers).expanduser().resolve() if args.scorers else None
 
     files = _collect_step_files(input_dir)
     if not files:

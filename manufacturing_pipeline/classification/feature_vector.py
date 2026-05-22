@@ -63,9 +63,7 @@ class FeatureVector:
         # machined and freeform parts do not unfold, and a flat plate has no
         # bends. PARTIAL still counts - the bends were detected.
         has_bends = (
-            unfold is not None
-            and unfold.status != UnfoldStatus.FAILURE
-            and unfold.n_bends > 0
+            unfold is not None and unfold.status != UnfoldStatus.FAILURE and unfold.n_bends > 0
         )
         # A hollow / seamed structural section (RHS, SHS, CHS, welded channel)
         # is a closed tube wall: the UnfoldProbe rolls it open and reports a

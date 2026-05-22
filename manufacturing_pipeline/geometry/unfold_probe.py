@@ -1079,9 +1079,7 @@ class BendDetector:
         # Synthetic bends: two flange faces sharing a straight edge at an angle
         # other than 0 / 180 deg, but with no cylindrical patch between them.
         try:
-            bends += self._find_synthetic_bends(
-                planars, bends, solid, model.flange_indices
-            )
+            bends += self._find_synthetic_bends(planars, bends, solid, model.flange_indices)
         except Exception as exc:
             logger.debug("BendDetector synthetic step failed: %s", exc)
         return bends
@@ -1143,9 +1141,7 @@ class BendDetector:
             a, b = planar_ids[0], planar_ids[1]
             if a == b:
                 continue
-            if flange_indices is not None and (
-                a not in flange_indices or b not in flange_indices
-            ):
+            if flange_indices is not None and (a not in flange_indices or b not in flange_indices):
                 continue
             pair_key = (min(a, b), max(a, b))
             if pair_key in seen_pairs:

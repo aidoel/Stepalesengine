@@ -44,9 +44,7 @@ def _seed_two_steps(directory: Path) -> tuple[Path, Path]:
     """Write two distinct synthetic STEPs into ``directory``. Returns paths."""
     directory.mkdir(parents=True, exist_ok=True)
     a = write_flat_plate_step(directory / "plate.step", l=100, w=50, t=2.0)
-    b = write_profile_step(
-        directory / "rhs.step", family="RHS", h=80, b=40, t=3.0, length=300
-    )
+    b = write_profile_step(directory / "rhs.step", family="RHS", h=80, b=40, t=3.0, length=300)
     return a, b
 
 
@@ -84,9 +82,7 @@ def test_validate_corpus_with_write_outputs_creates_per_file_manifests(
     a, b = _seed_two_steps(corpus)
     out_dir = tmp_path / "report"
 
-    report = validate_corpus(
-        corpus, workers=1, out_dir=out_dir, write_outputs=True
-    )
+    report = validate_corpus(corpus, workers=1, out_dir=out_dir, write_outputs=True)
 
     assert report.total_files == 2
     safe_a = _safe_dir_name(a.stem)
@@ -176,9 +172,7 @@ def test_render_html_report_link_mode_emits_anchor_tags(tmp_path: Path) -> None:
     corpus = tmp_path / "corpus"
     _seed_two_steps(corpus)
     out_dir = tmp_path / "report"
-    report = validate_corpus(
-        corpus, workers=1, out_dir=out_dir, write_outputs=True
-    )
+    report = validate_corpus(corpus, workers=1, out_dir=out_dir, write_outputs=True)
 
     html_path = render_html_report(report, tmp_path / "report.html")
     text = html_path.read_text(encoding="utf-8")
@@ -232,9 +226,7 @@ def test_serve_corpus_cli_smoke_responds_on_port(tmp_path: Path) -> None:
         status = _wait_for_url(f"http://127.0.0.1:{port}/", timeout=30.0)
         assert status == 200
 
-        with urllib.request.urlopen(
-            f"http://127.0.0.1:{port}/", timeout=2.0
-        ) as resp:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2.0) as resp:
             body = resp.read().decode("utf-8")
         assert "STEP corpus validation" in body
         safe_a = _safe_dir_name("plate")

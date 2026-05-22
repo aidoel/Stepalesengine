@@ -54,9 +54,7 @@ def _rect(x0: float, y0: float, w: float, h: float) -> list[tuple[float, float]]
     return [(x0, y0), (x0 + w, y0), (x0 + w, y0 + h), (x0, y0 + h)]
 
 
-def _circle_poly(
-    cx: float, cy: float, r: float, n: int = 24
-) -> list[tuple[float, float]]:
+def _circle_poly(cx: float, cy: float, r: float, n: int = 24) -> list[tuple[float, float]]:
     return [
         (cx + r * math.cos(2 * math.pi * i / n), cy + r * math.sin(2 * math.pi * i / n))
         for i in range(n)
@@ -68,8 +66,7 @@ def _write_sample_dxf(path: Path, part_name: str = "PART-1") -> Path:
         outer_contour=[_rect(0.0, 0.0, 100.0, 60.0)],
         holes=[_circle_poly(20.0, 30.0, 4.0), _circle_poly(80.0, 30.0, 6.0)],
         bend_lines=[
-            ((50.0, 0.0), (50.0, 60.0),
-             {"angle": 90.0, "radius": 1.5, "direction": "up"}),
+            ((50.0, 0.0), (50.0, 60.0), {"angle": 90.0, "radius": 1.5, "direction": "up"}),
         ],
         thickness=2.0,
         bbox=(0.0, 0.0, 100.0, 60.0),
@@ -140,9 +137,7 @@ def _entry(
     pmi = None
     if with_pmi:
         pmi = PMIRecord(
-            tolerances=[
-                GeometricTolerance(type="position", magnitude_mm=0.05, datums=["A", "B"])
-            ],
+            tolerances=[GeometricTolerance(type="position", magnitude_mm=0.05, datums=["A", "B"])],
             datums=[Datum(identifier="A"), Datum(identifier="B")],
             n_annotations=5,
             has_semantic=True,
@@ -339,10 +334,7 @@ def test_real_dxf_is_embedded(tmp_path: Path) -> None:
 
 
 def test_compact_layout_fewer_pages(tmp_path: Path) -> None:
-    entries = [
-        _entry(name=f"P-{i}", product_id=f"PID-{i}", label="plaat")
-        for i in range(5)
-    ]
+    entries = [_entry(name=f"P-{i}", product_id=f"PID-{i}", label="plaat") for i in range(5)]
     manifest = _manifest(source=str(tmp_path / "compact.step"), entries=entries)
     # 4-up: 5 parts -> 2 part pages + 1 cover = 3 pages.
     options = CorpusPDFOptions(parts_per_page=4, include_dxf_preview=False)

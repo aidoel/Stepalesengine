@@ -153,9 +153,7 @@ def _record_from_manifest(
     return record
 
 
-def _build_report_from_disk(
-    report_dir: Path, files: list[_DiscoveredFile]
-) -> CorpusReport:
+def _build_report_from_disk(report_dir: Path, files: list[_DiscoveredFile]) -> CorpusReport:
     """Aggregate discovered per-file manifests into a :class:`CorpusReport`."""
     records: list[CorpusFile] = []
     total_size = 0
@@ -176,9 +174,7 @@ def _build_report_from_disk(
         for label, count in record.labels.items():
             label_distribution[label] = label_distribution.get(label, 0) + count
         if record.warnings:
-            anomaly_lines.append(
-                f"{record.relative_path}: " + "; ".join(record.warnings)
-            )
+            anomaly_lines.append(f"{record.relative_path}: " + "; ".join(record.warnings))
 
     return CorpusReport(
         root=str(report_dir),
@@ -256,9 +252,7 @@ def create_corpus_app(report_dir: Path | str) -> Any:
                 out_dir=f.manifest_path.parent,
             )
         except Exception as exc:  # noqa: BLE001 - one bad file mustn't kill the corpus
-            _logger.warning(
-                "could not mount per-file viewer for %s: %s", f.safe_name, exc
-            )
+            _logger.warning("could not mount per-file viewer for %s: %s", f.safe_name, exc)
             continue
         mounts[f"/file/{f.safe_name}"] = sub_app
 

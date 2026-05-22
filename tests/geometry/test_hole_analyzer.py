@@ -143,9 +143,7 @@ def test_rounded_cutout_corner_is_not_a_hole():
     box = _box(40, 40, 10)
     # A rounded-corner rectangular slot: cut a big cylinder so its wall meets
     # two planar cuts, leaving only a partial-arc cylindrical patch.
-    tool = BRepPrimAPI_MakeCylinder(
-        gp_Ax2(gp_Pnt(2, 2, 0), gp_Dir(0, 0, 1)), 6.0, 10.0
-    ).Solid()
+    tool = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(2, 2, 0), gp_Dir(0, 0, 1)), 6.0, 10.0).Solid()
     part = BRepAlgoAPI_Cut(box, tool).Shape()
     # Clip the cylinder's arc down to a corner fillet with two slab cuts.
     slab_x = BRepPrimAPI_MakeBox(gp_Pnt(-20, -20, -1), 20, 60, 12).Solid()
@@ -164,9 +162,7 @@ def test_two_holes_on_one_axis_line_counted_separately():
     # on the same axis by a 6 mm hole.
     f1 = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), 40, 40, 10).Solid()
     f2 = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 100), 40, 40, 10).Solid()
-    tool = BRepPrimAPI_MakeCylinder(
-        gp_Ax2(gp_Pnt(20, 20, -5), gp_Dir(0, 0, 1)), 3.0, 120.0
-    ).Solid()
+    tool = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(20, 20, -5), gp_Dir(0, 0, 1)), 3.0, 120.0).Solid()
     p1 = BRepAlgoAPI_Cut(f1, tool).Shape()
     p2 = BRepAlgoAPI_Cut(f2, tool).Shape()
     an = HoleAnalyzer()
@@ -180,12 +176,8 @@ def test_counterbore_still_counts_once_after_axial_split():
     into a single hole even with the axial-gap split active."""
 
     box = _box(30, 30, 10)
-    big = BRepPrimAPI_MakeCylinder(
-        gp_Ax2(gp_Pnt(15, 15, 7), gp_Dir(0, 0, 1)), 4.0, 3.0
-    ).Solid()
-    small = BRepPrimAPI_MakeCylinder(
-        gp_Ax2(gp_Pnt(15, 15, 0), gp_Dir(0, 0, 1)), 2.0, 10.0
-    ).Solid()
+    big = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(15, 15, 7), gp_Dir(0, 0, 1)), 4.0, 3.0).Solid()
+    small = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(15, 15, 0), gp_Dir(0, 0, 1)), 2.0, 10.0).Solid()
     part = BRepAlgoAPI_Cut(box, big).Shape()
     part = BRepAlgoAPI_Cut(part, small).Shape()
     pat = HoleAnalyzer().analyze(part)
