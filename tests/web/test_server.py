@@ -595,3 +595,98 @@ def test_template_loader_caches_repeated_loads():
     first = load("index.html.jinja")
     second = load("index.html.jinja")
     assert first is second
+
+
+# ---------------------------------------------------------------------------
+# /step-svg/<product_id> route (HLR projection of the source STEP solid)
+# ---------------------------------------------------------------------------
+
+
+def _build_step_svg_client(tmp_path: Path):
+    """Build a Flask client whose manifest references a real on-disk STEP file.
+
+    Returns ``(client, product_id)``. The manifest's ``source_path`` points at
+    an assembly STEP that contains one named solid, so ``/step-svg/<pid>`` can
+    actually resolve and render it via the HLR projector.
+    """
+    pytest.importorskip("OCP")
+    from tests.fixtures.synthetic_steps import build_plate_solid, write_assembly_step
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    product_id = "svg_plate"
+    step_path = tmp_path / "asm.step"
+    write_assembly_step(
+        step_path,
+        parts=[(product_id, build_plate_solid(l=10.0, w=10.0, t=2.0))],
+    )
+
+    entries = [
+        PartManifestEntry(
+            part=StepPart(
+                product_id=product_id,
+                name="SVG Plate",
+                description="plate for /step-svg test",
+                source="nauo",
+            ),
+            classification=_classification("plaat", 0.90),
+            features=_features(),
+            quantity=1,
+            flat_dxf_path=None,
+        ),
+    ]
+    manifest = AssemblyManifest(
+        source_path=str(step_path),
+        source_mtime=step_path.stat().st_mtime,
+        source_size=step_path.stat().st_size,
+        model_version="rules-1.0.0",
+        generated_at="2026-05-15T12:00:00Z",
+        parts=entries,
+        notes="step-svg route test",
+    )
+    manifest_path = out_dir / "manifest.xml"
+    write_xml(manifest, manifest_path)
+
+    app = create_app(manifest_path, out_dir=out_dir)
+    app.config["TESTING"] = True
+    return app.test_client(), product_id
+
+
+def test_step_svg_route_returns_200_and_svg_content_type(tmp_path: Path):
+    """Happy path: /step-svg/<known_pid> returns 200, image/svg+xml, with <svg/polyline."""
+    client, product_id = _build_step_svg_client(tmp_path)
+    resp = client.get(f"/step-svg/{product_id}")
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    ctype = resp.headers["Content-Type"].lower()
+    assert "image/svg+xml" in ctype
+    body = resp.get_data(as_text=True)
+    assert "<svg" in body
+    assert "<polyline" in body
+
+
+def test_step_svg_route_respects_view_query_arg(tmp_path: Path):
+    """The ``view`` query argument selects which projection to render."""
+    client, product_id = _build_step_svg_client(tmp_path)
+    resp = client.get(f"/step-svg/{product_id}?view=top")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    # The renderer labels each view with the uppercased view name.
+    assert "TOP" in body
+
+
+def test_step_svg_unknown_product_id_returns_404(tmp_path: Path):
+    """Missing product_id -> 404 (no projection attempted)."""
+    client, _ = _build_step_svg_client(tmp_path)
+    resp = client.get("/step-svg/no-such-product")
+    assert resp.status_code == 404
+
+
+def test_step_svg_missing_source_step_returns_404(client):
+    """The default ``manifest_setup`` references a non-existent STEP source path.
+
+    The route must respond with 404 (source STEP not available) rather than
+    crashing when ``manifest.source_path`` does not exist on disk.
+    """
+    resp = client.get("/step-svg/ASM-0042-12")
+    assert resp.status_code == 404
