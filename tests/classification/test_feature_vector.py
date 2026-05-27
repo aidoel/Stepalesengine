@@ -36,9 +36,10 @@ def test_default_feature_vector_as_dict_has_all_keys():
         "hole_density",
         "hull_concavity",
         "pocket_complexity",
+        "cylindrical_pct",
     }
     assert set(d.keys()) == expected
-    assert len(d) == 14
+    assert len(d) == 15
 
 
 def test_round_trip_fv_to_dict_and_back_preserves_every_field():
@@ -57,6 +58,7 @@ def test_round_trip_fv_to_dict_and_back_preserves_every_field():
         hole_density=0.3,
         hull_concavity=0.6,
         pocket_complexity=0.8,
+        cylindrical_pct=0.7,
     )
     d = fv.as_dict()
     rebuilt = FeatureVector(**d)

@@ -71,6 +71,7 @@ def _hardcoded_reference_scorers() -> ScorerSpec:
                 lambda v: 1.0 if (v[0] and not v[1]) else 0.0,
                 -0.3,
             ),
+            ("cylindrical_pct", linear, 1.5),
         ],
         "anders": [
             ("name_din_hit", linear, 0.5),
@@ -83,9 +84,10 @@ def _hardcoded_reference_scorers() -> ScorerSpec:
                 lambda v: v[0] * (0.0 if v[1] else 1.0),
                 1.5,
             ),
-            ("pocket_complexity", linear, 1.4),
+            ("pocket_complexity", linear, 1.0),
             ("unfoldable", boolf, -0.3),
             ("has_bends", boolf, -1.2),
+            ("cylindrical_pct", linear, -0.8),
         ],
     }
 
