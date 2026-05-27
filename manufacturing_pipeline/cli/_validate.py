@@ -121,7 +121,8 @@ def _emit_corpus_pdf(report, out_dir: Path, pdf_path: Path) -> str:
         CorpusPDFOptions,
         write_corpus_pdf,
     )
-    from manufacturing_pipeline.io.xml_writer import ManifestParseError, read_xml
+    from manufacturing_pipeline.io.xml_writer import read_xml
+    from manufacturing_pipeline.manifest import ManifestParseError
 
     manifests = []
     missing = 0

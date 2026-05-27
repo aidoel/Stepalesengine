@@ -35,11 +35,8 @@ from typing import Any
 
 from flask import Flask, abort, jsonify, render_template_string, request, send_file
 
-from manufacturing_pipeline.io.xml_writer import (
-    AssemblyManifest,
-    PartManifestEntry,
-    read_xml,
-)
+from manufacturing_pipeline.io.xml_writer import read_xml
+from manufacturing_pipeline.manifest import AssemblyManifest, PartManifestEntry
 from manufacturing_pipeline.pipeline.diff import (
     diff_assemblies,
     render_diff_text,

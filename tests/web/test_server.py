@@ -30,10 +30,10 @@ from manufacturing_pipeline.geometry.types import (  # noqa: E402
     UnfoldStatus,
 )
 from manufacturing_pipeline.io.dxf_writer import FlatPattern, write_dxf  # noqa: E402
-from manufacturing_pipeline.io.xml_writer import (  # noqa: E402
+from manufacturing_pipeline.io.xml_writer import write_xml  # noqa: E402
+from manufacturing_pipeline.manifest import (  # noqa: E402
     AssemblyManifest,
     PartManifestEntry,
-    write_xml,
 )
 from manufacturing_pipeline.parsing.types import StepPart  # noqa: E402
 from manufacturing_pipeline.pmi.types import (  # noqa: E402

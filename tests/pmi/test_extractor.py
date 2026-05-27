@@ -11,12 +11,8 @@ from manufacturing_pipeline.classification.types import (
     ClassificationResult,
     DecisionTrace,
 )
-from manufacturing_pipeline.io.xml_writer import (
-    AssemblyManifest,
-    PartManifestEntry,
-    read_xml,
-    write_xml,
-)
+from manufacturing_pipeline.io.xml_writer import read_xml, write_xml
+from manufacturing_pipeline.manifest import AssemblyManifest, PartManifestEntry
 from manufacturing_pipeline.parsing.types import StepPart
 from manufacturing_pipeline.pipeline.analyze_assembly import (
     AnalyzeOptions,

@@ -33,11 +33,8 @@ from typing import Any
 from flask import Flask, abort
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
-from manufacturing_pipeline.io.xml_writer import (
-    AssemblyManifest,
-    ManifestParseError,
-    read_xml,
-)
+from manufacturing_pipeline.io.xml_writer import read_xml
+from manufacturing_pipeline.manifest import AssemblyManifest, ManifestParseError
 from manufacturing_pipeline.validate import (
     CorpusFile,
     CorpusReport,

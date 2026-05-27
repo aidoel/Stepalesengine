@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..io.xml_writer import AssemblyManifest, PartManifestEntry
+from ..manifest import AssemblyManifest, PartManifestEntry
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from .analyze_assembly import AnalyzeOptions, AnalyzeResult

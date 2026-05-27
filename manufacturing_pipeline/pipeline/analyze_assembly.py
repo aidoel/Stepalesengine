@@ -47,7 +47,8 @@ from ..geometry.types import (
 from ..geometry.unfold_probe import UnfoldProbe
 from ..io.dxf_writer import FlatPattern, write_dxf
 from ..io.pdf_writer import PartDrawingMeta, write_assembly_pdf, write_pdf
-from ..io.xml_writer import AssemblyManifest, PartManifestEntry, write_xml
+from ..io.xml_writer import write_xml
+from ..manifest import AssemblyManifest, PartManifestEntry
 from ..parsing.step_parser import parse_step
 from ..parsing.types import StepPart
 from ..pmi.extractor import extract_pmi
