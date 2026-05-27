@@ -18,7 +18,7 @@ from manufacturing_pipeline.io.pdf_writer import (
     PartDrawingMeta,
     write_assembly_pdf,
 )
-from manufacturing_pipeline.io.xml_writer import AssemblyManifest, PartManifestEntry
+from manufacturing_pipeline.manifest import AssemblyManifest, PartManifestEntry
 from manufacturing_pipeline.parsing.types import StepPart
 
 # ---------------------------------------------------------------------------

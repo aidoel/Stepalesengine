@@ -16,7 +16,7 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from manufacturing_pipeline.io.xml_writer import AssemblyManifest, PartManifestEntry
+from manufacturing_pipeline.manifest import AssemblyManifest, PartManifestEntry
 
 __all__ = ["GroupedPartEntry", "group_bom"]
 
