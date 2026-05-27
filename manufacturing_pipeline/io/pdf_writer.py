@@ -727,20 +727,66 @@ def write_pdf(
     return out_path
 
 
+def _group_assembly_patterns(
+    patterns: list[tuple[FlatPattern, PartDrawingMeta]],
+) -> list[tuple[FlatPattern, PartDrawingMeta]]:
+    """Collapse identical (FlatPattern, PartDrawingMeta) tuples for a grouped BOM.
+
+    Two tuples are considered identical when they share part_number, material,
+    revision, thickness (rounded to 0.01 mm) and bbox dimensions (rounded to
+    0.1 mm). The ``quantity`` on the surviving representative is the sum of
+    every member's ``quantity``; the first tuple in input order wins as the
+    representative (so we keep the first FlatPattern for its actual geometry).
+    """
+    groups: OrderedDict[
+        tuple[str, str, str, float, tuple[float, float, float, float]],
+        tuple[FlatPattern, PartDrawingMeta],
+    ] = OrderedDict()
+    for pat, meta in patterns:
+        bbox_key = tuple(round(c, 1) for c in pat.bbox)
+        key = (meta.part_number, meta.material, meta.revision, round(pat.thickness, 2), bbox_key)
+        existing = groups.get(key)
+        if existing is None:
+            # Copy meta so we don't mutate the caller's object when summing qty.
+            new_meta = PartDrawingMeta(
+                part_name=meta.part_name,
+                part_number=meta.part_number,
+                material=meta.material,
+                quantity=int(meta.quantity),
+                revision=meta.revision,
+                drawn_by=meta.drawn_by,
+                date_iso=meta.date_iso,
+                notes=meta.notes,
+            )
+            groups[key] = (pat, new_meta)
+        else:
+            existing[1].quantity += int(meta.quantity)
+    return list(groups.values())
+
+
 def write_assembly_pdf(
     patterns: list[tuple[FlatPattern, PartDrawingMeta]],
     out_path: str | Path,
     *,
     page_size: str = "A4",
+    grouped: bool = False,
 ) -> Path:
     """Multi-page PDF, one part per page, plus a cover sheet with the BOM.
 
     Page 1 is the cover (BOM); pages 2..N+1 are the individual part drawings.
+
+    If ``grouped`` is True the BOM and per-part pages collapse identical parts
+    into a single row / page with a summed quantity (matching the AutoPOL
+    presentation style). Identity is decided by part_number + material +
+    revision + thickness + bbox dimensions. Default is False so existing
+    callers see the per-instance behaviour they relied on.
     """
     if not patterns:
         raise ValueError("write_assembly_pdf requires at least one (pattern, meta) tuple")
     for pat, _meta in patterns:
         _validate(pat)
+
+    effective = _group_assembly_patterns(patterns) if grouped else patterns
 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -751,11 +797,11 @@ def write_assembly_pdf(
     c.setAuthor("stepalesengine")
 
     # Cover sheet
-    _draw_bom_cover(c, patterns, page_w_pt, page_h_pt)
+    _draw_bom_cover(c, effective, page_w_pt, page_h_pt)
     c.showPage()
 
     # Per-part pages
-    for pat, meta in patterns:
+    for pat, meta in effective:
         _render_part_page(c, pat, meta, page_w_pt, page_h_pt)
         c.showPage()
 
