@@ -690,3 +690,163 @@ def test_step_svg_missing_source_step_returns_404(client):
     """
     resp = client.get("/step-svg/ASM-0042-12")
     assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# GLB routes
+# ---------------------------------------------------------------------------
+
+
+# A minimal but structurally valid GLB blob: 12-byte header + empty JSON chunk
+# carrying ``{}``. The route handler doesn't inspect the body so the test only
+# needs the magic bytes to flow through unchanged.
+_FAKE_GLB = (
+    b"glTF"  # magic
+    + (2).to_bytes(4, "little")  # version
+    + (12 + 8 + 4).to_bytes(4, "little")  # total length: header + chunk hdr + payload
+    + (4).to_bytes(4, "little")  # chunk length
+    + (0x4E4F534A).to_bytes(4, "little")  # 'JSON'
+    + b"{}  "  # padded JSON payload
+)
+
+
+@pytest.fixture
+def glb_client(client, manifest_setup, monkeypatch):
+    """Client variant with the GLB builders stubbed out.
+
+    Avoids loading OCP / running the unfold probe so the route tests stay
+    millisecond-scale. The stubs return a known-good GLB blob; missing-part
+    and missing-source branches still exercise the route's own logic.
+    """
+    from manufacturing_pipeline.web import server as server_mod
+
+    monkeypatch.setattr(server_mod, "folded_glb", lambda *a, **kw: _FAKE_GLB)
+    monkeypatch.setattr(server_mod, "unfolded_glb", lambda *a, **kw: _FAKE_GLB)
+
+    # ``/glb/unfolded`` also touches ``find_solid_for_part`` and
+    # ``UnfoldProbe.compute_flat_pattern`` before reaching ``unfolded_glb``.
+    # Stub both so we don't pay the OCP load cost.
+    import manufacturing_pipeline.geometry.unfold_probe as unfold_probe
+    from manufacturing_pipeline.web import step_to_svg
+
+    monkeypatch.setattr(step_to_svg, "find_solid_for_part", lambda *a, **kw: object())
+    monkeypatch.setattr(
+        unfold_probe.UnfoldProbe,
+        "compute_flat_pattern",
+        lambda self, solid: {
+            "outer_contour": [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)],
+            "holes": [],
+            "bend_lines": [],
+            "thickness": 2.0,
+            "bbox": (0.0, 0.0, 10.0, 10.0),
+        },
+    )
+
+    # The routes additionally require ``manifest.source_path`` to be a file,
+    # so touch a dummy file at that location.
+    source = Path(manifest_setup["manifest_path"]).parent.parent / "asm.stp"
+    source.write_bytes(b"ISO-10303-21;\nEND-ISO-10303-21;\n")
+    return client
+
+
+def test_glb_folded_happy_path_returns_gltf_binary(glb_client, manifest_setup):
+    """A known product_id returns 200, model/gltf-binary, and starts with glTF magic."""
+    pid = manifest_setup["entries"][0].part.product_id
+    resp = glb_client.get(f"/glb/folded/{pid}")
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    assert resp.headers["Content-Type"] == "model/gltf-binary"
+    body = resp.get_data()
+    assert body.startswith(b"glTF")
+    assert len(body) > 12
+
+
+def test_glb_folded_unknown_product_id_returns_404(glb_client):
+    """An unknown product_id short-circuits before hitting the mesh builder."""
+    resp = glb_client.get("/glb/folded/no-such-id")
+    assert resp.status_code == 404
+
+
+def test_glb_folded_missing_source_step_returns_404(client, manifest_setup, monkeypatch):
+    """When ``manifest.source_path`` is not on disk, the route 404s."""
+    # The default fixture's source_path points at a path that does not exist
+    # on disk, so this exercises that branch without any additional setup.
+    pid = manifest_setup["entries"][0].part.product_id
+    resp = client.get(f"/glb/folded/{pid}")
+    assert resp.status_code == 404
+
+
+def test_glb_folded_builder_failure_returns_500(client, manifest_setup, monkeypatch, tmp_path):
+    """When the builder returns ``None``, the route surfaces a 500 error."""
+    from manufacturing_pipeline.web import server as server_mod
+
+    # Make the source path resolvable so we get past the 404 source check.
+    source = Path(manifest_setup["manifest_path"]).parent.parent / "asm.stp"
+    source.write_bytes(b"ISO-10303-21;\nEND-ISO-10303-21;\n")
+
+    monkeypatch.setattr(server_mod, "folded_glb", lambda *a, **kw: None)
+
+    pid = manifest_setup["entries"][0].part.product_id
+    resp = client.get(f"/glb/folded/{pid}")
+    assert resp.status_code == 500
+
+
+def test_glb_unfolded_happy_path_returns_gltf_binary(glb_client, manifest_setup):
+    """The unfolded route returns 200 with model/gltf-binary on a stubbed unfold."""
+    pid = manifest_setup["entries"][0].part.product_id
+    resp = glb_client.get(f"/glb/unfolded/{pid}")
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    assert resp.headers["Content-Type"] == "model/gltf-binary"
+    body = resp.get_data()
+    assert body.startswith(b"glTF")
+
+
+def test_glb_unfolded_unknown_product_id_returns_404(glb_client):
+    """Unknown product_id 404s before touching the unfold probe."""
+    resp = glb_client.get("/glb/unfolded/no-such-id")
+    assert resp.status_code == 404
+
+
+def test_glb_unfolded_missing_source_step_returns_404(client, manifest_setup):
+    """When the source STEP file is missing, /glb/unfolded 404s up front."""
+    pid = manifest_setup["entries"][0].part.product_id
+    resp = client.get(f"/glb/unfolded/{pid}")
+    assert resp.status_code == 404
+
+
+def test_glb_unfolded_no_solid_returns_500(client, manifest_setup, monkeypatch):
+    """When ``find_solid_for_part`` returns None, the inner ``abort(404)`` is
+    caught by the route's broad ``except Exception`` and surfaces as a 500.
+
+    This pins the current observable behaviour; if the route is later refined
+    to let ``HTTPException`` bubble through, update both assertion and docstring.
+    """
+    from manufacturing_pipeline.web import step_to_svg
+
+    source = Path(manifest_setup["manifest_path"]).parent.parent / "asm.stp"
+    source.write_bytes(b"ISO-10303-21;\nEND-ISO-10303-21;\n")
+
+    monkeypatch.setattr(step_to_svg, "find_solid_for_part", lambda *a, **kw: None)
+
+    pid = manifest_setup["entries"][0].part.product_id
+    resp = client.get(f"/glb/unfolded/{pid}")
+    assert resp.status_code == 500
+
+
+def test_glb_unfolded_empty_unfold_returns_500(client, manifest_setup, monkeypatch):
+    """Empty unfold result: same wrap-as-500 path as the no-solid case."""
+    import manufacturing_pipeline.geometry.unfold_probe as unfold_probe
+    from manufacturing_pipeline.web import step_to_svg
+
+    source = Path(manifest_setup["manifest_path"]).parent.parent / "asm.stp"
+    source.write_bytes(b"ISO-10303-21;\nEND-ISO-10303-21;\n")
+
+    monkeypatch.setattr(step_to_svg, "find_solid_for_part", lambda *a, **kw: object())
+    monkeypatch.setattr(
+        unfold_probe.UnfoldProbe,
+        "compute_flat_pattern",
+        lambda self, solid: {"outer_contour": [], "holes": [], "bend_lines": []},
+    )
+
+    pid = manifest_setup["entries"][0].part.product_id
+    resp = client.get(f"/glb/unfolded/{pid}")
+    assert resp.status_code == 500
