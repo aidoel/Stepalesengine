@@ -59,7 +59,7 @@ def run(args: argparse.Namespace) -> int:
     """Execute the watch subcommand. Returns exit code."""
     from manufacturing_pipeline.pipeline.analyze_assembly import (
         AnalyzeOptions,
-        AnalyzeResult,
+        AnalyzeReport,
         analyze,
     )
     from manufacturing_pipeline.watch import WatchOptions, watch_directory
@@ -81,7 +81,7 @@ def run(args: argparse.Namespace) -> int:
 
     _last_durations: dict[str, float] = {}
 
-    def _analyze_fn(path: Path) -> AnalyzeResult:
+    def _analyze_fn(path: Path) -> AnalyzeReport:
         options = AnalyzeOptions(
             out_dir=out_dir / path.stem,
             write_dxf=not args.no_dxf,
@@ -93,7 +93,7 @@ def run(args: argparse.Namespace) -> int:
         _last_durations[str(path)] = time.monotonic() - t0
         return result
 
-    def _on_done(path: Path, result: AnalyzeResult) -> None:
+    def _on_done(path: Path, result: AnalyzeReport) -> None:
         stats["events"] = int(stats["events"]) + 1  # type: ignore[call-overload]
         files_set = stats["files"]
         if isinstance(files_set, set):

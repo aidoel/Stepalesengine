@@ -32,7 +32,7 @@ class BatchResult:
 
     ``ok`` is False when the worker raised any exception. ``error`` carries
     the stringified exception in that case; otherwise it is None and the
-    other fields are populated from the underlying :class:`AnalyzeResult`.
+    other fields are populated from the underlying :class:`AnalyzeReport`.
     """
 
     file: Path

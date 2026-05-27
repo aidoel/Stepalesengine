@@ -97,7 +97,7 @@ Owns: `FlatPattern` + `AssemblyManifest` -> on-disk DXF / XML / PDF. Lives in `m
 
 ### Pipeline orchestration context
 
-Owns: file path -> `AnalyzeResult`. Lives in `manufacturing_pipeline/pipeline/`. `analyze_assembly.analyze` is the end-to-end orchestrator: parse -> load -> graph -> match -> per-part probes -> classify -> write. Wraps every per-part probe in `try / except` so a single bad solid cannot abort the whole assembly. Failures degrade into `uncertain` entries with warnings. The companion `pipeline/diff.py` runs the same pipeline on two files and produces a structured diff.
+Owns: file path -> `AnalyzeReport`. Lives in `manufacturing_pipeline/pipeline/`. `analyze_assembly.analyze` is the end-to-end orchestrator: parse -> load -> graph -> match -> per-part probes -> classify -> write. Wraps every per-part probe in `try / except` so a single bad solid cannot abort the whole assembly. Failures degrade into `uncertain` entries with warnings. The companion `pipeline/diff.py` runs the same pipeline on two files and produces a structured diff.
 
 ### Configuration context
 
@@ -129,7 +129,7 @@ Every `StepPart` carries `source ∈ {nauo, product_definition, product, brep, h
 
 ### Orchestrator never raises on geometry errors
 
-`pipeline.analyze_assembly.analyze` raises only `FileNotFoundError` and `StepParseError`. Every per-part probe is wrapped in `try / except`; failures append to `AnalyzeResult.warnings` and degrade the affected entry to `classification.label == "uncertain"` with `confidence = 0.0`. A single bad solid in a 200-part assembly cannot abort the analysis.
+`pipeline.analyze_assembly.analyze` raises only `FileNotFoundError` and `StepParseError`. Every per-part probe is wrapped in `try / except`; failures append to `AnalyzeReport.warnings` and degrade the affected entry to `classification.label == "uncertain"` with `confidence = 0.0`. A single bad solid in a 200-part assembly cannot abort the analysis.
 
 ### Thresholds live in one file
 

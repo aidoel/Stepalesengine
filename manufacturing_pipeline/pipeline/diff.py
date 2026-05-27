@@ -1,6 +1,6 @@
 """Structured diff between two STEP assembly analyses.
 
-Given two :class:`AssemblyManifest` instances (or two :class:`AnalyzeResult`s,
+Given two :class:`AssemblyManifest` instances (or two :class:`AnalyzeReport`s,
 or directly two STEP files), :func:`diff_assemblies` produces an
 :class:`AssemblyDiff` summarising which parts were added, removed, geometrically
 changed, reclassified, requantified, or left unchanged.
@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING
 from ..manifest import AssemblyManifest, PartManifestEntry
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
-    from .analyze_assembly import AnalyzeOptions, AnalyzeResult
+    from .analyze_assembly import AnalyzeOptions, AnalyzeReport
 
 
 # ---------------------------------------------------------------------------
@@ -87,13 +87,13 @@ def _normalise_name(name: str) -> str:
 
 
 def _as_manifest(obj: object) -> AssemblyManifest:
-    """Accept either an :class:`AssemblyManifest` or an ``AnalyzeResult``."""
+    """Accept either an :class:`AssemblyManifest` or an ``AnalyzeReport``."""
     if isinstance(obj, AssemblyManifest):
         return obj
     manifest = getattr(obj, "manifest", None)
     if isinstance(manifest, AssemblyManifest):
         return manifest
-    raise TypeError(f"expected AssemblyManifest or AnalyzeResult, got {type(obj).__name__}")
+    raise TypeError(f"expected AssemblyManifest or AnalyzeReport, got {type(obj).__name__}")
 
 
 def _delta_pct(old: float, new: float) -> float:
@@ -322,8 +322,8 @@ def _change_for_removed(entry: PartManifestEntry) -> PartChange:
 
 
 def diff_assemblies(
-    old: AssemblyManifest | AnalyzeResult,
-    new: AssemblyManifest | AnalyzeResult,
+    old: AssemblyManifest | AnalyzeReport,
+    new: AssemblyManifest | AnalyzeReport,
     *,
     tolerance_pct: float = 1.0,
     match_by: str = "name",

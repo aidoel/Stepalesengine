@@ -29,7 +29,7 @@ class _FakeManifest:
 
 
 class _FakeResult:
-    """Stand-in for :class:`AnalyzeResult` - only ``manifest.parts`` is read."""
+    """Stand-in for :class:`AnalyzeReport` - only ``manifest.parts`` is read."""
 
     manifest = _FakeManifest()
 
