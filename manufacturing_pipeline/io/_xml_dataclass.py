@@ -364,7 +364,7 @@ def parse_element(
                 v = kv.get("value", "")
                 result[k] = v
             kwargs[f.name] = result
-        elif ftype is not None and is_dataclass(ftype):
+        elif ftype is not None and is_dataclass(ftype) and isinstance(ftype, type):
             child = _find_child(elem, target_name)
             if child is not None:
                 kwargs[f.name] = parse_element(child, ftype)

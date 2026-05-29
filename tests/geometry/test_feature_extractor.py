@@ -6,6 +6,9 @@ Synthetic OCP solids only -- no STEP fixtures required.
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("OCP")
+
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut
 from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeBox,

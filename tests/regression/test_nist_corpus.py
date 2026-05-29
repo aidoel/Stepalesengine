@@ -30,6 +30,10 @@ from pathlib import Path
 
 import pytest
 
+# These baselines load real STEP solids and run OCCT-backed feature extraction
+# and classification via analyze(); they are meaningless without cadquery-ocp.
+pytest.importorskip("OCP")
+
 from manufacturing_pipeline.pipeline.analyze_assembly import (
     AnalyzeOptions,
     analyze,

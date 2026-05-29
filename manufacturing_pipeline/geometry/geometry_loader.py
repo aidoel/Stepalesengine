@@ -11,9 +11,28 @@ from __future__ import annotations
 
 import logging
 import re
+from functools import lru_cache
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def occt_available() -> bool:
+    """Whether the OpenCascade stack (``cadquery-ocp``) can be imported.
+
+    The geometry-aware probes are optional: when ``OCP`` is missing the
+    pipeline still parses, classifies, diffs and writes, degrading every part
+    to ``uncertain``. Callers use this to tell "geometry is unavailable, so
+    *every* file yields no solids" apart from "geometry works but *this* file
+    yielded no solids" - the two need different handling (see
+    ``analyze_assembly`` ghost-leaf filtering).
+    """
+    try:
+        import OCP  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 # Conversion factors from common unit names to millimetres.

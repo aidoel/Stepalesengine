@@ -7,6 +7,9 @@ HolePattern returned by the analyser.
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("OCP")
+
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut
 from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
 from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt

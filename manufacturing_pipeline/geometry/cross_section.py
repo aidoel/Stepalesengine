@@ -20,22 +20,41 @@ import math
 from collections.abc import Iterable
 
 import numpy as np
-from OCP.Bnd import Bnd_Box, Bnd_OBB
-from OCP.BRep import BRep_Tool
-from OCP.BRepAdaptor import BRepAdaptor_Curve
-from OCP.BRepAlgoAPI import BRepAlgoAPI_Section
-from OCP.BRepBndLib import BRepBndLib
-from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
-from OCP.BRepGProp import BRepGProp
-from OCP.BRepTools import BRepTools_WireExplorer
-from OCP.GeomAbs import GeomAbs_CurveType
-from OCP.gp import gp_Dir, gp_Pln, gp_Pnt
-from OCP.GProp import GProp_GProps
-from OCP.ShapeAnalysis import ShapeAnalysis_FreeBounds
-from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
-from OCP.TopExp import TopExp_Explorer
-from OCP.TopoDS import TopoDS
-from OCP.TopTools import TopTools_HSequenceOfShape
+
+try:
+    from OCP.Bnd import Bnd_Box, Bnd_OBB
+    from OCP.BRep import BRep_Tool
+    from OCP.BRepAdaptor import BRepAdaptor_Curve
+    from OCP.BRepAlgoAPI import BRepAlgoAPI_Section
+    from OCP.BRepBndLib import BRepBndLib
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
+    from OCP.BRepGProp import BRepGProp
+    from OCP.BRepTools import BRepTools_WireExplorer
+    from OCP.GeomAbs import GeomAbs_CurveType
+    from OCP.gp import gp_Dir, gp_Pln, gp_Pnt
+    from OCP.GProp import GProp_GProps
+    from OCP.ShapeAnalysis import ShapeAnalysis_FreeBounds
+    from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS
+    from OCP.TopTools import TopTools_HSequenceOfShape
+except ImportError:  # cadquery-ocp is an optional extra; geometry probes degrade at call time
+    Bnd_Box = Bnd_OBB = None
+    BRep_Tool = None
+    BRepAdaptor_Curve = None
+    BRepAlgoAPI_Section = None
+    BRepBndLib = None
+    BRepBuilderAPI_MakeFace = None
+    BRepGProp = None
+    BRepTools_WireExplorer = None
+    GeomAbs_CurveType = None
+    gp_Dir = gp_Pln = gp_Pnt = None
+    GProp_GProps = None
+    ShapeAnalysis_FreeBounds = None
+    TopAbs_EDGE = TopAbs_FACE = None
+    TopExp_Explorer = None
+    TopoDS = None
+    TopTools_HSequenceOfShape = None
 
 from ..config.classification_variables import (
     CIRCULARITY_STDDEV_RATIO,

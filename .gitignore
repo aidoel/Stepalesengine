@@ -40,3 +40,4 @@ corpus_report/
 
 # Local Netlify folder
 .netlify
+.venv311/

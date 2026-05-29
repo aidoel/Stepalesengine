@@ -18,32 +18,51 @@ import logging
 import math
 
 import numpy as np
-from OCP.Bnd import Bnd_Box, Bnd_OBB
-from OCP.BRep import BRep_Tool
-from OCP.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Surface
-from OCP.BRepBndLib import BRepBndLib
-from OCP.BRepGProp import BRepGProp
-from OCP.BRepMesh import BRepMesh_IncrementalMesh
-from OCP.GeomAbs import (
-    GeomAbs_BezierCurve,
-    GeomAbs_BezierSurface,
-    GeomAbs_BSplineCurve,
-    GeomAbs_BSplineSurface,
-    GeomAbs_Circle,
-    GeomAbs_Cone,
-    GeomAbs_Cylinder,
-    GeomAbs_Ellipse,
-    GeomAbs_Line,
-    GeomAbs_OtherSurface,
-    GeomAbs_Plane,
-    GeomAbs_Sphere,
-    GeomAbs_Torus,
-)
-from OCP.GProp import GProp_GProps
-from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_SHELL
-from OCP.TopExp import TopExp_Explorer
-from OCP.TopLoc import TopLoc_Location
-from OCP.TopoDS import TopoDS
+
+try:
+    from OCP.Bnd import Bnd_Box, Bnd_OBB
+    from OCP.BRep import BRep_Tool
+    from OCP.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Surface
+    from OCP.BRepBndLib import BRepBndLib
+    from OCP.BRepGProp import BRepGProp
+    from OCP.BRepMesh import BRepMesh_IncrementalMesh
+    from OCP.GeomAbs import (
+        GeomAbs_BezierCurve,
+        GeomAbs_BezierSurface,
+        GeomAbs_BSplineCurve,
+        GeomAbs_BSplineSurface,
+        GeomAbs_Circle,
+        GeomAbs_Cone,
+        GeomAbs_Cylinder,
+        GeomAbs_Ellipse,
+        GeomAbs_Line,
+        GeomAbs_OtherSurface,
+        GeomAbs_Plane,
+        GeomAbs_Sphere,
+        GeomAbs_Torus,
+    )
+    from OCP.GProp import GProp_GProps
+    from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_SHELL
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopLoc import TopLoc_Location
+    from OCP.TopoDS import TopoDS
+except ImportError:  # cadquery-ocp is an optional extra; geometry probes degrade at call time
+    Bnd_Box = Bnd_OBB = None
+    BRep_Tool = None
+    BRepAdaptor_Curve = BRepAdaptor_Surface = None
+    BRepBndLib = None
+    BRepGProp = None
+    BRepMesh_IncrementalMesh = None
+    GeomAbs_BezierCurve = GeomAbs_BezierSurface = None
+    GeomAbs_BSplineCurve = GeomAbs_BSplineSurface = None
+    GeomAbs_Circle = GeomAbs_Cone = GeomAbs_Cylinder = None
+    GeomAbs_Ellipse = GeomAbs_Line = GeomAbs_OtherSurface = None
+    GeomAbs_Plane = GeomAbs_Sphere = GeomAbs_Torus = None
+    GProp_GProps = None
+    TopAbs_EDGE = TopAbs_FACE = TopAbs_SHELL = None
+    TopExp_Explorer = None
+    TopLoc_Location = None
+    TopoDS = None
 
 from ..config.classification_variables import (
     CROSS_SECTION_N_SLICES,

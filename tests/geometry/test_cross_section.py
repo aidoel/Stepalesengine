@@ -5,6 +5,9 @@ from __future__ import annotations
 import math
 
 import pytest
+
+pytest.importorskip("OCP")
+
 from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeBox,
     BRepPrimAPI_MakeCylinder,

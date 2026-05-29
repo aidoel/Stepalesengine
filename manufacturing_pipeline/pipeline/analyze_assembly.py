@@ -36,7 +36,7 @@ from ..classification.tiebreakers import (
 from ..classification.types import ClassificationResult, DecisionTrace
 from ..geometry.feature_extractor import FeatureExtractor
 from ..geometry.feature_merger import enrich
-from ..geometry.geometry_loader import load_solids
+from ..geometry.geometry_loader import load_solids, occt_available
 from ..geometry.types import (
     HolePattern,
     ManufacturingFeatures,
@@ -846,8 +846,17 @@ def analyze(
         # matching solid AND no real geometry. These are sub-assembly handles
         # or container references; they would otherwise clutter the BOM with
         # zero-volume "PartBody"/"NONE" rows.
+        #
+        # Only applied when the OCP geometry stack is available. Without it
+        # *every* file loads zero solids, so every leaf is unmatched by
+        # necessity rather than because it is a container handle; dropping them
+        # would erase the whole parts list and break the documented degraded-
+        # mode promise (parts survive as ``uncertain``). When OCP *is* present
+        # and a file still yields no solids it is genuinely empty/unreadable, so
+        # the drop stands (e.g. a non-STEP file flagged as "zero parts").
         if (
             opts.drop_unmatched_leaves
+            and occt_available()
             and match.solid is None
             and (entry.features is None or entry.features.volume <= 0.0)
             and entry.classification.confidence == 0.0

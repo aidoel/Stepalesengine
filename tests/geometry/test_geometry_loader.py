@@ -5,6 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("OCP")
+
 from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
 
 from manufacturing_pipeline.geometry.geometry_loader import (

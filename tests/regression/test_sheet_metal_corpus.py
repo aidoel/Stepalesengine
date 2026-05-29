@@ -19,6 +19,10 @@ from pathlib import Path
 
 import pytest
 
+# These baselines load real sheet-metal STEP solids and run the OCCT-backed
+# UnfoldProbe and classifier; they cannot run without cadquery-ocp.
+pytest.importorskip("OCP")
+
 from manufacturing_pipeline.geometry.geometry_loader import load_solids
 from manufacturing_pipeline.geometry.types import UnfoldStatus
 from manufacturing_pipeline.geometry.unfold_probe import UnfoldProbe

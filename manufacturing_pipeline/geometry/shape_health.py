@@ -13,12 +13,16 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from OCP.BRep import BRep_Tool
-from OCP.BRepCheck import BRepCheck_Analyzer
-from OCP.ShapeFix import ShapeFix_Shape
-from OCP.TopAbs import TopAbs_FACE
-from OCP.TopExp import TopExp_Explorer
-from OCP.TopoDS import TopoDS
+try:
+    from OCP.BRep import BRep_Tool
+    from OCP.BRepCheck import BRepCheck_Analyzer
+    from OCP.ShapeFix import ShapeFix_Shape
+    from OCP.TopAbs import TopAbs_FACE
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS
+except ImportError:  # cadquery-ocp is an optional extra; geometry probes degrade at call time
+    BRep_Tool = BRepCheck_Analyzer = ShapeFix_Shape = None
+    TopAbs_FACE = TopExp_Explorer = TopoDS = None
 
 logger = logging.getLogger(__name__)
 

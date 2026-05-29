@@ -84,6 +84,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Geometry / pipeline** (`geometry/feature_extractor.py`,
+  `geometry/cross_section.py`, `geometry/shape_health.py`): these three modules
+  imported `OCP` at module top, so importing the pipeline raised
+  `ModuleNotFoundError` whenever `cadquery-ocp` was absent - contradicting the
+  documented promise that "the parser, classifier, diff, and writers still
+  function" and "`analyze` never raises on geometry errors". The top-level
+  `from OCP ...` blocks are now wrapped in `try/except ImportError` (every name
+  bound to `None` on failure); geometry calls fail only when actually invoked,
+  where `analyze_assembly` already degrades them to `classification.label ==
+  "uncertain"`. The pure-Python pipeline, CLI, telemetry, calibration and
+  classification all import and run without the `[occt]` extra again.
+- **Pipeline** (`pipeline/analyze_assembly.py`, `geometry/geometry_loader.py`):
+  `drop_unmatched_leaves` (default on) is now gated on a new cached
+  `occt_available()` check rather than firing unconditionally. Without OCP
+  *every* file loads zero solids, so every leaf is unmatched by necessity
+  rather than because it is a container handle; the unconditional drop erased
+  the entire parts list and broke the degraded-mode promise that parts survive
+  as `uncertain`. Gating on `occt_available()` (not merely on this file's
+  `solids` being non-empty) keeps the genuine "OCP present but the file is a
+  non-STEP / unreadable blob → zero parts" anomaly intact.
+- **Types** (`io/_xml_dataclass.py`): the nested-dataclass branch narrows with
+  `isinstance(ftype, type)` (mirroring the sibling branch), clearing the lone
+  mypy `[arg-type]` error so `mypy manufacturing_pipeline/` is 0 errors again.
+- **Tests** (`tests/geometry/*`, `tests/regression/*`): test modules that
+  import `OCP` at module top now call `pytest.importorskip("OCP")` first, so
+  the suite collects and skips cleanly without `cadquery-ocp` (was: 9 collection
+  errors + 26 import-driven failures) instead of erroring.
 - **Web** (`web/`, `serve_corpus.py`): per-file viewer templates use Flask
   `url_for()` instead of emitting absolute URLs (`/glb/...`, `/dxf/...`),
   which 404'd under the `serve-corpus` `/file/<name>/` mount - the 3D viewer,

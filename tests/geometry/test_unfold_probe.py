@@ -5,6 +5,9 @@ from __future__ import annotations
 import math
 
 import pytest
+
+pytest.importorskip("OCP")
+
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_MakeEdge,
