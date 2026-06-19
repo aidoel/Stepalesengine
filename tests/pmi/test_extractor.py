@@ -11,18 +11,20 @@ from manufacturing_pipeline.classification.types import (
     ClassificationResult,
     DecisionTrace,
 )
-from manufacturing_pipeline.io.xml_writer import (
-    AssemblyManifest,
-    PartManifestEntry,
-    read_xml,
-    write_xml,
-)
+from manufacturing_pipeline.io.xml_writer import read_xml, write_xml
+from manufacturing_pipeline.manifest import AssemblyManifest, PartManifestEntry
 from manufacturing_pipeline.parsing.types import StepPart
 from manufacturing_pipeline.pipeline.analyze_assembly import (
     AnalyzeOptions,
     analyze,
 )
 from manufacturing_pipeline.pmi import extract_pmi
+from manufacturing_pipeline.pmi.extractor import (
+    _emit_datum,
+    _emit_surface_finish,
+    _resolve_dimension_nominal,
+    _scan_nominal_in_refs,
+)
 from manufacturing_pipeline.pmi.types import (
     Datum,
     DimensionalTolerance,
@@ -324,3 +326,240 @@ def test_analyze_pmi_survives_xml_round_trip(tmp_path: Path) -> None:
     assert pmi_entries, "manifest XML lost PMI on round-trip"
     assert pmi_entries[0].has_semantic is True
     assert len(pmi_entries[0].tolerances) > 0
+
+
+# ---------------------------------------------------------------------------
+# Direct helper tests covering silent-skip branches
+# ---------------------------------------------------------------------------
+
+
+def test_emit_surface_finish_walks_referenced_entity_for_ra() -> None:
+    """Body has no direct LENGTH_MEASURE -> follow ref to nested entity."""
+    entities: dict[int, tuple[str, str]] = {
+        # Nested wrapper carrying the actual Ra LENGTH_MEASURE.
+        42: ("MEASURE_WITH_UNIT", "LENGTH_MEASURE(1.6),#99"),
+    }
+    body = "'roughness',#42"  # ref to #42, no LENGTH_MEASURE in body itself
+    rec = PMIRecord()
+
+    _emit_surface_finish(body, entities, rec)
+
+    assert len(rec.finishes) == 1
+    finish = rec.finishes[0]
+    assert isinstance(finish, SurfaceFinish)
+    assert finish.value == 1.6
+    assert finish.unit == "um"
+
+
+def test_emit_surface_finish_no_value_anywhere_skips() -> None:
+    """Body and refs both lack LENGTH_MEASURE -> no finish appended."""
+    entities: dict[int, tuple[str, str]] = {
+        7: ("REPRESENTATION_CONTEXT", "'ctx','3D'"),
+    }
+    body = "'finish',#7"
+    rec = PMIRecord()
+
+    _emit_surface_finish(body, entities, rec)
+
+    assert rec.finishes == []
+
+
+def test_emit_surface_finish_ref_to_missing_entity_skips() -> None:
+    """Ref to an unknown ID is silently dropped."""
+    body = "'finish',#999"
+    rec = PMIRecord()
+
+    _emit_surface_finish(body, {}, rec)
+
+    assert rec.finishes == []
+
+
+def test_emit_datum_basic_reference_appends_identifier() -> None:
+    """A DATUM body ending in a quoted identifier -> one Datum entry."""
+    # DATUM args: (name, description, of_shape, products_definitional, identification)
+    body = "'datum-A','description',#10,.TRUE.,'A'"
+    rec = PMIRecord()
+
+    _emit_datum(body, rec, is_feature=False)
+
+    assert len(rec.datums) == 1
+    assert rec.datums[0] == Datum(identifier="A", applied_to="")
+
+
+def test_emit_datum_feature_uses_first_arg() -> None:
+    """DATUM_FEATURE bodies carry the identifier in the first arg."""
+    body = "'Simple Datum.1','desc',#5,.TRUE."
+    rec = PMIRecord()
+
+    _emit_datum(body, rec, is_feature=True)
+
+    assert len(rec.datums) == 1
+    assert rec.datums[0].identifier == "Simple Datum.1"
+
+
+def test_emit_datum_empty_body_skips() -> None:
+    """An empty body has no args -> no Datum appended (no exception)."""
+    rec = PMIRecord()
+
+    _emit_datum("", rec, is_feature=False)
+
+    assert rec.datums == []
+
+
+def test_emit_datum_unquoted_last_arg_skips() -> None:
+    """If the identifier slot has no quoted value, _emit_datum bails."""
+    body = "$,$,$,$,$"
+    rec = PMIRecord()
+
+    _emit_datum(body, rec, is_feature=False)
+
+    assert rec.datums == []
+
+
+def test_scan_nominal_in_refs_falls_back_to_first_length_measure() -> None:
+    """No 'nominal value' tag anywhere -> first LENGTH_MEASURE wins."""
+    entities: dict[int, tuple[str, str]] = {
+        # Neither entity has the 'nominal value' description tag.
+        21: ("REPRESENTATION_ITEM", "'item','no length here'"),
+        22: ("MEASURE_REPRESENTATION_ITEM", "'thing',LENGTH_MEASURE(12.5),#30"),
+    }
+    body = "#21,#22"
+
+    val = _scan_nominal_in_refs(body, entities)
+
+    assert val == 12.5
+
+
+def test_scan_nominal_in_refs_prefers_nominal_value_tag() -> None:
+    """When one ref is tagged 'nominal value', it overrides the fallback."""
+    entities: dict[int, tuple[str, str]] = {
+        11: ("MEASURE_REPRESENTATION_ITEM", "'first',LENGTH_MEASURE(7.0),#0"),
+        12: ("MEASURE_REPRESENTATION_ITEM", "'nominal value',LENGTH_MEASURE(35.0),#0"),
+    }
+    body = "#11,#12"
+
+    val = _scan_nominal_in_refs(body, entities)
+
+    assert val == 35.0
+
+
+def test_scan_nominal_in_refs_no_refs_returns_none() -> None:
+    """Body with no #NNN tokens -> no fallback to find."""
+    assert _scan_nominal_in_refs("just,plain,args", {}) is None
+
+
+def test_resolve_dimension_nominal_fallback_when_no_char_rep_index() -> None:
+    """Hits L375-394: walk DIMENSIONAL_SIZE children directly for LENGTH_MEASURE.
+
+    No DIMENSIONAL_CHARACTERISTIC_REPRESENTATION exists, so the resolver
+    must scan the dim entity's direct refs.
+    """
+    entities: dict[int, tuple[str, str]] = {
+        50: ("DIMENSIONAL_SIZE", "#51,'diameter'"),
+        51: ("MEASURE_REPRESENTATION_ITEM", "'nominal value',LENGTH_MEASURE(42.0),#0"),
+    }
+
+    val = _resolve_dimension_nominal(50, entities, char_rep_index=None)
+
+    assert val == 42.0
+
+
+def test_resolve_dimension_nominal_fallback_uses_first_length_when_no_tag() -> None:
+    """No 'nominal value' tag in any child -> first LENGTH_MEASURE encountered."""
+    entities: dict[int, tuple[str, str]] = {
+        60: ("DIMENSIONAL_LOCATION", "#61"),
+        61: ("MEASURE_REPRESENTATION_ITEM", "'something',LENGTH_MEASURE(8.25),#0"),
+    }
+
+    val = _resolve_dimension_nominal(60, entities, char_rep_index={})
+
+    assert val == 8.25
+
+
+def test_resolve_dimension_nominal_missing_ref_returns_zero() -> None:
+    """A ref not in the entity map -> 0.0 (no exception)."""
+    assert _resolve_dimension_nominal(999, {}, char_rep_index=None) == 0.0
+    assert _resolve_dimension_nominal(None, {}, char_rep_index=None) == 0.0
+
+
+def test_resolve_dimension_nominal_char_rep_index_path_with_nominal() -> None:
+    """char_rep_index hit -> read nominal from the shape-dim-rep body."""
+    entities: dict[int, tuple[str, str]] = {
+        70: ("DIMENSIONAL_SIZE", "$"),  # body is irrelevant; we go via index
+        71: ("SHAPE_DIMENSION_REPRESENTATION", "'name',(#72),#999"),
+        72: ("MEASURE_REPRESENTATION_ITEM", "'nominal value',LENGTH_MEASURE(99.5),#0"),
+    }
+
+    val = _resolve_dimension_nominal(70, entities, char_rep_index={70: 71})
+
+    assert val == 99.5
+
+
+# ---------------------------------------------------------------------------
+# End-to-end extract_pmi with hand-crafted STEP text
+# ---------------------------------------------------------------------------
+
+
+def _write_step(tmp_path: Path, body: str) -> Path:
+    """Wrap a DATA body in a minimal STEP file envelope."""
+    step = tmp_path / "synthetic.stp"
+    step.write_text(
+        "ISO-10303-21;\n"
+        "HEADER;\n"
+        "FILE_DESCRIPTION(('PMI test'),'2;1');\n"
+        "FILE_NAME('synthetic.stp','2026-01-01',('test'),('test'),'','','');\n"
+        "FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF'));\n"
+        "ENDSEC;\n"
+        "DATA;\n"
+        f"{body}\n"
+        "ENDSEC;\n"
+        "END-ISO-10303-21;\n"
+    )
+    return step
+
+
+def test_extract_pmi_synthetic_surface_finish_with_nested_ref(tmp_path: Path) -> None:
+    """End-to-end: SURFACE_TEXTURE_REPRESENTATION whose Ra is in a nested ref."""
+    body = (
+        "#1=MEASURE_REPRESENTATION_ITEM('Ra',LENGTH_MEASURE(3.2),#2);\n"
+        "#2=DIMENSIONAL_EXPONENTS(0.,0.,0.,0.,0.,0.,0.);\n"
+        "#10=SURFACE_TEXTURE_REPRESENTATION('finish',(#1),#99);\n"
+    )
+    step = _write_step(tmp_path, body)
+
+    rec = extract_pmi(step)
+
+    assert any(abs(f.value - 3.2) < 1e-9 for f in rec.finishes)
+    assert rec.has_semantic is True
+
+
+def test_extract_pmi_synthetic_datum_emits_identifier(tmp_path: Path) -> None:
+    """End-to-end: a DATUM entity yields one Datum in the record."""
+    body = (
+        "#1=PRODUCT_DEFINITION('p','desc',#2,#3);\n"
+        "#20=DATUM('datum-A','description',#1,.TRUE.,'A');\n"
+    )
+    step = _write_step(tmp_path, body)
+
+    rec = extract_pmi(step)
+
+    assert [d.identifier for d in rec.datums] == ["A"]
+    assert rec.has_semantic is True
+
+
+def test_extract_pmi_synthetic_malformed_body_returns_empty(tmp_path: Path) -> None:
+    """A DATA section with only meaningless tokens -> empty PMIRecord, no raise."""
+    body = (
+        "#1=CARTESIAN_POINT('p',(0.,0.,0.));\n"
+        "#2=DIRECTION('d',(1.,0.,0.));\n"
+        "#3=AXIS2_PLACEMENT_3D('a',#1,#2,$);\n"
+    )
+    step = _write_step(tmp_path, body)
+
+    rec = extract_pmi(step)
+
+    assert rec.tolerances == []
+    assert rec.dimensions == []
+    assert rec.datums == []
+    assert rec.finishes == []
+    assert rec.has_semantic is False

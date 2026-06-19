@@ -62,7 +62,7 @@ The pill colour palette in the web detail card uses the same hue families as the
 
 ## Consequences
 
-- A new optional attribute `PartManifestEntry.strategy: MachiningStrategy | None` propagates through `write_xml` / `read_xml` round-trip and through the disk cache (the cache pickles whole `AnalyzeResult`s, so the new field rides along for free). Test `test_xml_round_trip_preserves_strategy_fields` pins the schema.
+- A new optional attribute `PartManifestEntry.strategy: MachiningStrategy | None` propagates through `write_xml` / `read_xml` round-trip and through the disk cache (the cache pickles whole `AnalyzeReport`s, so the new field rides along for free). Test `test_xml_round_trip_preserves_strategy_fields` pins the schema.
 - The probe runs unconditionally for every entry that has a classification. For uncertain / ghost rows it produces the cheap `unknown` plan, costing one `Operation` allocation each.
 - Adding a new operation kind (e.g. `wire_edm` for hard-steel slots) is an enum extension on `Operation.op` plus a CSS pill colour plus a routing branch in `strategist`. No schema migration is required.
 - An NIST CTC sample with N drilled holes and a tight-position datum table produces, for example, `mill_contour + N x drill + 1-2 ream + 1 mill_pocket + per-datum inspect`, totalling roughly `2.0 + 0.3N + 0.5R + 5.0P + 2.0D` min. For `ctc_01` with 8 holes, 2 reamed, 1 pocket, 3 datums (A/B/C): about `2.0 + 2.4 + 1.0 + 5.0 + 6.0 = 16.4 min` of recommended wall-clock. The number is a planning hint - real shops will re-quote against their own machine times.

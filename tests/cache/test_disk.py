@@ -22,7 +22,7 @@ from manufacturing_pipeline.cache.disk import PipelineCache
 from manufacturing_pipeline.pipeline.analyze_assembly import (
     MODEL_VERSION,
     AnalyzeOptions,
-    AnalyzeResult,
+    AnalyzeReport,
     analyze,
 )
 from tests.fixtures.synthetic_steps import write_flat_plate_step
@@ -96,7 +96,7 @@ def test_put_then_get_returns_equal_result(tmp_path: Path):
 
     hit = cache.get(step)
     assert hit is not None
-    assert isinstance(hit, AnalyzeResult)
+    assert isinstance(hit, AnalyzeReport)
     assert len(hit.manifest.parts) == len(result.manifest.parts)
     assert hit.manifest.parts[0].part.name == result.manifest.parts[0].part.name
     # Classification round-trips through XML the same way it does in the IO tests.

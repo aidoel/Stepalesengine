@@ -25,7 +25,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from manufacturing_pipeline.batch import BatchResult, batch_analyze
-from manufacturing_pipeline.io.xml_writer import ManifestParseError, read_xml
+from manufacturing_pipeline.io.xml_writer import read_xml
+from manufacturing_pipeline.manifest import ManifestParseError
 
 logger = logging.getLogger(__name__)
 

@@ -73,6 +73,14 @@ classes:
     - feature: [has_bends, seamed_tube]
       transform: and_not
       weight: -0.3
+    # Round bars, turned shafts and hollow tubes with varying outer diameter
+    # all carry most of their surface area on cylindrical faces. The matcher
+    # only fires on standard structural sections and the constancy check rejects
+    # stepped diameters, so a high cylindrical_pct is the remaining signal that
+    # an elongated cylindrical body is a profile, not a plate or freeform blob.
+    - feature: cylindrical_pct
+      transform: linear
+      weight: 1.5
 
   anders:
     - feature: name_din_hit
@@ -95,7 +103,7 @@ classes:
       weight: 1.5
     - feature: pocket_complexity
       transform: linear
-      weight: 1.4
+      weight: 1.0
     - feature: unfoldable
       transform: bool
       weight: -0.3
@@ -104,3 +112,10 @@ classes:
     - feature: has_bends
       transform: bool
       weight: -1.2
+    # A cylindrical-dominated body (round bar, turned shaft, pipe with stepped
+    # outer diameter) is a profile, not a machined freeform 'anders' part. The
+    # hull_concavity / pocket_complexity rewards above would otherwise leak a
+    # turned profile with a bored centre into 'anders'; this gates them off.
+    - feature: cylindrical_pct
+      transform: linear
+      weight: -0.8

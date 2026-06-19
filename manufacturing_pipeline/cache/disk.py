@@ -1,4 +1,4 @@
-"""Disk-backed cache for :class:`AnalyzeResult`.
+"""Disk-backed cache for :class:`AnalyzeReport`.
 
 Layout per entry::
 
@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING
 from ..io.xml_writer import read_xml, write_xml
 
 if TYPE_CHECKING:  # pragma: no cover - import-cycle guard
-    from ..pipeline.analyze_assembly import AnalyzeResult
+    from ..pipeline.analyze_assembly import AnalyzeReport
 
 logger = logging.getLogger(__name__)
 
@@ -124,14 +124,14 @@ class PipelineCache:
     def _entry_dir(self, key: str) -> Path:
         return self._versioned / key
 
-    def get(self, step_path: str | Path) -> AnalyzeResult | None:
-        """Return a cached :class:`AnalyzeResult`, or ``None`` if missing.
+    def get(self, step_path: str | Path) -> AnalyzeReport | None:
+        """Return a cached :class:`AnalyzeReport`, or ``None`` if missing.
 
         Validates the entry by reading ``meta.json`` and ``manifest.xml``.
         Any missing or corrupt sub-file results in a miss (and the bad entry
         is left in place; ``put`` will overwrite it later).
         """
-        from ..pipeline.analyze_assembly import AnalyzeResult  # late import (cycle)
+        from ..pipeline.analyze_assembly import AnalyzeReport  # late import (cycle)
 
         try:
             key = self.key(step_path)
@@ -179,7 +179,7 @@ class PipelineCache:
 
         warnings = list(meta.get("warnings", []))
 
-        return AnalyzeResult(
+        return AnalyzeReport(
             manifest=manifest,
             manifest_path=None,
             dxf_paths=dxf_paths,
@@ -188,7 +188,7 @@ class PipelineCache:
             assembly_pdf_path=assembly_pdf_path,
         )
 
-    def put(self, step_path: str | Path, result: AnalyzeResult) -> Path:
+    def put(self, step_path: str | Path, result: AnalyzeReport) -> Path:
         """Persist ``result`` under the cache key for ``step_path``.
 
         Writes are atomic: data is staged in a sibling ``.tmp`` directory and

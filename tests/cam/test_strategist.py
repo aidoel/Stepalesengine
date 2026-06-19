@@ -240,11 +240,10 @@ def test_xml_round_trip_preserves_strategy_fields(tmp_path: Path):
     from manufacturing_pipeline.classification.types import (
         DecisionTrace as DT,
     )
-    from manufacturing_pipeline.io.xml_writer import (
+    from manufacturing_pipeline.io.xml_writer import read_xml, write_xml
+    from manufacturing_pipeline.manifest import (
         AssemblyManifest,
         PartManifestEntry,
-        read_xml,
-        write_xml,
     )
     from manufacturing_pipeline.parsing.types import StepPart
 

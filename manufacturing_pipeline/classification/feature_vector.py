@@ -36,6 +36,11 @@ class FeatureVector:
     hole_density: float = 0.0
     hull_concavity: float = 0.0
     pocket_complexity: float = 0.0
+    # Fraction of total surface area carried by cylindrical faces. Round bars,
+    # turned/machined shafts and seamed pipe walls all run high here even when
+    # the cross-section is not constant enough for the matcher to lock onto a
+    # standard profile. Plates and freeform bspline bodies stay low.
+    cylindrical_pct: float = 0.0
 
     def as_dict(self) -> dict[str, object]:
         """Return the dict form ScoreClassifier expects. The classifier
@@ -52,6 +57,7 @@ class FeatureVector:
         """Construct from analyzer outputs (replaces _classifier_features)."""
         top1 = features.face_area_top[0] if features.face_area_top else 0.0
         bspline_pct = features.surface_pct.get("bspline", 0.0)
+        cylindrical_pct = features.surface_pct.get("cylindrical", 0.0)
         # A PARTIAL unfold (thickness variation, branching flanges, rolled or
         # folded seamed tubes) is still genuine sheet metal: the probe produced
         # a flat pattern, just not a fully clean one. Machined and freeform
@@ -104,6 +110,7 @@ class FeatureVector:
             hole_density=hole_density_norm,
             hull_concavity=hull_concavity,
             pocket_complexity=features.pocket_complexity,
+            cylindrical_pct=cylindrical_pct,
         )
 
 

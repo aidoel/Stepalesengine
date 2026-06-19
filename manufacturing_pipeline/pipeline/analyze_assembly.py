@@ -9,7 +9,7 @@ try/except and degrades to a sensible default. The only exceptions it raises
 are :class:`FileNotFoundError` (missing input path) and
 :class:`manufacturing_pipeline.parsing.types.StepParseError` (unreadable
 STEP file). All other failures end up as warnings on the
-:class:`AnalyzeResult` and/or ``classification.label == "uncertain"`` entries.
+:class:`AnalyzeReport` and/or ``classification.label == "uncertain"`` entries.
 """
 
 from __future__ import annotations
@@ -47,7 +47,8 @@ from ..geometry.types import (
 from ..geometry.unfold_probe import UnfoldProbe
 from ..io.dxf_writer import FlatPattern, write_dxf
 from ..io.pdf_writer import PartDrawingMeta, write_assembly_pdf, write_pdf
-from ..io.xml_writer import AssemblyManifest, PartManifestEntry, write_xml
+from ..io.xml_writer import write_xml
+from ..manifest import AssemblyManifest, PartManifestEntry
 from ..parsing.step_parser import parse_step
 from ..parsing.types import StepPart
 from ..pmi.extractor import extract_pmi
@@ -125,7 +126,7 @@ class AnalyzeOptions:
 
 
 @dataclass
-class AnalyzeResult:
+class AnalyzeReport:
     """Return value of :func:`analyze`.
 
     ``manifest`` is always present even when the file produced zero parts.
@@ -639,11 +640,11 @@ def _process_pair(
 
 
 def _finalise_cache_hit(
-    hit: AnalyzeResult,
+    hit: AnalyzeReport,
     out_dir: Path | None,
     parts_dir: Path | None,
     opts: AnalyzeOptions,
-) -> AnalyzeResult:
+) -> AnalyzeReport:
     """Materialise a cache hit on disk so the result is byte-for-byte
     interchangeable with a fresh run.
 
@@ -692,7 +693,7 @@ def _finalise_cache_hit(
     if opts.write_xml and out_dir is not None:
         manifest_path = write_xml(hit.manifest, out_dir / "manifest.xml")
 
-    return AnalyzeResult(
+    return AnalyzeReport(
         manifest=hit.manifest,
         manifest_path=manifest_path,
         dxf_paths=dxf_paths,
@@ -710,11 +711,11 @@ def _finalise_cache_hit(
 def analyze(
     path: str | Path,
     options: AnalyzeOptions | None = None,
-) -> AnalyzeResult:
+) -> AnalyzeReport:
     """End-to-end pipeline. Pure Python entry point - no console output.
 
     Logs via stdlib logging. Never raises on geometry errors; raises only
-    on missing file or unreadable STEP. Returns :class:`AnalyzeResult`.
+    on missing file or unreadable STEP. Returns :class:`AnalyzeReport`.
 
     Parameters
     ----------
@@ -911,7 +912,7 @@ def analyze(
     if opts.write_xml and out_dir is not None:
         manifest_path = write_xml(manifest, out_dir / "manifest.xml")
 
-    result = AnalyzeResult(
+    result = AnalyzeReport(
         manifest=manifest,
         manifest_path=manifest_path,
         dxf_paths=dxf_paths,
@@ -940,4 +941,4 @@ def analyze(
     return result
 
 
-__all__ = ["AnalyzeOptions", "AnalyzeResult", "analyze"]
+__all__ = ["AnalyzeOptions", "AnalyzeReport", "analyze"]

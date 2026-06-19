@@ -19,7 +19,6 @@ patterns that the walker is intentionally narrow about.
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from manufacturing_pipeline.cam.types import MachiningStrategy, Operation
@@ -43,6 +42,11 @@ from manufacturing_pipeline.io._xml_dataclass import (
     kv_writer,
     parse_element,
 )
+from manufacturing_pipeline.manifest import (
+    AssemblyManifest,
+    ManifestParseError,
+    PartManifestEntry,
+)
 from manufacturing_pipeline.parsing.types import StepPart
 from manufacturing_pipeline.pmi.types import (
     Datum,
@@ -54,40 +58,6 @@ from manufacturing_pipeline.pmi.types import (
 
 NAMESPACE = "https://stepalesengine.dev/manifest/1"
 _NS = f"{{{NAMESPACE}}}"
-
-
-class ManifestParseError(ValueError):
-    """Raised when an XML manifest cannot be parsed."""
-
-
-# ---------------------------------------------------------------------------
-# Public dataclasses
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class PartManifestEntry:
-    part: StepPart
-    classification: ClassificationResult
-    features: ManufacturingFeatures | None = None
-    profile_match: ProfileMatch | None = None
-    unfold: UnfoldResult | None = None
-    holes: HolePattern | None = None
-    quantity: int = 1
-    flat_dxf_path: str | None = None
-    pmi: PMIRecord | None = None
-    strategy: MachiningStrategy | None = None
-
-
-@dataclass
-class AssemblyManifest:
-    source_path: str
-    source_mtime: float
-    source_size: int
-    model_version: str
-    generated_at: str
-    parts: list[PartManifestEntry] = field(default_factory=list)
-    notes: str = ""
 
 
 # ---------------------------------------------------------------------------

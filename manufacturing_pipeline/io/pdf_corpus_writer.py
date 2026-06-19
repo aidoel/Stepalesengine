@@ -39,7 +39,7 @@ from reportlab.lib.pagesizes import A3, A4, landscape, letter, portrait
 from reportlab.pdfgen import canvas as _canvas
 
 if TYPE_CHECKING:
-    from manufacturing_pipeline.io.xml_writer import AssemblyManifest, PartManifestEntry
+    from manufacturing_pipeline.manifest import AssemblyManifest, PartManifestEntry
 
 _logger = logging.getLogger(__name__)
 

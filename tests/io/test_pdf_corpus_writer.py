@@ -37,7 +37,7 @@ from manufacturing_pipeline.io.pdf_corpus_writer import (
     CorpusPDFOptions,
     write_corpus_pdf,
 )
-from manufacturing_pipeline.io.xml_writer import AssemblyManifest, PartManifestEntry
+from manufacturing_pipeline.manifest import AssemblyManifest, PartManifestEntry
 from manufacturing_pipeline.parsing.types import StepPart
 from manufacturing_pipeline.pmi.types import (
     Datum,

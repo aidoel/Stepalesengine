@@ -32,7 +32,7 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
-    from .pipeline.analyze_assembly import AnalyzeResult
+    from .pipeline.analyze_assembly import AnalyzeReport
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class WatchOptions:
         ``root`` itself fire.
     on_done:
         Optional callback invoked after every successful analyze. Receives
-        ``(path, AnalyzeResult)``. Exceptions inside the callback are caught
+        ``(path, AnalyzeReport)``. Exceptions inside the callback are caught
         and logged so the watcher stays up.
     """
 
@@ -66,7 +66,7 @@ class WatchOptions:
     debounce_s: float = 1.0
     initial_scan: bool = False
     recursive: bool = True
-    on_done: Callable[[Path, AnalyzeResult], None] | None = None
+    on_done: Callable[[Path, AnalyzeReport], None] | None = None
 
 
 class _StepFileHandler(FileSystemEventHandler):
@@ -74,7 +74,7 @@ class _StepFileHandler(FileSystemEventHandler):
 
     def __init__(
         self,
-        analyze_fn: Callable[[Path], AnalyzeResult],
+        analyze_fn: Callable[[Path], AnalyzeReport],
         options: WatchOptions,
     ) -> None:
         super().__init__()
@@ -156,7 +156,7 @@ def _existing_matches(root: Path, exts: tuple[str, ...], recursive: bool) -> lis
 
 def watch_directory(
     root: Path,
-    analyze_fn: Callable[[Path], AnalyzeResult],
+    analyze_fn: Callable[[Path], AnalyzeReport],
     options: WatchOptions | None = None,
     *,
     stop_event: Event | None = None,

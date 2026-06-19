@@ -19,13 +19,11 @@ from manufacturing_pipeline.geometry.types import (
     UnfoldResult,
     UnfoldStatus,
 )
-from manufacturing_pipeline.io.xml_writer import (
-    NAMESPACE,
+from manufacturing_pipeline.io.xml_writer import NAMESPACE, read_xml, write_xml
+from manufacturing_pipeline.manifest import (
     AssemblyManifest,
     ManifestParseError,
     PartManifestEntry,
-    read_xml,
-    write_xml,
 )
 from manufacturing_pipeline.parsing.types import StepPart
 
